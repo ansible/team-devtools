@@ -9,12 +9,27 @@ on:
 
 jobs:
   labels:
-    # Ensure that one of the required labels is present and none of the undesired is absent
-    # See https://github.com/jesusvasquez333/verify-pr-label-action
     runs-on: ubuntu-latest
     steps:
+
       - name: Checkout
         uses: actions/checkout@v2
+
+      # Use of release drafter action for adding semantic labels based on
+      # either title, body or source branch name. We ignore potential failure
+      # of this step.
+      - uses: release-drafter/release-drafter@v5
+        with:
+          # we only want to use the auto-labeler bits:
+          disable-autolabeler: false
+          disable-releaser: true
+        # config from .github/release-drafter.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      # Ensure that one of the required labels is present and none of the undesired is absent
+      # See https://github.com/jesusvasquez333/verify-pr-label-action
       - name: Verify PR label action
         uses: jesusvasquez333/verify-pr-label-action@v1.4.0
         with:
