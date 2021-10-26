@@ -73,5 +73,3 @@ autolabeler:
       - '/type: deprecat(ed|ion)/i'
 template: |
   $CHANGES
-
-  Kudos goes to: $CONTRIBUTORS
