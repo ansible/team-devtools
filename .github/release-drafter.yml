@@ -18,6 +18,10 @@ categories:
       - 'deprecated'  # fef2c0
 exclude-labels:
   - 'skip-changelog'
+replacers:
+  # https://github.com/release-drafter/release-drafter/issues/569#issuecomment-645942909
+  - search: '/(?:and )?@(pre-commit-ci|dependabot)(?:\[bot\])?,?/g'
+    replace: ''
 version-resolver:
   major:
     labels:
@@ -35,6 +39,7 @@ version-resolver:
       - 'deprecated'
   default: patch
 exclude-contributors:
+  - 'dependabot'
   - 'pre-commit-ci'
 autolabeler:
   - label: 'skip-changelog'
