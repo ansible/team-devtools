@@ -10,6 +10,16 @@ on:
         description: Matrix ROOM ID
         type: string
         default: '!aqMMMrOxRZzVDkUlWF:matrix.org'  # ansible-devtools
+  workflow_dispatch:
+    inputs:
+      message:
+        description: Message to be posted
+        type: string
+        default: Hello!
+      matrix_room_id:
+        description: Matrix ROOM ID
+        type: string
+        default: '!aqMMMrOxRZzVDkUlWF:matrix.org'  # ansible-devtools
 
 jobs:
   send-message:
