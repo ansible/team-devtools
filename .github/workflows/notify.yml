@@ -1,3 +1,4 @@
+name: notify
 on:
   workflow_call:
     # https://docs.github.com/en/actions/learn-github-actions/workflow-syntax-for-github-actions#onworkflow_callinputs
@@ -27,11 +28,21 @@ jobs:
     name: Send message via Matrix
     environment: notify
     steps:
-    - name: Send message to test channel
-      id: matrix-chat-message
-      uses: fadenb/matrix-chat-message@v0.0.6
+    # - name: Send message to test channel
+    #   id: matrix-chat-message
+    #   uses: fadenb/matrix-chat-message@v0.0.6
+    #   with:
+    #     homeserver: 'matrix.org'
+    #     token: ${{ secrets.MATRIX_TOKEN }}
+    #     channel: ${{ inputs.matrix_room_id }}
+    #     message: ${{ inputs.message }}
+
+    - name: send message
+      uses: s3krit/matrix-message-action@v0.0.3
       with:
-        homeserver: 'matrix.org'
-        token: ${{ secrets.MATRIX_TOKEN }}
-        channel: ${{ inputs.matrix_room_id }}
-        message: ${{ inputs.message }}
+        # room_id: ${{ inputs.matrix_room_id }}
+        room_id: '!aqMMMrOxRZzVDkUlWF:matrix.org'
+        access_token: ${{ secrets.MATRIX_TOKEN }}
+        message: "Hello!"
+        # message: ${{ inputs.message }}
+        server: "matrix.org"
