@@ -1,0 +1,27 @@
+on:
+  workflow_call:
+    # https://docs.github.com/en/actions/learn-github-actions/workflow-syntax-for-github-actions#onworkflow_callinputs
+    inputs:
+      message:
+        description: Message to be posted
+        type: string
+        default: Hello!
+      matrix_room_id:
+        description: Matrix ROOM ID
+        type: string
+        default: '!aqMMMrOxRZzVDkUlWF:matrix.org'  # ansible-devtools
+
+jobs:
+  send-message:
+    runs-on: ubuntu-latest
+    name: Send message via Matrix
+    environment: notify
+    steps:
+    - name: Send message to test channel
+      id: matrix-chat-message
+      uses: fadenb/matrix-chat-message@v0.0.6
+      with:
+        homeserver: 'matrix.org'
+        token: ${{ secrets.MATRIX_TOKEN }}
+        channel: ${{ inputs.matrix_room_id }}
+        message: ${{ inputs.message }}
