@@ -49,6 +49,7 @@ autolabeler:
       - '/chore\/.+/'
     title:
       - '/chore/i'
+      - '/pre-commit autoupdate/'
     body:
       - '/type: chore/i'
   - label: 'bug'
