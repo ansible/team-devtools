@@ -43,6 +43,8 @@ exclude-contributors:
   - 'pre-commit-ci'
 autolabeler:
   - label: 'skip-changelog'
+    files:
+      - '.pre-commit-config.yaml'
     branch:
       - '/chore\/.+/'
     title:
