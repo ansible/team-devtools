@@ -5,7 +5,7 @@ name: ack
 on:
   pull_request_target:
     types: [opened, labeled, unlabeled, synchronize]
-  workflow_call: # allows reuse of this workflow from other devtools repos
+  workflow_call:  # allows reuse of this workflow from other devtools repos
 
 jobs:
   labels:

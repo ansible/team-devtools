@@ -1,0 +1,12 @@
+extends: default
+rules:
+  # caused false-positives with file sequence items being commented
+  # https://github.com/adrienverge/yamllint/issues/384
+  comments-indentation: disable
+  # ansible stnadards do require --- prefix
+  document-start: disable
+  # we need to decide if we want to impose one or not
+  line-length: disable
+  truthy:
+    # "on:" is perfectly valid key on github actions:
+    check-keys: false

@@ -28,21 +28,21 @@ jobs:
     name: Send message via Matrix
     environment: notify
     steps:
-    # - name: Send message to test channel
-    #   id: matrix-chat-message
-    #   uses: fadenb/matrix-chat-message@v0.0.6
-    #   with:
-    #     homeserver: 'matrix.org'
-    #     token: ${{ secrets.MATRIX_TOKEN }}
-    #     channel: ${{ inputs.matrix_room_id }}
-    #     message: ${{ inputs.message }}
+      # - name: Send message to test channel
+      #   id: matrix-chat-message
+      #   uses: fadenb/matrix-chat-message@v0.0.6
+      #   with:
+      #     homeserver: 'matrix.org'
+      #     token: ${{ secrets.MATRIX_TOKEN }}
+      #     channel: ${{ inputs.matrix_room_id }}
+      #     message: ${{ inputs.message }}
 
-    - name: send message
-      uses: s3krit/matrix-message-action@v0.0.3
-      with:
-        # room_id: ${{ inputs.matrix_room_id }}
-        room_id: '!aqMMMrOxRZzVDkUlWF:matrix.org'
-        access_token: ${{ secrets.MATRIX_TOKEN }}
-        message: "Hello!"
-        # message: ${{ inputs.message }}
-        server: "matrix.org"
+      - name: send message
+        uses: s3krit/matrix-message-action@v0.0.3
+        with:
+          # room_id: ${{ inputs.matrix_room_id }}
+          room_id: '!aqMMMrOxRZzVDkUlWF:matrix.org'
+          access_token: ${{ secrets.MATRIX_TOKEN }}
+          message: "Hello!"
+          # message: ${{ inputs.message }}
+          server: "matrix.org"
