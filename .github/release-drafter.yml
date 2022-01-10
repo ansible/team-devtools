@@ -46,9 +46,9 @@ autolabeler:
     files:
       - '.pre-commit-config.yaml'
     branch:
-      - '/chore\/.+/'
+      - '/(chore|ci|gha|test|zuul)\/.+/'
     title:
-      - '/chore/i'
+      - '/(chore|ci|gha|test|zuul):/i'
       - '/pre-commit autoupdate/'
     body:
       - '/type: chore/i'
