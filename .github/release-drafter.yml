@@ -1,7 +1,7 @@
 # Format and labels used by Ansible DevTools projects
 name-template: 'v$RESOLVED_VERSION'
 tag-template: 'v$RESOLVED_VERSION'
-# Use '-' instead of '*' for unordered list to match prettier settings
+# Use '-' instead of '*' for unordered list to match prettier behavior
 change-template: '- $TITLE (#$NUMBER) @$AUTHOR'
 categories:
   - title: 'Major Changes'
