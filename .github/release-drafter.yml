@@ -1,6 +1,8 @@
 # Format and labels used by Ansible DevTools projects
 name-template: 'v$RESOLVED_VERSION'
 tag-template: 'v$RESOLVED_VERSION'
+# Use '-' instead of '*' for unordered list to match prettier behavior
+change-template: '- $TITLE (#$NUMBER) @$AUTHOR'
 categories:
   - title: 'Major Changes'
     labels:
@@ -46,31 +48,30 @@ autolabeler:
     files:
       - '.pre-commit-config.yaml'
     branch:
-      - '/chore\/.+/'
+      - '/^(chore|ci|gha|test|zuul)\/.+/'
     title:
-      - '/chore/i'
+      - '/^(chore|ci|gha|test|zuul):/i'
+      - '/pre-commit autoupdate/'
     body:
       - '/type: chore/i'
   - label: 'bug'
-    branch:
-      - '/fix\/.+/'
     title:
-      - '/fix/i'
+      - '/^fix/i'
     body:
       - '/type: fix/i'
   - label: 'enhancement'
     title:
-      - '/(enhance|improve)/i'
+      - '/^(enhance|improve)/i'
     body:
       - '/type: enhancement/i'
   - label: 'feature'
     title:
-      - '/feat/i'
+      - '/^feat/i'
     body:
       - '/type: feature/i'
   - label: 'dreprecated'
     title:
-      - '/deprecat(ed|ion)/i'
+      - '/^deprecat(ed|ion)/i'
     body:
       - '/type: deprecat(ed|ion)/i'
 template: |
