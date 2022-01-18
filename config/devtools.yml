@@ -1,0 +1,36 @@
+# This file documents repositories that are nurtured by Ansible DevTools team.
+# Not all these repos are fully managed or maintained by the team.
+# We aim to use this file when performing maintenance and audit.
+repos:
+  - ansible-community/ansible-compat
+  - ansible-community/ansible-lint
+  - ansible-community/devtools
+  - ansible-community/molecule
+  - ansible-community/molecule-alicloud
+  - ansible-community/molecule-azure
+  - ansible-community/molecule-containers
+  - ansible-community/molecule-digitalocean
+  - ansible-community/molecule-docker
+  - ansible-community/molecule-ec2
+  - ansible-community/molecule-gce
+  - ansible-community/molecule-goss
+  - ansible-community/molecule-hetznercloud
+  - ansible-community/molecule-inspec
+  - ansible-community/molecule-libvirt
+  - ansible-community/molecule-linode
+  - ansible-community/molecule-lxd
+  - ansible-community/molecule-openstack
+  - ansible-community/molecule-podman
+  - ansible-community/molecule-testinfra
+  - ansible-community/molecule-vagrant
+  - ansible-community/molecule-vmware
+  - ansible-community/protogen  # deprecated?
+  - ansible-community/schemas
+  - ansible-community/toolset  # deprecated
+  - ansible/ansible-language-server
+  - ansible/ansible-navigator
+  - ansible/creator-ee
+  - ansible/vscode-ansible
+  - pycontribs/subprocess-tee
+  - pycontribs/enrich
+  - pycontribs/selinux
