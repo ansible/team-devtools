@@ -25,6 +25,7 @@ repos:
   - ansible-community/molecule-vagrant
   - ansible-community/molecule-vmware
   - ansible-community/protogen  # deprecated?
+  - ansible-community/role2collection
   - ansible-community/schemas
   - ansible-community/toolset  # deprecated
   - ansible/ansible-language-server
