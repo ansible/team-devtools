@@ -7,7 +7,15 @@ on:
       pypi:
         description: Publish to PyPI registry
         default: false
+        required: false
         type: boolean
+    secrets:
+      pypi_password:
+        description: 'API token for pypi.org'
+        required: true
+      testpypi_password:
+        description: 'API token for test.pypi.org'
+        required: true
 
 jobs:
   pypi:
