@@ -11,6 +11,10 @@ on:
       - 'releases/**'
       - 'stable/**'
   workflow_call:  # allows reuse of this workflow from other devtools repos
+    secrets:
+      GITHUB_TOKEN:
+        description: 'Github token needed for access to release drafts'
+        required: true
 
 jobs:
   update_release_draft:
