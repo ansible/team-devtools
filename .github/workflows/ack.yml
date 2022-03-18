@@ -38,3 +38,9 @@ jobs:
           invalid-labels: 'help wanted, invalid, feedback-needed, incomplete'
           pull-request-number: '${{ github.event.pull_request.number }}'
           disable-reviews: true
+
+      - name: Update release notes if this is already merged
+        if: github.event.pull_request.merged == true
+        uses: release-drafter/release-drafter@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
