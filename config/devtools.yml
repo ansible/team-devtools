@@ -3,7 +3,7 @@
 # We aim to use this file when performing maintenance and audit.
 repos:
   - ansible-community/ansible-compat
-  - ansible-community/ansible-lint
+  - ansible-community/ansible-lint-action
   - ansible-community/devtools
   - ansible-community/molecule
   - ansible-community/molecule-alicloud
@@ -27,11 +27,12 @@ repos:
   - ansible-community/protogen  # deprecated?
   - ansible-community/role2collection
   - ansible-community/schemas
-  - ansible-community/toolset  # deprecated
+  - ansible-community/sphinx_ansible_theme
   - ansible/ansible-language-server
+  - ansible/ansible-lint
   - ansible/ansible-navigator
   - ansible/creator-ee
   - ansible/vscode-ansible
-  - pycontribs/subprocess-tee
   - pycontribs/enrich
   - pycontribs/selinux
+  - pycontribs/subprocess-tee
