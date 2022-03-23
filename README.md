@@ -1,7 +1,7 @@
 # devtools
 [POC] Shared practices, workflows and decisions impacting Ansible devtools projects
 
-## Primarly devtools project dependencies
+## Main devtools project dependencies
 
 ```mermaid
   graph LR;
