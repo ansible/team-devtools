@@ -20,7 +20,7 @@ graph LR;
   ansible-language-server --> creator-ee;
 
   molecule-podman --> molecule;
-  ansible-language-server --> schemas;
+  ansible-language-server --> schemas:::typescriptclass;
   ansible-lint --> schemas;
   ansible-navigator --> ansible-lint;
   ansible-navigator --> creator-ee;
