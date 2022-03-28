@@ -48,16 +48,16 @@ graph LR;
   molecule-containers -.-> molecule-podman;
   molecule-containers -.-> molecule-docker;
   molecule-vagrant --> molecule;
-  
+
   molecule-libvirt --> molecule;
   molecule-lxd --> molecule;
-  
-  
+
+
   pytest-molecule --> molecule;
   tox-ansible -.-> molecule;
   tox-ansible -.-> ansible-test;
-  
-  
+
+
  click molecule href "https://github.com/ansible-community/molecule"
  click molecule-podman href "https://github.com/ansible-community/molecule-podman"
 ```
