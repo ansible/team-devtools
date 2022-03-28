@@ -36,3 +36,28 @@ graph LR;
  click ansible-language-server href "https://github.com/ansible/ansible-language-server"
  click vscode-ansible href "https://github.com/ansible/vscode-ansible"
 ```
+
+## Molecule ecosystem
+
+
+```mermaid
+graph LR;
+
+  molecule-podman --> molecule;
+  molecule-docker --> molecule;
+  molecule-containers -.-> molecule-podman;
+  molecule-containers -.-> molecule-docker;
+  molecule-vagrant --> molecule;
+  
+  molecule-libvirt --> molecule;
+  molecule-lxd --> molecule;
+  
+  
+  pytest-molecule --> molecule;
+  tox-ansible -.-> molecule;
+  tox-ansible -.-> ansible-test;
+  
+  
+ click molecule href "https://github.com/ansible-community/molecule"
+ click molecule-podman href "https://github.com/ansible-community/molecule-podman"
+```
