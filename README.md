@@ -8,6 +8,7 @@ graph LR;
 
   classDef typescriptclass fill:#f96,stroke:#f96;
   classDef containerclass fill:#fbb,stroke:#fbb;
+  classDef thirdpartyclass fill:#9f6,stroke:#9f6;
 
   ansible-lint-action --> creator-ee;
   creator-ee --> ansible-lint;
@@ -16,11 +17,12 @@ graph LR;
   molecule --> ansible-compat;
   creator-ee:::containerclass --> molecule;
   vscode-ansible:::typescriptclass --> ansible-language-server;
+vscode-ansible:::typescriptclass --> vscode-yaml;
   ansible-language-server:::typescriptclass --> ansible-lint;
   ansible-language-server --> creator-ee;
 
   molecule-podman --> molecule;
-  ansible-language-server --> schemas:::typescriptclass;
+  vscode-yaml --> schemas:::typescriptclass;
   ansible-lint --> schemas;
   ansible-navigator --> ansible-lint;
   ansible-navigator --> creator-ee;
@@ -35,4 +37,8 @@ graph LR;
  click ansible-navigator href "https://github.com/ansible/ansible-navigator"
  click ansible-language-server href "https://github.com/ansible/ansible-language-server"
  click vscode-ansible href "https://github.com/ansible/vscode-ansible"
+ click vscode-yaml href "https://github.com/redhat-developer/vscode-yaml"
 ```
+
+Note:
+1. [vscode-yaml](https://github.com/redhat-developer/vscode-yaml) project is not directly supported by Ansible devtools team.
