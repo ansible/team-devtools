@@ -6,9 +6,9 @@
 ```mermaid
 graph LR;
 
-  classDef typescriptclass fill:#f96,stroke:#f96;
-  classDef containerclass fill:#fbb,stroke:#fbb;
-  classDef thirdpartyclass fill:#9f6,stroke:#9f6;
+  classDef typescriptclass fill:#f96,stroke:#f96,color:#333;
+  classDef containerclass fill:#fbb,stroke:#fbb,color:#333;
+  classDef thirdpartyclass fill:#9f6,stroke:#9f6,color:#333;
 
   ansible-lint-action --> creator-ee;
   creator-ee --> ansible-lint;
