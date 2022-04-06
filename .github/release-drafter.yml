@@ -48,8 +48,9 @@ autolabeler:
   - label: 'skip-changelog'
     files:
       - '.pre-commit-config.yaml'
-    branch:
-      - '/^(chore|ci|gha|test|zuul)\/.+/'
+    # disabled due to https://github.com/release-drafter/release-drafter/issues/1114
+    # branch:
+    #   - '/^(chore|ci|gha|test|zuul)\/.+/'
     title:
       - '/^(chore|ci|gha|test|zuul):/i'
       - '/pre-commit autoupdate/'
