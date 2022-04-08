@@ -61,3 +61,27 @@ Note:
 1. [vscode-yaml](https://github.com/redhat-developer/vscode-yaml) project is not directly supported by Ansible devtools team.
 2. dotted lines are either test, build or optional requirements
 3. 📘 python, 📙 typescript, 📕 ansible collection, 📗 container 📒 github action
+
+## Molecule ecosystem
+
+```mermaid
+graph LR;
+
+  molecule-podman --> molecule;
+  molecule-docker --> molecule;
+  molecule-containers -.-> molecule-podman;
+  molecule-containers -.-> molecule-docker;
+  molecule-vagrant --> molecule;
+
+  molecule-libvirt --> molecule;
+  molecule-lxd --> molecule;
+
+
+  pytest-molecule --> molecule;
+  tox-ansible -.-> molecule;
+  tox-ansible -.-> ansible-test;
+
+
+ click molecule href "https://github.com/ansible-community/molecule"
+ click molecule-podman href "https://github.com/ansible-community/molecule-podman"
+```
