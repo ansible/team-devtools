@@ -1,33 +1,50 @@
 # devtools
-[POC] Shared practices, workflows and decisions impacting Ansible devtools projects
+
+This repository is used to share practices, workflows and decisions affecting projects maintained by Ansible DevTools team.
 
 ## Main devtools project dependencies
 
 ```mermaid
 graph LR;
 
-  classDef typescriptclass fill:#f96,stroke:#f96,color:#333;
-  classDef containerclass fill:#fbb,stroke:#fbb,color:#333;
+  classDef tsclass fill:#f90,stroke:#f90,color:#333;
+  classDef containerclass fill:#060,stroke:#060,color:#fff;
   classDef thirdpartyclass fill:#9f6,stroke:#9f6,color:#333;
+  classDef collectionclass fill:#c00,stroke:#c00,color:#fff;
+  classDef pyclass fill:#09f,stroke:#09f,color:#fff;
+  classDef ghaclass fill:#ee0,stroke:#ee0,color:#000;
+  
 
   ansible-lint-action --> creator-ee;
   creator-ee --> ansible-lint;
 
   ansible-lint --> ansible-compat;
+  ansible-compat -.-> community.molecule;
   molecule --> ansible-compat;
+  molecule -.-> community.molecule:::collectionclass;
   creator-ee:::containerclass --> molecule;
-  vscode-ansible:::typescriptclass --> ansible-language-server;
-vscode-ansible:::typescriptclass --> vscode-yaml;
-  ansible-language-server:::typescriptclass --> ansible-lint;
-  ansible-language-server --> creator-ee;
+  vscode-ansible:::tsclass --> ansible-language-server;
+vscode-ansible:::tsclass --> vscode-yaml;
+  ansible-language-server:::typescriptclass -.-> ansible-lint;
+  ansible-language-server -.-> creator-ee;
 
   molecule-podman --> molecule;
   vscode-yaml --> schemas:::typescriptclass;
-  ansible-lint --> schemas;
-  ansible-navigator --> ansible-lint;
-  ansible-navigator --> creator-ee;
+  ansible-lint -.-> schemas;
+  ansible-navigator -.-> ansible-lint;
+  ansible-navigator -.-> creator-ee;
 
+ ansible-lint:::pyclass;
+ ansible-compat:::pyclass;
+ molecule:::pyclass;
+ molecule-podman:::pyclass;
+ ansible-navigator:::pyclass;
+ ansible-language-server:::tsclass;
+ vscode-yaml:::tsclass;
+ schemas:::tsclass;
+ ansible-lint-action:::ghaclass;
  click ansible-lint-action href "https://github.com/ansible-community/ansible-lint-action"
+ click community.molecule "https://github.com/ansible-collections/community.molecule"
  click molecule href "https://github.com/ansible-community/molecule"
  click molecule-podman href "https://github.com/ansible-community/molecule-podman"
  click schemas href "https://github.com/ansible-community/schemas"
@@ -42,3 +59,5 @@ vscode-ansible:::typescriptclass --> vscode-yaml;
 
 Note:
 1. [vscode-yaml](https://github.com/redhat-developer/vscode-yaml) project is not directly supported by Ansible devtools team.
+2. dotted lines are either test, build or optional requirements
+3. 📘 python, 📙 typescript, 📕 ansible collection, 📗 container 📒 github action
