@@ -13,7 +13,7 @@ graph LR;
   classDef collectionclass fill:#c00,stroke:#c00,color:#fff;
   classDef pyclass fill:#09f,stroke:#09f,color:#fff;
   classDef ghaclass fill:#ee0,stroke:#ee0,color:#000;
-  
+
 
   ansible-lint-action --> creator-ee;
   creator-ee --> ansible-lint;
