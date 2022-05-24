@@ -52,17 +52,15 @@ autolabeler:
       - '/type: chore/i'
   - label: 'bug'
     title:
-      - '/^fix/i'
+      - '/^fix: /i'
     body:
       - '/type: fix/i'
   - label: 'enhancement'
-    title:
-      - '/^(enhance|improve)/i'
     body:
       - '/type: enhancement/i'
   - label: 'feature'
     title:
-      - '/^feat/i'
+      - '/^feat: /i'
     body:
       - '/type: feature/i'
   - label: 'dreprecated'
