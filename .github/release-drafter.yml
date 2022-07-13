@@ -1,74 +1,71 @@
 # Format and labels used by Ansible DevTools projects
-name-template: 'v$RESOLVED_VERSION'
-tag-template: 'v$RESOLVED_VERSION'
+name-template: "v$RESOLVED_VERSION"
+tag-template: "v$RESOLVED_VERSION"
 # Use '-' instead of '*' for unordered list to match prettier behavior
-change-template: '- $TITLE (#$NUMBER) @$AUTHOR'
+change-template: "- $TITLE (#$NUMBER) @$AUTHOR"
 categories:
-  - title: 'Major Changes'
+  - title: "Major Changes"
     labels:
-      - 'major'  # c6476b
-  - title: 'Minor Changes'
+      - "major" # c6476b
+  - title: "Minor Changes"
     labels:
-      - 'feature'  # 006b75
-      - 'enhancement'  # ededed
-      - 'refactoring'
-  - title: 'Bugfixes'
+      - "feature" # 006b75
+      - "enhancement" # ededed
+      - "refactoring"
+  - title: "Bugfixes"
     labels:
-      - 'bug'  # fbca04
-  - title: 'Deprecations'
+      - "bug" # fbca04
+  - title: "Deprecations"
     labels:
-      - 'deprecated'  # fef2c0
+      - "deprecated" # fef2c0
 exclude-labels:
-  - 'bot:chronographer:skip'
-  - 'skip-changelog'
+  - "bot:chronographer:skip"
+  - "skip-changelog"
 replacers:
   # https://github.com/release-drafter/release-drafter/issues/569#issuecomment-645942909
   - search: '/(?:and )?@(pre-commit-ci|dependabot)(?:\[bot\])?,?/g'
-    replace: ''
+    replace: ""
 version-resolver:
   major:
     labels:
-      - 'major'
+      - "major"
   minor:
     labels:
-      - 'minor'
-      - 'feature'
-      - 'enhancement'
-      - 'refactoring'
+      - "minor"
+      - "feature"
+      - "enhancement"
+      - "refactoring"
   patch:
     labels:
-      - 'patch'
-      - 'bug'
-      - 'deprecated'
+      - "patch"
+      - "bug"
+      - "deprecated"
   default: patch
 exclude-contributors:
-  - 'dependabot'
-  - 'pre-commit-ci'
+  - "dependabot"
+  - "pre-commit-ci"
 autolabeler:
-  - label: 'skip-changelog'
+  - label: "skip-changelog"
     title:
-      - '/pre-commit autoupdate/'
+      - "/pre-commit autoupdate/"
     body:
-      - '/type: chore/i'
-  - label: 'bug'
+      - "/type: chore/i"
+    branch:
+      - "/^chore/i"
+  - label: "bug"
+    branch:
+      - "/^fix/i"
+    body:
+      - "/type: fix/i"
+  - label: "feature"
     title:
-      - '/^fix/i'
+      - "/^(feat|feature)/i"
     body:
-      - '/type: fix/i'
-  - label: 'enhancement'
+      - "/type: feature/i"
+  - label: "deprecated"
     title:
-      - '/^(enhance|improve)/i'
+      - "/^deprecat(ed|ion)/i"
     body:
-      - '/type: enhancement/i'
-  - label: 'feature'
-    title:
-      - '/^feat/i'
-    body:
-      - '/type: feature/i'
-  - label: 'dreprecated'
-    title:
-      - '/^deprecat(ed|ion)/i'
-    body:
-      - '/type: deprecat(ed|ion)/i'
+      - "/type: deprecat(ed|ion)/i"
 template: |
   $CHANGES
