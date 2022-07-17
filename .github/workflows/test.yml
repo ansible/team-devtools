@@ -1,0 +1,26 @@
+name: test
+on:
+  pull_request:
+jobs:
+  # See https://michaelheap.com/dynamic-matrix-generation-github-actions/
+  pre:
+    runs-on: ubuntu-latest
+    steps:
+      - id: set-matrix
+        run: >
+          echo "::set-output name=matrix-include::$(
+            curl --silent https://raw.githubusercontent.com/ansible/devtools/main/config/matrix.yml |
+            yq -o json '.profiles.py-project'
+          )"
+    outputs:
+      matrix-include: ${{ steps.set-matrix.outputs.matrix-include }}
+  test:
+    needs: pre
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runs-on || 'ubuntu-latest' }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include: ${{ fromJson(needs.pre.outputs.matrix-include) }}
+    steps:
+      - run: echo 123
