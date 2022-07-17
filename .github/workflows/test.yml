@@ -1,0 +1,33 @@
+name: test
+on:
+  pull_request:
+jobs:
+  # See https://michaelheap.com/dynamic-matrix-generation-github-actions/
+  pre:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix-include: ${{ steps.set-matrix.outputs.matrix-include }}
+    steps:
+      - id: set-matrix
+        run: echo "::set-output name=matrix-include::$(curl --silent https://raw.githubusercontent.com/ansible/devtools/main/config/matrix.yml | yq -o json -I=0 '.profiles.py-project')"
+  test:
+    needs: pre
+    name: ${{ matrix.name || matrix.tox_env }}
+    runs-on: ${{ matrix.runs-on || 'ubuntu-latest' }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include: ${{ fromJson(needs.pre.outputs.matrix-include) }}
+    steps:
+      - run: echo 123
+
+  check: # This job does nothing and is only used for the branch protection
+    if: always()
+    needs:
+      - test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Decide whether the needed jobs succeeded or failed
+        uses: re-actors/alls-green@release/v1
+        with:
+          jobs: ${{ toJSON(needs) }}
