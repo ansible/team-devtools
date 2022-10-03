@@ -18,7 +18,9 @@ jobs:
       # Use of release drafter action for adding semantic labels based on
       # either title, body or source branch name. We ignore potential failure
       # of this step.
-      - uses: release-drafter/release-drafter@v5
+      - uses: paperless-ngx/release-drafter@master
+        # Temporary use fork until https://github.com/release-drafter/release-drafter/pull/1240 fix is released
+        # uses: release-drafter/release-drafter@v5
         with:
           # we only want to use the auto-labeler bits:
           disable-autolabeler: false
