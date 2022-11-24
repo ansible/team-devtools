@@ -1,5 +1,7 @@
 name: notify
 on:
+  discussion_comment:
+    types: [created, transferred]
   workflow_call:
     # https://docs.github.com/en/actions/learn-github-actions/workflow-syntax-for-github-actions#onworkflow_callinputs
     inputs:
@@ -25,6 +27,7 @@ on:
 jobs:
   send-message:
     runs-on: ubuntu-latest
+    if: ${{ github.event.action == 'created' }}
     name: Send message via Matrix
     environment: notify
     steps:
@@ -40,9 +43,11 @@ jobs:
       - name: send message
         uses: s3krit/matrix-message-action@v0.0.3
         with:
-          # room_id: ${{ inputs.matrix_room_id }}
-          room_id: '!aqMMMrOxRZzVDkUlWF:matrix.org'
+          room_id: '!aqMMMrOxRZzVDkUlWF:matrix.org'  # ansible-devtools
           access_token: ${{ secrets.MATRIX_TOKEN }}
-          message: "Hello!"
-          # message: ${{ inputs.message }}
-          server: "matrix.org"
+          # https://doc.matrix.tu-dresden.de/en/messaging/formatting/
+          message: >
+            💬 [${{ github.event.discussion.title }}](${{ github.event.discussion.html_url }})
+            was posted in _${{ github.event.discussion.category.slug }}_
+            by [${{ github.event.discussion.user.html_url }}](${{ github.event.discussion.user.login }})
+          server: matrix.org
