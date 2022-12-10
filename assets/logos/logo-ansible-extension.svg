@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 256 256" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+    <g transform="matrix(0.901227,0,0,0.901227,-307.122,0.240186)">
+        <g id="ansible-extension">
+            <g id="redhat-extension" transform="matrix(1.32994,0,0,1.32994,279.329,-61.6128)">
+                <path d="M259.793,152.92C259.793,211.505 211.585,259.713 153,259.713C94.415,259.713 46.207,211.505 46.207,152.92C46.207,94.335 94.415,46.127 153,46.127L153.006,46.127C211.587,46.127 259.793,94.333 259.793,152.914L259.793,152.92" style="fill:url(#_Linear1);fill-rule:nonzero;"/>
+            </g>
+            <g id="naked-a" transform="matrix(1.49977,0,0,1.49977,310.936,-340.565)">
+                <path d="M159.8,359.1L122,268.3C121.1,265.9 118.8,264.2 116.2,264.3C113.5,264.2 111.1,265.9 110.2,268.3L68.9,367.8L83.1,367.8L99.4,326.8L148.3,366.3C149.7,367.7 151.6,368.5 153.5,368.6C157.2,368.7 160.3,365.8 160.4,362L160.4,361.8C160.3,360.9 160.1,360 159.8,359.1ZM116.3,284.7L140.8,345.2L103.8,316L116.3,284.7Z" style="fill:white;fill-rule:nonzero;"/>
+            </g>
+        </g>
+    </g>
+    <defs>
+        <linearGradient id="_Linear1" x1="0" y1="0" x2="1" y2="0" gradientUnits="userSpaceOnUse" gradientTransform="matrix(1,1,-1,1,153,153)"><stop offset="0" style="stop-color:rgb(215,30,0);stop-opacity:1"/><stop offset="1" style="stop-color:rgb(194,25,1);stop-opacity:1"/></linearGradient>
+    </defs>
+</svg>
