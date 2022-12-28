@@ -85,3 +85,7 @@ graph LR;
  click molecule href "https://github.com/ansible-community/molecule"
  click molecule-podman href "https://github.com/ansible-community/molecule-podman"
 ```
+
+## Devtools projects debug guide
+
+* [Debugging Ansible Navigator with VSCode](https://github.com/shatakshiiii/debuggingNavigator/blob/main/README.md)
