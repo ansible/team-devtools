@@ -47,7 +47,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Auto-approve pull-requests made by dependabot[bot]
+      - name: Auto-approve pull-requests made by safe bot accounts
         # https://github.com/marketplace/actions/auto-approve
-        if: github.actor == 'dependabot[bot]'
+        if: contains(fromJson('["dependabot[bot]", "pre-commit-ci[bot]"]'), github.actor)
         uses: hmarr/auto-approve-action@v3
