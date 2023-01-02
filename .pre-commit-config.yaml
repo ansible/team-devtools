@@ -1,7 +1,7 @@
 ---
 repos:
   - repo: https://github.com/PyCQA/doc8
-    rev: 'v1.0.0'
+    rev: 'v1.1.1'
     hooks:
       - id: doc8
   - repo: https://github.com/codespell-project/codespell
