@@ -47,7 +47,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Auto-approve pull-requests made by safe bot accounts
+      - name: Auto-approve pull-requests made by approved bots
         # https://github.com/marketplace/actions/auto-approve
         if: contains(fromJson('["dependabot[bot]", "pre-commit-ci[bot]"]'), github.actor)
         uses: hmarr/auto-approve-action@v3
+
+      - name: Enable auto-merge on changes made by approved bots
+        if: contains(fromJson('["dependabot[bot]", "pre-commit-ci[bot]"]'), github.actor)
+        uses: alexwilson/enable-github-automerge-action@main
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
