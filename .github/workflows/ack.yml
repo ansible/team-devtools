@@ -10,6 +10,8 @@ on:
 jobs:
   labels:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     steps:
 
       - name: Checkout
@@ -44,3 +46,8 @@ jobs:
         uses: release-drafter/release-drafter@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Auto-approve pull-requests made by dependabot[bot]
+        # https://github.com/marketplace/actions/auto-approve
+        if: github.actor == 'dependabot[bot]'
+        uses: hmarr/auto-approve-action@v3
