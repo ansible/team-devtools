@@ -8,9 +8,11 @@ on:
   workflow_call:  # allows reuse of this workflow from other devtools repos
 
 jobs:
-  labels:
+  ack:
     runs-on: ubuntu-latest
     permissions:
+      checks: write
+      contents: read
       pull-requests: write
     steps:
 
