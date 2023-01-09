@@ -25,12 +25,9 @@ graph LR;
   creator-ee:::containerclass --> molecule;
   vscode-ansible:::tsclass --> ansible-language-server;
 vscode-ansible:::tsclass --> vscode-yaml;
-  ansible-language-server:::typescriptclass -.-> ansible-lint;
   ansible-language-server -.-> creator-ee;
 
   molecule-podman --> molecule;
-  vscode-yaml --> schemas:::typescriptclass;
-  ansible-lint -.-> schemas;
   ansible-navigator -.-> ansible-lint;
   ansible-navigator -.-> creator-ee;
 
@@ -41,13 +38,11 @@ vscode-ansible:::tsclass --> vscode-yaml;
  ansible-navigator:::pyclass;
  ansible-language-server:::tsclass;
  vscode-yaml:::tsclass;
- schemas:::tsclass;
  ansible-lint-action:::ghaclass;
  click ansible-lint-action href "https://github.com/ansible-community/ansible-lint-action"
  click community.molecule "https://github.com/ansible-collections/community.molecule"
  click molecule href "https://github.com/ansible-community/molecule"
  click molecule-podman href "https://github.com/ansible-community/molecule-podman"
- click schemas href "https://github.com/ansible-community/schemas"
  click creator-ee href "https://github.com/ansible/creator-ee"
  click ansible-lint href "https://github.com/ansible/ansible-lint"
  click ansible-compat href "https://github.com/ansible/ansible-compat"

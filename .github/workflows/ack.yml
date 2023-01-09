@@ -8,8 +8,12 @@ on:
   workflow_call:  # allows reuse of this workflow from other devtools repos
 
 jobs:
-  labels:
+  ack:
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
+      pull-requests: write
     steps:
 
       - name: Checkout
@@ -44,3 +48,14 @@ jobs:
         uses: release-drafter/release-drafter@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Auto-approve pull-requests made by approved bots
+        # https://github.com/marketplace/actions/auto-approve
+        if: contains(fromJson('["dependabot[bot]", "pre-commit-ci[bot]"]'), github.actor)
+        uses: hmarr/auto-approve-action@v3
+
+      - name: Enable auto-merge on changes made by approved bots
+        if: contains(fromJson('["dependabot[bot]", "pre-commit-ci[bot]"]'), github.actor)
+        uses: alexwilson/enable-github-automerge-action@main
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
