@@ -1,0 +1,64 @@
+site_name: Ansible DevTools
+site_url: https://ansible-devtools.readthedocs.io/
+repo_url: https://github.com/ansible/devtools
+
+theme:
+  name: "material"
+  features:
+    - content.code.copy
+    - content.action.edit
+extra:
+  social:
+    - icon: fontawesome/brands/github-alt
+      link: https://github.com/ansible/devtools
+nav:
+  - home: index.md
+  - guides:
+      - Code Reviews: guides/code-reviews.md
+      - Github Actions: guides/gha.md
+      - Mentoring: guides/mentoring.md
+      - Ansible:
+          - Permissions: guides/ansible/permissions.md
+      - Python:
+          - Python Packaging: guides/python/packaging.md
+          - PyTest: guides/python/pytest.md
+          - Tox: guides/python/tox.md
+  - stats:
+      - Molecule Plugins: stats/molecule-plugins.md
+  # - subprocess-tee: '!import https://github.com/pycontribs/subprocess-tee?branch=main&multi_docs=False'
+
+plugins:
+  - multirepo:
+      cleanup: false
+
+      temp_dir: multirepo_imports
+      # repos:
+      #   - section: subprocess-tee
+      #     import_url: https://github.com/pycontribs/subprocess-tee?edit_uri=tree/main/docs&branch=main
+  - search
+  - social
+  - mkdocstrings
+  # - git-revision-date-localized:
+  #     enable_creation_date: true
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.magiclink:
+      repo_url_shortener: true
+      repo_url_shorthand: true
+      social_url_shorthand: true
+      social_url_shortener: true
+      user: facelessuser
+      repo: pymdown-extensions
+      normalize_issue_symbols: true
+  - markdown_include.include:
+      base_path: docs
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
