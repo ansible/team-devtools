@@ -2,24 +2,46 @@ name: test
 on:
   pull_request:
 jobs:
-  # See https://michaelheap.com/dynamic-matrix-generation-github-actions/
   pre:
-    runs-on: ubuntu-latest
+    name: pre
+    runs-on: ubuntu-22.04
     outputs:
-      matrix-include: ${{ steps.set-matrix.outputs.matrix-include }}
+      matrix: ${{ steps.generate_matrix.outputs.matrix }}
     steps:
-      - id: set-matrix
-        run: echo "::set-output name=matrix-include::$(curl --silent https://raw.githubusercontent.com/ansible/devtools/main/config/matrix.yml | yq -o json -I=0 '.profiles.py-project')"
+      - name: Determine matrix
+        id: generate_matrix
+        uses: coactions/dynamic-matrix@v1
+        with:
+          min_python: "3.11"
+          max_python: "3.11"
+          other_names: |
+            lint
+            docs
   test:
     needs: pre
     name: ${{ matrix.name || matrix.tox_env }}
     runs-on: ${{ matrix.runs-on || 'ubuntu-latest' }}
     strategy:
       fail-fast: true
-      matrix:
-        include: ${{ fromJson(needs.pre.outputs.matrix-include) }}
+      matrix: ${{ fromJson(needs.pre.outputs.matrix) }}
     steps:
-      - run: echo 123
+      - name: Check out src from Git
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # needed by setuptools-scm
+
+      - name: Install a default Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python_version }}
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install 'tox>=4.0.0'
+
+      - name: Run tox -e ${{ matrix.passed_name }}
+        run: |
+          ${{ matrix.PREFIX }} tox -e ${{ matrix.passed_name }}
 
   check: # This job does nothing and is only used for the branch protection
     if: always()
