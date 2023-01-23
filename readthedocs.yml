@@ -1,5 +1,9 @@
 version: 2
 
+submodules:
+  include: all
+  recursive: true
+
 mkdocs:
   fail_on_warning: true
 

@@ -1,12 +1,32 @@
 site_name: Ansible DevTools
 site_url: https://ansible-devtools.readthedocs.io/
 repo_url: https://github.com/ansible/devtools
+edit_uri: blob/main/docs/
+copyright: Copyright © 2023 Red Hat, Inc.
 
 theme:
   name: "material"
+  logo: images/logo.svg
+  favicon: images/favicon.ico
   features:
     - content.code.copy
     - content.action.edit
+    - navigation.expand
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      primary: teal
+      accent: blue
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
 extra:
   social:
     - icon: fontawesome/brands/github-alt
@@ -25,27 +45,39 @@ nav:
           - Tox: guides/python/tox.md
   - stats:
       - Molecule Plugins: stats/molecule-plugins.md
-  # - subprocess-tee: '!import https://github.com/pycontribs/subprocess-tee?branch=main&multi_docs=False'
-
+  # - ansible-language-server: '!import https://github.com/ansible/ansible-language-server?branch=main&multi_docs=False'
+  - projects: "*include ./projects/*/mkdocs.yml"
 plugins:
-  - multirepo:
-      cleanup: false
-
-      temp_dir: multirepo_imports
-      # repos:
-      #   - section: subprocess-tee
-      #     import_url: https://github.com/pycontribs/subprocess-tee?edit_uri=tree/main/docs&branch=main
+  - autorefs
   - search
+  - monorepo
+  - exclude:
+      glob:
+        - "*/changelog-fragments.d/*"
+  # - multirepo:
+  #     cleanup: false
+
+  #     temp_dir: multirepo_imports
+  #     repos:
+  #       - section: subprocess-tee
+  #         import_url: https://github.com/pycontribs/subprocess-tee?edit_uri=tree/main/docs&branch=main
   - social
-  - mkdocstrings
+  # Disabled due to https://github.com/timvink/mkdocs-git-revision-date-localized-plugin/issues/89
   # - git-revision-date-localized:
-  #     enable_creation_date: true
+  #     enable_creation_date: false
+  #     fallback_to_build_date: true
+  #     exclude:
+  #       - index.md
 
 markdown_extensions:
+  - admonition
+  - def_list
+  - footnotes
   - pymdownx.highlight:
       anchor_linenums: true
   - pymdownx.inlinehilite
-  - pymdownx.snippets
+  - pymdownx.snippets:
+      check_paths: true
   - pymdownx.superfences
   - pymdownx.magiclink:
       repo_url_shortener: true
@@ -55,8 +87,12 @@ markdown_extensions:
       user: facelessuser
       repo: pymdown-extensions
       normalize_issue_symbols: true
-  - markdown_include.include:
-      base_path: docs
+  - pymdownx.tabbed:
+      alternate_style: true
+  - toc:
+      # reduced to keep TOC nice under Changelog page
+      toc_depth: 2
+      permalink: true
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
