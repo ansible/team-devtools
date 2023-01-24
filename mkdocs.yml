@@ -5,28 +5,11 @@ edit_uri: blob/main/docs/
 copyright: Copyright © 2023 Red Hat, Inc.
 
 theme:
-  name: "material"
-  logo: images/logo.svg
-  favicon: images/favicon.ico
+  name: ansible
   features:
     - content.code.copy
     - content.action.edit
     - navigation.expand
-  palette:
-    - media: "(prefers-color-scheme: light)"
-      primary: teal
-      accent: blue
-      scheme: default
-      toggle:
-        icon: material/brightness-7
-        name: Switch to dark mode
-    - media: "(prefers-color-scheme: dark)"
-      scheme: slate
-      primary: teal
-      accent: blue
-      toggle:
-        icon: material/brightness-4
-        name: Switch to light mode
 extra:
   social:
     - icon: fontawesome/brands/github-alt
@@ -46,22 +29,15 @@ nav:
   - stats:
       - Molecule Plugins: stats/molecule-plugins.md
   # - ansible-language-server: '!import https://github.com/ansible/ansible-language-server?branch=main&multi_docs=False'
-  - projects: "*include ./projects/*/mkdocs.yml"
+  - projects: "*include .cache/*/mkdocs.yml"
 plugins:
   - autorefs
-  - search
+  - material/search
   - monorepo
   - exclude:
       glob:
         - "*/changelog-fragments.d/*"
-  # - multirepo:
-  #     cleanup: false
-
-  #     temp_dir: multirepo_imports
-  #     repos:
-  #       - section: subprocess-tee
-  #         import_url: https://github.com/pycontribs/subprocess-tee?edit_uri=tree/main/docs&branch=main
-  - social
+  - material/social
   # Disabled due to https://github.com/timvink/mkdocs-git-revision-date-localized-plugin/issues/89
   # - git-revision-date-localized:
   #     enable_creation_date: false
