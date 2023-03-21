@@ -1,0 +1,28 @@
+- name: Checkout and Update DevTools project source code
+  hosts: localhost
+  gather_facts: false
+  vars:
+    repos:
+      - name: ansible-lint
+        repo: ansible/ansible-lint
+      - name: ansible-compat
+        repo: ansible/ansible-compat
+      - name: ansible-navigator
+        repo: ansible/ansible-navigator
+  tasks:
+    ## - name: Load project configuration
+    #   ansible.builtin.include_vars:
+    #     file: ../config/devtools.yml
+    #     name: devtools
+    - name: Clone projects  # noqa: latest[git]
+      loop: "{{ repos }}"
+      loop_control:
+        label: item.name
+      ansible.builtin.git:
+        repo: https://github.com/{{ item.repo }}
+        dest: ../.cache/{{ item.name }}
+        single_branch: true
+        # version: HEAD
+        update: true
+        track_submodules: true
+        recursive: true

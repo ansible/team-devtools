@@ -1,3 +1,0 @@
-[submodule "projects/ansible-language-server"]
-	path = projects/ansible-language-server
-	url = https://github.com/ansible/ansible-language-server

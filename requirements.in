@@ -1,14 +1,6 @@
 argparse-manpage
 cairosvg
 markdown-include
-mkdocs
-mkdocs-git-revision-date-localized-plugin
-mkdocs-exclude
-mkdocs-material
-mkdocs-material-extensions
+mkdocs-ansible
 mkdocs-monorepo-plugin
-mkdocstrings
-mkdocstrings-python
-pillow
-pymdown-extensions
-slugify
+mkdocs-exclude
