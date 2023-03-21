@@ -1,5 +1,6 @@
 - name: Checkout and Update DevTools project source code
   hosts: localhost
+  connection: local
   gather_facts: false
   vars:
     repos:
@@ -17,12 +18,12 @@
     - name: Clone projects  # noqa: latest[git]
       loop: "{{ repos }}"
       loop_control:
-        label: item.name
+        label: "{{ item.name }}"
       ansible.builtin.git:
         repo: https://github.com/{{ item.repo }}
-        dest: ../.cache/{{ item.name }}
+        dest: "{{ playbook_dir }}/../.cache/{{ item.name }}"
         single_branch: true
         # version: HEAD
         update: true
-        track_submodules: true
-        recursive: true
+        # track_submodules: true
+        # recursive: true
