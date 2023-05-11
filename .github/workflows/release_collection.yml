@@ -45,6 +45,7 @@ jobs:
           token=${{ secrets.ah_token }}
           EOF
           ansible-galaxy collection publish "${TARBALL}"
+          rm ansible.cfg
 
       - name: "Publish the collection on galaxy"
         if: ${{ inputs.galaxy_publish }}
