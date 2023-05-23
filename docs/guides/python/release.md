@@ -19,7 +19,7 @@ We use [release-drafter](https://github.com/release-drafter/release-drafter) whi
 When a PR is merged, release-drafter runs and adds PR details to the changelog as shown above.
 
 # Releasing a new version
-Go to `Draft a new release` inside Github releases and release it! while being sure that you create a discussion thread for it. This will create a *tag.
+Go to `Draft a new release` inside Github releases and release it! while being sure that you create a discussion thread for it. This will create a new tag.
 Once released, the latest version will be deployed and published to PyPI registry.
 
 This release process is applicable to all our python based projects.
