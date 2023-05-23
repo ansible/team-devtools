@@ -1,4 +1,4 @@
-# Release process of python packages
+# Release process for python packages
 
 Thanks to the integrations which are in place, it is very easy to release a newer version of our python projects i.e. [ansible-lint], [ansible-navigator], [ansible-compat] and [molecule].
 
