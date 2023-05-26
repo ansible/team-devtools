@@ -22,7 +22,7 @@ on:
       - changelogs/changelog.yaml
   workflow_dispatch:
 
-env:
+env: # needs to be generic or variable
   NAMESPACE: ansible
   COLLECTION_NAME: utils
   ANSIBLE_COLLECTIONS_PATHS: ./
@@ -34,7 +34,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3.5.0
         with:
-          repository:  ${{ github.repository }} # ansible-collections/ansible.utils
+          repository: ${{ github.repository }} # ansible-collections/ansible.utils
           fetch-depth: 0
           token: ${{ secrets.BOT_PAT }}
 
