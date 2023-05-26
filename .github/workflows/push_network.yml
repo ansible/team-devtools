@@ -10,7 +10,7 @@ on:
     # https://docs.github.com/en/actions/learn-github-actions/workflow-syntax-for-github-actions#onworkflow_callinputs
     inputs:
       repo:
-        description: Publish to PyPI registry
+        description: Repository url
         required: true
         type: string
     secrets:
