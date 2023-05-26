@@ -5,27 +5,18 @@
 # https://github.com/T-Systems-MMS/ansible-collection-icinga-director
 name: push_network
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
 on:
-  push:
-    # branches to consider in the event; optional, defaults to all
-    branches:
-      - main
-      - 'releases/**'
-      - 'stable/**'
-    # Prevent a 2nd run after the changelog is updated
-    paths-ignore:
-      - CHANGELOG.rst
-      - changelogs/changelog.yaml
-  workflow_dispatch:
-
-env: # needs to be generic or variable
-  NAMESPACE: ansible
-  COLLECTION_NAME: utils
-  ANSIBLE_COLLECTIONS_PATHS: ./
+  workflow_call:
+    # https://docs.github.com/en/actions/learn-github-actions/workflow-syntax-for-github-actions#onworkflow_callinputs
+    inputs:
+      repo:
+        description: Publish to PyPI registry
+        required: true
+        type: string
+    secrets:
+      BOT_PAT:
+        description: Bot secret
+        required: true
 
 jobs:
   update_release_draft:
@@ -34,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3.5.0
         with:
-          repository: ${{ github.repository }} # ansible-collections/ansible.utils
+          repository: ${{ inputs.repo }} # ansible-collections/ansible.utils
           fetch-depth: 0
           token: ${{ secrets.BOT_PAT }}
 
