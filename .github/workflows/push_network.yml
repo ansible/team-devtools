@@ -77,7 +77,8 @@ jobs:
 
       - name: Update the glaxay.yml version
         run: |
-          sed -i -e 's/version:.*/version: ${{ env.VERSION }}/' galaxy.yml
+         pip install yq
+          yq -yi ".version = \"${{ env.VERSION }}\"" galaxy.yml
 
       - name: Determine if a PR is necessary
         run: git diff --no-ext-diff --quiet --exit-code
