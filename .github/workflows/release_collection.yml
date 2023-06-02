@@ -33,7 +33,7 @@ jobs:
           ansible-galaxy collection build -v --force
 
       - name: "Publish the collection on automation hub"
-        if: ${{ inputs.ah_publish }}
+        if: ${{ inputs.ah_publish }} || ${{ always() }} # failed automationhub job not prohibit galaxy job
         run: |
           TARBALL=$(ls -1 ./*.tar.gz)
           cat << EOF > ansible.cfg
@@ -48,7 +48,7 @@ jobs:
           rm ansible.cfg
 
       - name: "Publish the collection on galaxy"
-        if: ${{ inputs.galaxy_publish }}
+        if: ${{ inputs.galaxy_publish }} || ${{ always() }}
         run: |
           TARBALL=$(ls -1 ./*.tar.gz)
           ansible-galaxy collection publish "${TARBALL}" --api-key "${{ secrets.ansible_galaxy_api_key }}"
