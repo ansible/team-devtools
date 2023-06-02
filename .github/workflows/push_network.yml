@@ -75,7 +75,7 @@ jobs:
         run: pre-commit run prettier --all-files
         continue-on-error: true
 
-      - name: Update the glaxay.yml version
+      - name: Update the galaxy.yml version
         run: |
          pip install yq
           yq -yi ".version = \"${{ env.VERSION }}\"" galaxy.yml
