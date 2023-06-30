@@ -17,9 +17,9 @@ on:
         type: boolean
     secrets:
       ah_token:
-        required: true
+        required: false
       ansible_galaxy_api_key:
-        required: true
+        required: false
 
 jobs:
   release:
@@ -35,12 +35,14 @@ jobs:
       - name: "Publish the collection on Galaxy"
         if: ${{ inputs.galaxy_publish }}
         run: |
+          [[ "${{ secrets.ansible_galaxy_api_key != '' }}" ]] || { echo "ansible_galaxy_api_key is required to publish on galaxy" ; exit 1; }
           TARBALL=$(ls -1 ./*.tar.gz)
           ansible-galaxy collection publish "${TARBALL}" --api-key "${{ secrets.ansible_galaxy_api_key }}"
 
       - name: "Publish the collection on Automation Hub"
         if: ${{ inputs.ah_publish }} # failed automationhub job not prohibit galaxy job
         run: |
+          [[ "${{ secrets.ah_token != '' }}" ]] || { echo "ah_token is required to publish on automation hub" ; exit 1; }
           TARBALL=$(ls -1 ./*.tar.gz)
           cat << EOF > ansible.cfg
           [galaxy]
