@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3.5.0
         with:
-          repository: ${{ inputs.repo }} # ansible-collections/ansible.utils
+          repository: ${{ inputs.repo }}
           fetch-depth: 0
           token: ${{ secrets.BOT_PAT }}
 
@@ -75,15 +75,9 @@ jobs:
         run: pre-commit run prettier --all-files
         continue-on-error: true
 
-      - name: Update the galaxy.yml version using yq GHA
-        uses: mikefarah/yq@master
-        with:
-          cmd: yq -i "".version = \"${{ env.VERSION }}\"" "galaxy.yml"
-
-      # - name: Update the galaxy.yml version
-      #   run: |
-      #     pip install yq
-      #      yq -yi ".version = \"${{ env.VERSION }}\"" galaxy.yml
+      - name: Update the galaxy.yml version
+        run: |
+          sed -i -e 's/version:.*/version: ${{ env.VERSION }}/' galaxy.yml
 
       - name: Determine if a PR is necessary
         run: git diff --no-ext-diff --quiet --exit-code
