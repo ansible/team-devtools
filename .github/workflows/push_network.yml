@@ -75,10 +75,15 @@ jobs:
         run: pre-commit run prettier --all-files
         continue-on-error: true
 
-      - name: Update the galaxy.yml version
-        run: |
-         pip install yq
-          yq -yi ".version = \"${{ env.VERSION }}\"" galaxy.yml
+      - name: Update the galaxy.yml version using yq GHA
+        uses: mikefarah/yq@master
+        with:
+          cmd: yq -i "".foo.bar = \"${{ env.VERSION }}\"" "galaxy.yml"
+
+      # - name: Update the galaxy.yml version
+      #   run: |
+      #     pip install yq
+      #      yq -yi ".version = \"${{ env.VERSION }}\"" galaxy.yml
 
       - name: Determine if a PR is necessary
         run: git diff --no-ext-diff --quiet --exit-code
