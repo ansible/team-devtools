@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3.5.0
         with:
-          repository: ${{ inputs.repo }} # ansible-collections/ansible.utils
+          repository: ${{ inputs.repo }}
           fetch-depth: 0
           token: ${{ secrets.BOT_PAT }}
 
@@ -77,8 +77,7 @@ jobs:
 
       - name: Update the galaxy.yml version
         run: |
-         pip install yq
-          yq -yi ".version = \"${{ env.VERSION }}\"" galaxy.yml
+          sed -i -e 's/version:.*/version: ${{ env.VERSION }}/' galaxy.yml
 
       - name: Determine if a PR is necessary
         run: git diff --no-ext-diff --quiet --exit-code
