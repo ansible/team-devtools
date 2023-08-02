@@ -22,7 +22,7 @@ on:
         required: false
 
 jobs:
-  release:
+  release_galaxy:
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     steps:
@@ -39,8 +39,18 @@ jobs:
           TARBALL=$(ls -1 ./*.tar.gz)
           ansible-galaxy collection publish "${TARBALL}" --api-key "${{ secrets.ansible_galaxy_api_key }}"
 
+  release_automation_hub:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: "Build the collection"
+        run: |
+          ansible-galaxy collection build -v --force
+
       - name: "Publish the collection on Automation Hub"
-        if: ${{ inputs.ah_publish }} # failed automationhub job not prohibit galaxy job
+        if: ${{ inputs.ah_publish }}
         run: |
           [[ "${{ secrets.ah_token != '' }}" ]] || { echo "ah_token is required to publish on automation hub" ; exit 1; }
           TARBALL=$(ls -1 ./*.tar.gz)
