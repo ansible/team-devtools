@@ -23,10 +23,6 @@ on:
         description: Repository url
         required: true
         type: string
-    secrets:
-      BOT_PAT:
-        description: Bot secret
-        required: true
 
 jobs:
   update_release_draft:
