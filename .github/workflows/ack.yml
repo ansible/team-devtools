@@ -17,7 +17,7 @@ jobs:
     steps:
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # Use of release drafter action for adding semantic labels based on
       # either title, body or source branch name. We ignore potential failure
