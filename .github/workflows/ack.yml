@@ -49,6 +49,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Add PR to 'devtools' project
+        uses: actions/add-to-project@v0.5.0
+        with:
+          project-url: https://github.com/orgs/ansible/projects/86
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # labeled: skip-changelog
+          # label-operator: NOT
+
       # - name: Auto-approve pull-requests made by approved bots
       #   # https://github.com/marketplace/actions/auto-approve
       #   if: contains(fromJson('["dependabot[bot]", "pre-commit-ci[bot]"]'), github.actor)
