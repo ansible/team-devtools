@@ -53,7 +53,9 @@ jobs:
         uses: actions/add-to-project@main
         with:
           project-url: https://github.com/orgs/ansible/projects/86
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # Do not use secrets.GITHUB_TOKEN here because it does not have
+          # access to projects. Only personal access tokens (PAT) can be used.
+          github-token: ${{ secrets.BOT_PAT }}
           # labeled: skip-changelog
           # label-operator: NOT
 
