@@ -53,6 +53,7 @@ vscode-ansible:::tsclass --> vscode-yaml;
 ```
 
 Note:
+
 1. [vscode-yaml](https://github.com/redhat-developer/vscode-yaml) project is not directly supported by Ansible devtools team.
 2. dotted lines are either test, build or optional requirements
 3. 📘 python, 📙 typescript, 📕 ansible collection, 📗 container 📒 github action

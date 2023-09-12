@@ -1,15 +1,15 @@
 # Github Actions
 
-* workflow name should be **short** and **lowercase** and match the name of the workflow file
-* do not use a workflow name like "ci" because all workflows are related to CI one way or another so they would not be informative
+- workflow name should be **short** and **lowercase** and match the name of the workflow file
+- do not use a workflow name like "ci" because all workflows are related to CI one way or another so they would not be informative
 
 ## Common workflow names
 
-* `tox` : testing jobs that rely on tox, job names should match `tox -e xxx`
-* `npm` : testing jobs that reply on npm, job name should match `npm run xxx`
-* `ack` : shared workflow that is triggered on any pull-request review, like editing labels
-* `push` : shared workflow that is triggered on a merge, usually updates release note drafts
-* `release` : workflow that is triggered when a release is made
+- `tox` : testing jobs that rely on tox, job names should match `tox -e xxx`
+- `npm` : testing jobs that reply on npm, job name should match `npm run xxx`
+- `ack` : shared workflow that is triggered on any pull-request review, like editing labels
+- `push` : shared workflow that is triggered on a merge, usually updates release note drafts
+- `release` : workflow that is triggered when a release is made
 
 ## Use a final `check` job to summarize results
 

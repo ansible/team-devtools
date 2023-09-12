@@ -1,7 +1,13 @@
 ---
 repos:
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    # keep it before yamllint
+    rev: v3.0.3
+    hooks:
+      - id: prettier
+        always_run: true
   - repo: https://github.com/PyCQA/doc8
-    rev: 'v1.1.1'
+    rev: "v1.1.1"
     hooks:
       - id: doc8
   - repo: https://github.com/codespell-project/codespell

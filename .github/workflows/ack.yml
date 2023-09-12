@@ -5,17 +5,17 @@ name: ack
 on:
   pull_request_target:
     types: [opened, labeled, unlabeled, synchronize]
-  workflow_call:  # allows reuse of this workflow from other devtools repos
+  workflow_call: # allows reuse of this workflow from other devtools repos
 
 jobs:
   ack:
     runs-on: ubuntu-latest
+    environment: ack
     permissions:
       checks: write
       contents: read
       pull-requests: write
     steps:
-
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -37,10 +37,10 @@ jobs:
       - name: Verify PR label action
         uses: jesusvasquez333/verify-pr-label-action@v1.4.0
         with:
-          github-token: '${{ secrets.GITHUB_TOKEN }}'
-          valid-labels: 'bug, enhancement, feature, refactoring, major, deprecated, skip-changelog, bot:chronographer:skip'
-          invalid-labels: 'help wanted, invalid, feedback-needed, incomplete'
-          pull-request-number: '${{ github.event.pull_request.number }}'
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+          valid-labels: "bug, enhancement, feature, refactoring, major, deprecated, skip-changelog, bot:chronographer:skip"
+          invalid-labels: "help wanted, invalid, feedback-needed, incomplete"
+          pull-request-number: "${{ github.event.pull_request.number }}"
           disable-reviews: true
 
       - name: Update release notes if this is already merged

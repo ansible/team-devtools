@@ -4,7 +4,7 @@
 repos:
   - ansible-community/molecule
   - ansible-community/molecule-plugins
-  - ansible-community/protogen  # deprecated?
+  - ansible-community/protogen # deprecated?
   - ansible-community/role2collection
   - ansible/ansible-compat
   - ansible/ansible-language-server
