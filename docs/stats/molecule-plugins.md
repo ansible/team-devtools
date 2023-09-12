@@ -6,16 +6,15 @@ Unmaintained drivers archived between January 5th-8th, 2023: openstack, goss, li
 
 The relatively active drivers were moved to [molecule-plugins](https://github.com/ansible-community/molecule-plugins) repository, where we expected them to be maintained by the community.
 
-
 ### Which drivers should we still see in addition to delegated?
 
-* azure
-* docker
-* containers
-* podman
-* ec2
-* gce
-* vagrant
+- azure
+- docker
+- containers
+- podman
+- ec2
+- gce
+- vagrant
 
 ### How did we measure the driver popularity?
 

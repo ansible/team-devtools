@@ -1,13 +1,12 @@
 This document is work-in-progress. For the moment it contains only generic guidelines, most of them already used by our projects.
 
-* Ensure we use `src/` layout so we do not accidentally import the module without installation
-* Use PEP-517 and seek removal `setup.py`, test if via `tox -e pkg` command.
-* Use PEP-621 and seek removal of `setup.cfg` and `pyprojects.toml` files.
-* Make docs and test dependencies extras
-* Have a single `requirements.txt` that is a lock file produced by pip-compile (pip-tools)
-* Enable dependabot to update the `requirements.txt` lock file, optionally focus on a subset of dependencies and limit the maximum number of open pull-requests
-* Create tox `deps` job that is updating all dependencies using pip-compile.
-
+- Ensure we use `src/` layout so we do not accidentally import the module without installation
+- Use PEP-517 and seek removal `setup.py`, test if via `tox -e pkg` command.
+- Use PEP-621 and seek removal of `setup.cfg` and `pyprojects.toml` files.
+- Make docs and test dependencies extras
+- Have a single `requirements.txt` that is a lock file produced by pip-compile (pip-tools)
+- Enable dependabot to update the `requirements.txt` lock file, optionally focus on a subset of dependencies and limit the maximum number of open pull-requests
+- Create tox `deps` job that is updating all dependencies using pip-compile.
 
 # tox -e pkg
 

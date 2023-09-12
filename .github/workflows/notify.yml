@@ -12,7 +12,7 @@ on:
       matrix_room_id:
         description: Matrix ROOM ID
         type: string
-        default: '!aqMMMrOxRZzVDkUlWF:matrix.org'  # ansible-devtools
+        default: "!aqMMMrOxRZzVDkUlWF:matrix.org" # ansible-devtools
   workflow_dispatch:
     inputs:
       message:
@@ -22,7 +22,7 @@ on:
       matrix_room_id:
         description: Matrix ROOM ID
         type: string
-        default: '!aqMMMrOxRZzVDkUlWF:matrix.org'  # ansible-devtools
+        default: "!aqMMMrOxRZzVDkUlWF:matrix.org" # ansible-devtools
 
 jobs:
   send-message:
@@ -43,7 +43,7 @@ jobs:
       - name: send message
         uses: s3krit/matrix-message-action@v0.0.3
         with:
-          room_id: '!aqMMMrOxRZzVDkUlWF:matrix.org'  # ansible-devtools
+          room_id: "!aqMMMrOxRZzVDkUlWF:matrix.org" # ansible-devtools
           access_token: ${{ secrets.MATRIX_TOKEN }}
           # https://doc.matrix.tu-dresden.de/en/messaging/formatting/
           message: >

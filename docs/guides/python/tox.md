@@ -42,7 +42,6 @@ In order to fail-fast, we want to run quick tests first, like `lint`. The longes
 
 When you run `tox -av`, you will also see the description of each environment, which can be quite informative for a new contributor. Be sure that all of them have a description, one that is less than ~100 characters as wrapping them in terminal makes the whole list harder to read. If you want to add extra details, use comments inside the ini file.
 
-
 ## use short and consistent naming for env names
 
 Tox env names should be short (easy to type) and consistent across projects, so they do not conflict with muscle-memory.
@@ -51,11 +50,11 @@ Tox env name should not be about the tool as that may change, it should be more 
 
 Current list of popular names:
 
-* `py` - unitests
-* `lint` - linting, runts all linters (likely pre-commit)
-* `docs` - anything related to building docs (aka Sphinx)
-* `packaging` - tests related to python packaging
-* `deps` - Bumping of test dependencies. This should not be included in default `envlist`, expected to be run only manually.
+- `py` - unitests
+- `lint` - linting, runts all linters (likely pre-commit)
+- `docs` - anything related to building docs (aka Sphinx)
+- `packaging` - tests related to python packaging
+- `deps` - Bumping of test dependencies. This should not be included in default `envlist`, expected to be run only manually.
 
 ## Dependency pinning
 

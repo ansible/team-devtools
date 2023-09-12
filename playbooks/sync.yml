@@ -15,7 +15,7 @@
     #   ansible.builtin.include_vars:
     #     file: ../config/devtools.yml
     #     name: devtools
-    - name: Clone projects  # noqa: latest[git]
+    - name: Clone projects # noqa: latest[git]
       loop: "{{ repos }}"
       loop_control:
         label: "{{ item.name }}"
