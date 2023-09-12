@@ -2,9 +2,11 @@
 # Not all these repos are fully managed or maintained by the team.
 # We aim to use this file when performing maintenance and audit.
 repos:
+  - ansible-community/ansible-cdk
   - ansible-community/molecule
-  - ansible-community/molecule-plugins
+  - ansible-community/molecule-plugins # nurtured
   - ansible-community/protogen # deprecated?
+  - ansible-community/pytest-ansible
   - ansible-community/role2collection
   - ansible/ansible-compat
   - ansible/ansible-language-server
@@ -18,3 +20,4 @@ repos:
   - pycontribs/enrich
   - pycontribs/selinux
   - pycontribs/subprocess-tee
+  - tox-dev/tox-ansible
