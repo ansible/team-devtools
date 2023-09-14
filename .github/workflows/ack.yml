@@ -3,6 +3,8 @@
 # presence.
 name: ack
 on:
+  issues:
+    types: [opened, reopened]
   pull_request_target:
     types: [opened, labeled, unlabeled, synchronize]
   workflow_call: # allows reuse of this workflow from other devtools repos
@@ -25,6 +27,7 @@ jobs:
       # either title, body or source branch name. We ignore potential failure
       # of this step.
       - uses: release-drafter/release-drafter@v5
+        if: ${{ github.event.issue.pull_request }}
         with:
           # we only want to use the auto-labeler bits:
           disable-autolabeler: false
@@ -37,6 +40,7 @@ jobs:
       # Ensure that one of the required labels is present and none of the undesired is absent
       # See https://github.com/jesusvasquez333/verify-pr-label-action
       - name: Verify PR label action
+        if: ${{ github.event.issue.pull_request }}
         uses: jesusvasquez333/verify-pr-label-action@v1.4.0
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
@@ -51,7 +55,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Add PR to 'devtools' project
+      - name: Add issue or pull-request to 'devtools' project
         # Workaround for running this step only if BOT_PAT secret is found
         env:
           BOT_PAT: ${{ secrets.BOT_PAT }}
