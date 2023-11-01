@@ -62,6 +62,8 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
+      ## this part is commented out to check push workflow
+      ## ref - https://github.com/ansible-collections/cisco.nxos/pull/765
       # - name: Generate changelog.yaml
       #   run: antsichaut
       #   env:
