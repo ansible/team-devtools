@@ -27,7 +27,7 @@ jobs:
     with:
       environment: release
     secrets:
-      ah_token: ${{ secrets.AH_TOKEN }}
+      ah_token: ${{ secrets.ah_token }}
 
   release_galaxy:
     uses: ansible/devtools/.github/workflows/release_galaxy.yml@main
@@ -35,4 +35,4 @@ jobs:
     with:
       environment: release
     secrets:
-      ansible_galaxy_api_key: ${{ secrets.ANSIBLE_GALAXY_API_KEY }}
+      ansible_galaxy_api_key: ${{ secrets.ansible_galaxy_api_key }}
