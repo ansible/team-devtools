@@ -2,22 +2,31 @@
 # Not all these repos are fully managed or maintained by the team.
 # We aim to use this file when performing maintenance and audit.
 repos:
-  - ansible-community/ansible-cdk
-  - ansible-community/molecule
-  - ansible-community/molecule-plugins # nurtured
-  - ansible-community/protogen # deprecated?
-  - ansible-community/pytest-ansible
-  - ansible-community/role2collection
-  - ansible/ansible-compat
+  # primary projects
+  - ansible/ansible-dev-tools # former cdk/sdk, the devtools 'bundle'
   - ansible/ansible-language-server
   - ansible/ansible-lint
-  - ansible/ansible-lint-action
   - ansible/ansible-navigator
-  - ansible/creator-ee
-  - ansible/devtools
-  - ansible/mkdocs-ansible
+  - ansible/creator-ee # our execution environment
+  - ansible/molecule
   - ansible/vscode-ansible
+  # experimental / tech-preview
+  - ansible/ansible-creator # scaffolding (templating) for new content
+  - ansible/ansible-development-environment # former pip4a (venv installer)
+  - ansible/pytest-ansible
+  - ansible/tox-ansible
+  # auxiliary (usually dependencies)
+  - ansible/ansible-compat
+  - ansible/mkdocs-ansible
+  - ansible/team-devtools
   - pycontribs/enrich
-  - pycontribs/selinux
   - pycontribs/subprocess-tee
-  - tox-dev/tox-ansible
+  - ansible-collections/community.molecule
+  # nurtured (helped)
+
+  - ansible-community/molecule-plugins
+  # experimental, unmaintained or obsoleted:
+  # - ansible/ansible-lint-action
+  # - pycontribs/selinux
+  # - ansible-community/protogen # deprecated?
+  # - ansible-community/role2collection
