@@ -6,6 +6,8 @@ repos:
     hooks:
       - id: prettier
         always_run: true
+        additional_dependencies:
+          - prettier
   - repo: https://github.com/codespell-project/codespell
     rev: v2.2.6
     hooks:
