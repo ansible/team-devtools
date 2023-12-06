@@ -2,5 +2,4 @@ argparse-manpage
 cairosvg
 markdown-include
 mkdocs-ansible
-mkdocs-monorepo-plugin
 mkdocs-exclude

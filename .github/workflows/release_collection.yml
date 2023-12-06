@@ -23,14 +23,14 @@ on:
 
 jobs:
   release_automation_hub:
-    uses: ansible/devtools/.github/workflows/release_ah.yml@main
+    uses: ansible/team-devtools/.github/workflows/release_ah.yml@main
     with:
       environment: release
     secrets:
       ah_token: ${{ secrets.ah_token }}
 
   release_galaxy:
-    uses: ansible/devtools/.github/workflows/release_galaxy.yml@main
+    uses: ansible/team-devtools/.github/workflows/release_galaxy.yml@main
     needs: [release_automation_hub]
     with:
       environment: release
