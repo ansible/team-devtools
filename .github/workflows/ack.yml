@@ -26,8 +26,9 @@ jobs:
       # Use of release drafter action for adding semantic labels based on
       # either title, body or source branch name. We ignore potential failure
       # of this step.
-      - uses: release-drafter/release-drafter@v5
-        if: ${{ github.event_name == 'pull_request' }}
+      - name: Auto-add labels
+        uses: release-drafter/release-drafter@v5
+        if: ${{ github.event.pull_request.mergeable }}
         with:
           # we only want to use the auto-labeler bits:
           disable-autolabeler: false
@@ -37,17 +38,20 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
 
-      # Ensure that one of the required labels is present and none of the undesired is absent
-      # See https://github.com/jesusvasquez333/verify-pr-label-action
       - name: Verify PR label action
-        if: ${{ github.event_name == 'pull_request' }}
-        uses: jesusvasquez333/verify-pr-label-action@v1.4.0
+        uses: mheap/github-action-required-labels@v5
         with:
-          github-token: "${{ secrets.GITHUB_TOKEN }}"
-          valid-labels: "bug, enhancement, feature, refactoring, major, deprecated, skip-changelog, bot:chronographer:skip"
-          invalid-labels: "help wanted, invalid, feedback-needed, incomplete"
-          pull-request-number: "${{ github.event.pull_request.number }}"
-          disable-reviews: true
+          mode: exactly
+          count: 1
+          add_comment: true
+          exit_type: failure
+          labels: |
+            bug
+            enhancement
+            major
+            minor
+            patch
+            skip-changelog
 
       - name: Update release notes if this is already merged
         if: github.event.pull_request.merged == true
