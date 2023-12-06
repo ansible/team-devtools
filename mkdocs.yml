@@ -1,6 +1,6 @@
 site_name: Ansible DevTools
-site_url: https://ansible-devtools.readthedocs.io/
-repo_url: https://github.com/ansible/devtools
+site_url: https://ansible.readthedocs.io/projects/team-devtools/
+repo_url: https://github.com/ansible/team-devtools
 edit_uri: blob/main/docs/
 copyright: Copyright © 2023 Red Hat, Inc.
 
@@ -33,11 +33,10 @@ nav:
   - stats:
       - Molecule Plugins: stats/molecule-plugins.md
   # - ansible-language-server: '!import https://github.com/ansible/ansible-language-server?branch=main&multi_docs=False'
-  - projects: "*include .cache/*/mkdocs.yml"
+  # - projects: "*include .cache/*/mkdocs.yml"
 plugins:
   - autorefs
   - material/search
-  - monorepo
   - exclude:
       glob:
         - "*/changelog-fragments.d/*"
