@@ -28,7 +28,6 @@ jobs:
       # of this step.
       - name: Auto-add labels
         uses: release-drafter/release-drafter@v5
-        if: ${{ github.event.pull_request.mergeable }}
         with:
           # we only want to use the auto-labeler bits:
           disable-autolabeler: false
