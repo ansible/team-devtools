@@ -51,6 +51,7 @@ jobs:
             minor
             patch
             skip-changelog
+            documentation
 
       - name: Update release notes if this is already merged
         if: github.event.pull_request.merged == true
