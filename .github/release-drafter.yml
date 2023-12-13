@@ -9,14 +9,14 @@ categories:
       - "major" # c6476b
   - title: "Minor Changes"
     labels:
+      - "minor"
       - "feature" # 006b75
       - "enhancement" # ededed
       - "refactoring"
   - title: "Bugfixes"
     labels:
       - "bug" # fbca04
-  - title: "Deprecations"
-    labels:
+      - "patch"
       - "deprecated" # fef2c0
 exclude-labels:
   - "bot:chronographer:skip"
