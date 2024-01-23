@@ -8,16 +8,16 @@ what that means.
 
 These are the projects that will be transitioning to CalVer:
 
-* ansible-compat
-* ansible-creator
-* ansible-dev-environment
-* ansible-lint
-* ansible-navigator
-* creator-ee
-* molecule
-* pytest-ansible
-* tox-ansible
-* vscode-ansible
+- ansible-compat
+- ansible-creator
+- ansible-dev-environment
+- ansible-lint
+- ansible-navigator
+- creator-ee
+- molecule
+- pytest-ansible
+- tox-ansible
+- vscode-ansible
 
 We will use a `YY.MM.MICRO` version format. Thus, a release for March 2025 will be
 named `25.3.0`, and if a patch (ie, non-feature) release is required for that release,
@@ -28,21 +28,21 @@ increment until a new version with features or other significant changes is rele
 
 This is a bit of a change so let's go over what we hope to accomplish with it.
 
-* Predictable, transparent release cadence
+- Predictable, transparent release cadence
 
-    With this, we are committing to time-based releases for all projects.
-    While the exact frequency will vary between projects, each will have a release
-    between one and three months after the last feature release.
+  With this, we are committing to time-based releases for all projects.
+  While the exact frequency will vary between projects, each will have a release
+  between one and three months after the last feature release.
 
-* Version number indicates the age of a release
+- Version number indicates the age of a release
 
-    When looking at a version number, there's no good way of telling how old it is
-    without looking up the release notes.
+  When looking at a version number, there's no good way of telling how old it is
+  without looking up the release notes.
 
-* Easier to translate versions between tools
+- Easier to translate versions between tools
 
-    Many of our tools are interrelated. A consistent version scheme allows one to
-    have a good idea of how related but independent tools are expected to work together.
+  Many of our tools are interrelated. A consistent version scheme allows one to
+  have a good idea of how related but independent tools are expected to work together.
 
 ## How
 
