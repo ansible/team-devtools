@@ -36,8 +36,8 @@ This is a bit of a change so let's go over what we hope to accomplish with it.
 
 - Version number indicates the age of a release
 
-  When looking at a version number, there's no good way of telling how old it is
-  without looking up the release notes.
+  With CalVer, the age of a release can be trivially determined from the version
+  number, instead of having to look up the release notes as at present.
 
 - Easier to translate versions between tools
 
@@ -53,8 +53,8 @@ Feature releases will not happen more often than once a month, though
 patch releases may happen more often as needed. We will also make
 releases at least once every three months for each project.
 
-Releases will still split out features and removals by category, including
-minor and major features, announced deprecations, and removed features.
+Releases will still split out changes by category, including new features,
+bugfixes, documentation updates, announced deprecations, and removed features.
 
 One of the things we are bringing with this change is an emphasis on fewer
 breaking changes / more emphasis on deprecation cycles and overlapping features.
