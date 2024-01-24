@@ -20,6 +20,7 @@ nav:
       - Code Reviews: guides/code-reviews.md
       - Github Actions: guides/gha.md
       - Mentoring: guides/mentoring.md
+      - CalVer Releases: guides/calver.md
       - Ansible:
           - Permissions: guides/ansible/permissions.md
       - Python:
