@@ -5,17 +5,18 @@
 
 ### Recommended filenames:
 
-* `.config/requirements.in` - runtime deps
-* `.config/requirements-test.in` - test requirements
-* `.config/requirements-docs.in` - docs requirements
-* `.config/requirements-lock.txt` - locked (pinned) runtime requirements for projects having `lock` extra.
-* `.config/constraints.txt` - unified testing constraint file to use as `PIP_CONSTRAINTS`. Is named like this for Dependabot compatibility. It also pins all extras.
+- `.config/requirements.in` - runtime deps
+- `.config/requirements-test.in` - test requirements
+- `.config/requirements-docs.in` - docs requirements
+- `.config/requirements-lock.txt` - locked (pinned) runtime requirements for projects having `lock` extra.
+- `.config/constraints.txt` - unified testing constraint file to use as `PIP_CONSTRAINTS`. Is named like this for Dependabot compatibility. It also pins all extras.
 
 ### Upgrading dependencies
 
 To upgrade dependencies, it's recommended to use `pip-tools` as part of the `pre-commit` hook and invoke manually via a tox profile named `deps`.
 
 Example `.pre-commit-config.yaml`
+
 ```
 - repo: https://github.com/jazzband/pip-tools
     rev: 7.3.0
@@ -30,6 +31,7 @@ Example `.pre-commit-config.yaml`
 ```
 
 Example `tox.ini`
+
 ```
 [testenv:deps]
 description = Bump all dependencies
@@ -55,6 +57,7 @@ To upgrade dependencies, execute `tox -e deps` in the local project.
 To minimise the amount of PRs Dependabot would create, it is recommended to group all dependencies updates together. This can be accomplish with the following config file:
 
 Example `.github/dependabot.yml`
+
 ```
 ---
 version: 2
