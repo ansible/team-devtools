@@ -25,6 +25,7 @@ nav:
           - Permissions: guides/ansible/permissions.md
       - Python:
           - Python Packaging: guides/python/packaging.md
+          - Python Dependencies: guides/python/dependencies.md
           - PyTest: guides/python/pytest.md
           - Tox: guides/python/tox.md
           - Release: guides/python/release.md
