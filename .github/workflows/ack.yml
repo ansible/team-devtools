@@ -27,7 +27,7 @@ jobs:
       # either title, body or source branch name. We ignore potential failure
       # of this step.
       - name: Auto-add labels
-        uses: release-drafter/release-drafter@v5
+        uses: release-drafter/release-drafter@v6
         with:
           # we only want to use the auto-labeler bits:
           disable-autolabeler: false
@@ -54,7 +54,7 @@ jobs:
 
       - name: Update release notes if this is already merged
         if: github.event.pull_request.merged == true
-        uses: release-drafter/release-drafter@v5
+        uses: release-drafter/release-drafter@v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
