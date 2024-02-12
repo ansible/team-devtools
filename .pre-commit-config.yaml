@@ -2,7 +2,7 @@
 repos:
   - repo: https://github.com/pre-commit/mirrors-prettier
     # keep it before yamllint
-    rev: v4.0.0-alpha.7
+    rev: v4.0.0-alpha.8
     hooks:
       - id: prettier
         always_run: true
