@@ -27,9 +27,7 @@ jobs:
       # either title, body or source branch name. We ignore potential failure
       # of this step.
       - name: Auto-add labels
-        if: |
-          github.event.action == "opened" &&
-          !contains(fromJSON('["bug", "feature", "skip-changelog", "minor", "enhancement"]'), github.event.issue.labels.*.name)
+        if: github.event.action == 'opened' && github.event.issue.labels.length == 0
         uses: release-drafter/release-drafter@v6
         with:
           # we only want to use the auto-labeler bits:
