@@ -38,4 +38,4 @@ The mentorship program should also help you improve collaboration with other ope
 - Check if you have enough available time to invest in that. It would not be unreasonable to assume that at least **4h/week** would be needed for at least few months.
 - Be sure you mention what you aim to gain from that experience, what areas you want to focus on.
 
-At the moment this was written, both [`ssbarnea`](https://github.com/ssbarnea) and [`ganeshrn`](https://github.com/ganeshrn) may be able to accept a mentee. You should also post a message on https://github.com/ansible/devtools/discussions/81
+At the moment this was written, both [`ssbarnea`](https://github.com/ssbarnea) and [`ganeshrn`](https://github.com/ganeshrn) may be able to accept a mentee. You should also post a message on https://github.com/ansible/team-devtools/discussions/81

@@ -27,6 +27,9 @@ jobs:
       # either title, body or source branch name. We ignore potential failure
       # of this step.
       - name: Auto-add labels
+        if: |
+          github.event.action == "opened" &&
+          !contains(fromJSON('["bug", "feature", "skip-changelog", "minor", "enhancement"]'), github.event.issue.labels.*.name)
         uses: release-drafter/release-drafter@v6
         with:
           # we only want to use the auto-labeler bits:
@@ -73,16 +76,9 @@ jobs:
           # label-operator: NOT
 
       # https://docs.github.com/en/code-security/dependabot/working-with-dependabot/automating-dependabot-with-github-actions#approve-a-pull-request
-      - name: Dependabot metadata
-        if: github.actor == 'dependabot[bot]'
-        id: metadata
-        uses: dependabot/fetch-metadata@v1
-        with:
-          github-token: "${{ secrets.GITHUB_TOKEN }}"
-
       - name: Enable auto-merge for safe bots PRs
         if: contains(fromJson('["dependabot[bot]", "pre-commit-ci[bot]"]'), github.actor)
-        run: gh pr merge --auto --merge "$PR_URL"
+        run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
           GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
