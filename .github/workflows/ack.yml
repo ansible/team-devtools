@@ -18,7 +18,7 @@ jobs:
     permissions:
       checks: write
       contents: write # needed to update release
-      pull-requests: write
+      pull-requests: write # pr approval and merge
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -72,13 +72,24 @@ jobs:
           # labeled: skip-changelog
           # label-operator: NOT
 
-      # - name: Auto-approve pull-requests made by approved bots
-      #   # https://github.com/marketplace/actions/auto-approve
-      #   if: contains(fromJson('["dependabot[bot]", "pre-commit-ci[bot]"]'), github.actor)
-      #   uses: hmarr/auto-approve-action@v3
+      # https://docs.github.com/en/code-security/dependabot/working-with-dependabot/automating-dependabot-with-github-actions#approve-a-pull-request
+      - name: Dependabot metadata
+        if: github.actor == 'dependabot[bot]'
+        id: metadata
+        uses: dependabot/fetch-metadata@v1
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      # - name: Enable auto-merge on changes made by approved bots
-      #   if: contains(fromJson('["dependabot[bot]", "pre-commit-ci[bot]"]'), github.actor)
-      #   uses: alexwilson/enable-github-automerge-action@main
-      #   with:
-      #     github-token: "${{ secrets.GITHUB_TOKEN }}"
+      - name: Enable auto-merge for safe bots PRs
+        if: contains(fromJson('["dependabot[bot]", "pre-commit-ci[bot]"]'), github.actor)
+        run: gh pr merge --auto --merge "$PR_URL"
+        env:
+          PR_URL: ${{github.event.pull_request.html_url}}
+          GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+      - name: Approve a PR
+        if: contains(fromJson('["dependabot[bot]", "pre-commit-ci[bot]"]'), github.actor)
+        run: gh pr review --approve "$PR_URL"
+        env:
+          PR_URL: ${{github.event.pull_request.html_url}}
+          GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
