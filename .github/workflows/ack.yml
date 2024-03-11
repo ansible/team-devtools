@@ -15,6 +15,8 @@ jobs:
   ack:
     runs-on: ubuntu-latest
     environment: ack
+    env:
+      BOT_PAT: ${{ secrets.BOT_PAT }}
     permissions:
       checks: write
       contents: write # needed to update release
@@ -61,8 +63,6 @@ jobs:
 
       - name: Add issue or pull-request to 'devtools' project
         # Workaround for running this step only if BOT_PAT secret is found
-        env:
-          BOT_PAT: ${{ secrets.BOT_PAT }}
         if: env.BOT_PAT != null
         uses: actions/add-to-project@main
         with:
@@ -73,16 +73,21 @@ jobs:
           # labeled: skip-changelog
           # label-operator: NOT
 
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: echo "$GITHUB_CONTEXT"
+
       # https://docs.github.com/en/code-security/dependabot/working-with-dependabot/automating-dependabot-with-github-actions#approve-a-pull-request
       - name: Enable auto-merge for safe bots PRs
-        if: env.BOT_PAT != null && contains(fromJson('["dependabot[bot]", "pre-commit-ci[bot]"]'), github.actor)
+        if: env.BOT_PAT != null && contains(fromJson('["dependabot[bot]", "pre-commit-ci[bot]"]'), github.event.pull_request.user.login)
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.BOT_PAT || secrets.GITHUB_TOKEN }}
 
       - name: Approve a PR
-        if: env.BOT_PAT != null && contains(fromJson('["dependabot[bot]", "pre-commit-ci[bot]"]'), github.actor)
+        if: env.BOT_PAT != null && contains(fromJson('["dependabot[bot]", "pre-commit-ci[bot]"]'), github.event.pull_request.user.login)
         run: gh pr review --approve "$PR_URL"
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
