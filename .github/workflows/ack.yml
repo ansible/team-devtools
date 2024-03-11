@@ -15,6 +15,8 @@ jobs:
   ack:
     runs-on: ubuntu-latest
     environment: ack
+    env:
+      BOT_PAT: ${{ secrets.BOT_PAT }}
     permissions:
       checks: write
       contents: write # needed to update release
@@ -61,8 +63,6 @@ jobs:
 
       - name: Add issue or pull-request to 'devtools' project
         # Workaround for running this step only if BOT_PAT secret is found
-        env:
-          BOT_PAT: ${{ secrets.BOT_PAT }}
         if: env.BOT_PAT != null
         uses: actions/add-to-project@main
         with:
