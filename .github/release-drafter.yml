@@ -4,11 +4,9 @@ tag-template: "v$RESOLVED_VERSION"
 # Use '-' instead of '*' for unordered list to match prettier behavior
 change-template: "- $TITLE (#$NUMBER) @$AUTHOR"
 categories:
-  - title: "Major Changes"
+  - title: "Enhancements"
     labels:
       - "major" # c6476b
-  - title: "Minor Changes"
-    labels:
       - "minor"
       - "feature" # 006b75
       - "enhancement" # ededed
@@ -16,6 +14,7 @@ categories:
   - title: "Bugfixes"
     labels:
       - "bug" # fbca04
+  - title: Other
       - "patch"
       - "deprecated" # fef2c0
 exclude-labels:
@@ -26,11 +25,11 @@ replacers:
   - search: '/(?:and )?@(pre-commit-ci|dependabot)(?:\[bot\])?,?/g'
     replace: ""
 version-resolver:
-  major:
-    labels:
-      - "major"
+  # major:
+  #   labels:
   minor:
     labels:
+      - "major"
       - "minor"
       - "feature"
       - "enhancement"
