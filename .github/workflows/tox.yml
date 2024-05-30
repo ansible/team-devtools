@@ -8,6 +8,8 @@ on:
   pull_request:
     branches:
       - "main"
+  workflow_call: # allows reuse of this workflow from other devtools repos
+
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
