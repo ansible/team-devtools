@@ -22,8 +22,6 @@ on:
     outputs:
       matrix:
         description: Matrix for other jobs
-        required: true
-        type: string
         value: ${{ jobs.prepare.outputs.matrix }}
 
 jobs:
