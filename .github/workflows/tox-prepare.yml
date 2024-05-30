@@ -1,0 +1,25 @@
+---
+name: tox-prepare
+
+on:
+  workflow_call: # allows reuse of this workflow from other devtools repos
+
+jobs:
+  prepare:
+    name: prepare
+    runs-on: ubuntu-22.04
+    outputs:
+      matrix: ${{ steps.generate_matrix.outputs.matrix }}
+    steps:
+      - name: Determine matrix
+        id: generate_matrix
+        uses: coactions/dynamic-matrix@v1
+        with:
+          min_python: "3.10"
+          max_python: "3.12"
+          default_python: "3.12" # used by jobs in other_names
+          other_names: |
+            lint
+            docs
+            pkg
+          platforms: linux,macos
