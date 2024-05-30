@@ -1,0 +1,41 @@
+---
+name: tox-prepare
+
+on:
+  workflow_call:
+    inputs:
+      default_python:
+        default: "3.12"
+        description: Default python version for other jobs
+        required: false
+        type: string
+      min_python:
+        default: "3.10"
+        description: Minimum python version for matrix generation
+        required: false
+        type: string
+      max_python:
+        default: "3.12"
+        description: Maximum python version for matrix generation
+        required: false
+        type: string
+
+jobs:
+  prepare:
+    name: prepare
+    runs-on: ubuntu-22.04
+    outputs:
+      matrix: ${{ steps.generate_matrix.outputs.matrix }}
+    steps:
+      - name: Determine matrix
+        id: generate_matrix
+        uses: coactions/dynamic-matrix@v1
+        with:
+          min_python: ${{ inputs.min_python }}
+          max_python: ${{ inputs.max_python }}
+          default_python: ${{ inputs.default_python }}
+          other_names: |
+            lint
+            docs
+            pkg
+          platforms: linux,macos
