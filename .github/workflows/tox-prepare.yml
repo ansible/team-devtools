@@ -19,6 +19,12 @@ on:
         description: Maximum python version for matrix generation
         required: false
         type: string
+    outputs:
+      matrix:
+        description: Matrix for other jobs
+        required: true
+        type: string
+        value: ${{ jobs.prepare.outputs.matrix }}
 
 jobs:
   prepare:
