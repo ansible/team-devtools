@@ -12,8 +12,6 @@ jobs:
       id-token: write
       checks: read
 
-    needs:
-      - build
     runs-on: ubuntu-latest
 
     steps:

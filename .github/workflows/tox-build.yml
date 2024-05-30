@@ -12,8 +12,6 @@ jobs:
   build:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os || 'ubuntu-22.04' }}
-    needs:
-      - prepare
     defaults:
       run:
         shell: ${{ matrix.shell || 'bash'}}
