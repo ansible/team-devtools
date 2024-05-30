@@ -1,5 +1,5 @@
 ---
-name: tox-build
+name: tox-test
 
 on:
   workflow_call:
@@ -13,7 +13,7 @@ env:
   PY_COLORS: 1
 
 jobs:
-  build:
+  test:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os || 'ubuntu-22.04' }}
     defaults:
