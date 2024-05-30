@@ -21,7 +21,7 @@ jobs:
         shell: ${{ matrix.shell || 'bash'}}
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
+      matrix: ${{ fromJson(inputs.matrix) }}
 
     steps:
       - uses: actions/checkout@v4
