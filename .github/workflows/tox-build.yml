@@ -3,6 +3,10 @@ name: tox-build
 
 on:
   workflow_call:
+    inputs:
+      matrix:
+        required: true
+        type: string
 
 env:
   FORCE_COLOR: 1 # tox, pytest, ansible-lint
