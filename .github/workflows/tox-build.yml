@@ -2,11 +2,7 @@
 name: tox-build
 
 on:
-  workflow_call: # allows reuse of this workflow from other devtools repos
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: true
+  workflow_call:
 
 env:
   FORCE_COLOR: 1 # tox, pytest, ansible-lint
