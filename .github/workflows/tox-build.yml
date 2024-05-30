@@ -7,7 +7,7 @@ on:
 env:
   FORCE_COLOR: 1 # tox, pytest, ansible-lint
   PY_COLORS: 1
-  
+
 jobs:
   build:
     name: ${{ matrix.name }}
