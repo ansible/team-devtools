@@ -10,7 +10,7 @@ on:
         required: false
         type: string
       jobs_producing_coverage:
-        default: 5
+        default: 6
         description: Number of jobs producing coverage.xml files
         required: false
         type: number
