@@ -47,7 +47,7 @@ jobs:
             docs
             lint
             pkg
-            py310-devel
+            py310-milestone
           platforms: linux,macos
 
   test:
