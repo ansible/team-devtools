@@ -10,7 +10,7 @@ on:
         required: false
         type: string
       jobs_producing_coverage:
-        default: 5
+        default: 6
         description: Number of jobs producing coverage.xml files
         required: false
         type: number
@@ -22,6 +22,11 @@ on:
       max_python:
         default: "3.12"
         description: Maximum python version for matrix generation
+        required: false
+        type: string
+      other_names_also:
+        default: ""
+        description: Additional names for the matrix
         required: false
         type: string
 
@@ -48,6 +53,7 @@ jobs:
             lint
             pkg
             py310-milestone
+            ${{ inputs.other_names_also }}
           platforms: linux,macos
 
   test:
