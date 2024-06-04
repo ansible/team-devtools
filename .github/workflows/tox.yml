@@ -24,6 +24,11 @@ on:
         description: Maximum python version for matrix generation
         required: false
         type: string
+      other_names_also:
+        default: ""
+        description: Additional names for the matrix
+        required: false
+        type: string
 
 env:
   FORCE_COLOR: 1 # tox, pytest, ansible-lint
@@ -48,6 +53,7 @@ jobs:
             lint
             pkg
             py310-milestone
+            ${{ inputs.other_names_also }}
           platforms: linux,macos
 
   test:
