@@ -1,145 +1,152 @@
+---
+hide:
+  - toc
+---
+
 # devtools
 
 This repository is used to share practices, workflows and decisions affecting projects maintained by Ansible DevTools team.
 
 ## Python DevTools project dependencies
 
-It should be noted that our vscode extension would either depend on `ansible-dev-tools` python package or directly use the `creator-ee` container (execution environment).
+It should be noted that our vscode extension would either depend on `ansible-dev-tools` python package or directly use the [execution environment container image](#container-image).
 
 ```mermaid
-graph LR;
+%%{init: {'theme':'neutral', 'themeVariables': { 'edgeLabelBackground': 'transparent'}}}%%
+graph LR
 
-  classDef tsclass fill:#f90,stroke:#f90,color:#333;
-  classDef containerclass fill:#060,stroke:#060,color:#fff;
-  classDef thirdpartyclass fill:#9f6,stroke:#9f6,color:#333;
-  classDef collectionclass fill:#c00,stroke:#c00,color:#fff;
-  classDef pyclass fill:#09f,stroke:#09f,color:#fff;
+  lint(ansible-lint):::pyclass
+  compat(ansible-compat):::pyclass
+  navigator(ansible-navigator):::pyclass
+  adt(ansible-dev-tools):::pyclass;
+  ade(ansible-development-environment):::pyclass
+  creator(ansible-creator):::pyclass;
+  pytest-ansible(pytest-ansible):::pyclass
+  tox-ansible(tox-ansible):::pyclass
+  molecule(molecule):::pyclass
+  community.molecule(community.molecule):::collectionclass
+  builder(ansible-builder):::pyclass
+  runner(ansible-runner):::pyclass
+  image(community-ansible-dev-tools-image):::containerclass
+  sign(ansible-sign):::pyclass
 
+  classDef tsclass fill:#f90,stroke:#f90,color:#333
+  classDef containerclass fill:#060,stroke:#060,color:#fff
+  classDef collectionclass fill:#5bbdbf,stroke-width:0px
+  classDef pyclass fill:#09f5,stroke:#09f0,color:#fff
+  style external color:#0FF5,fill:#fff0,stroke:#0FF5
+  linkStyle default stroke:grey,text-decoration:none
 
-subgraph supported
-  ansible-lint
-  ansible-navigator
+subgraph external
+  builder
+  runner
+  sign
 end
 
-subgraph tech-preview
-  ansible-development-environment
-  ansible-creator
-  pytest-ansible
-  tox-ansible
-  molecule
-end
+  adt --> lint
+  adt --> navigator
+  adt --> molecule
+  adt --> ade
+  adt --> creator
+  adt --> sign
 
-  creator-ee:::containerclass --> ansible-dev-tools;
+  lint --> compat
+  compat -. test .-> community.molecule
+  molecule --> compat
+  molecule -. test .-> community.molecule:::collectionclass
 
-  ansible-dev-tools --> ansible-lint;
-  ansible-dev-tools --> ansible-navigator;
-  ansible-dev-tools --> molecule;
+  navigator -.-> lint
+  navigator -.-> image
+  navigator --> runner
+  navigator -..-> builder
 
-  ansible-lint --> ansible-compat;
-  ansible-compat -.-> community.molecule;
-  molecule --> ansible-compat;
-  molecule -.-> community.molecule:::collectionclass;
+  adt --> ade;
+  adt --> creator
+  adt --> pytest-ansible
+  adt --> tox-ansible;
 
-  ansible-navigator -.-> ansible-lint;
-  ansible-navigator -.-> creator-ee;
+  ade --> builder;
 
-
-  ansible-dev-tools --> ansible-development-environment;
-  ansible-dev-tools --> ansible-creator;
-  ansible-dev-tools --> pytest-ansible;
-  ansible-dev-tools --> tox-ansible;
-
-  ansible-compat:::pyclass;
-  ansible-creator:::pyclass;
-  ansible-dev-tools:::pyclass;
-  ansible-development-environment:::pyclass;
-  ansible-lint:::pyclass;
-  ansible-navigator:::pyclass;
-  molecule:::pyclass;
-  tox-ansible:::pyclass;
-  pytest-ansible:::pyclass;
-
-  click ansible-development-environment "https://github.com/ansible/ansible-development-environment"
+  click adt "https://github.com/ansible/ansible-dev-tools"
+  click ade "https://github.com/ansible/ansible-development-environment"
+  click runner "https://github.com/ansible/ansible-runner"
+  click builder "https://github.com/ansible/ansible-builder"
   click community.molecule "https://github.com/ansible-collections/community.molecule"
   click molecule href "https://github.com/ansible/molecule"
-  click creator-ee href "https://github.com/ansible/creator-ee"
-  click ansible-lint href "https://github.com/ansible/ansible-lint"
-  click ansible-compat href "https://github.com/ansible/ansible-compat"
-  click ansible-navigator href "https://github.com/ansible/ansible-navigator"
-  click ansible-creator href "https://github.com/ansible/ansible-creator"
+  click image href "#container-image"
+  click ws "https://github.com/ansible/ansible-workspace-env-reference-image"
+  click lint href "https://github.com/ansible/ansible-lint"
+  click compat href "https://github.com/ansible/ansible-compat"
+  click navigator href "https://github.com/ansible/ansible-navigator"
+  click creator href "https://github.com/ansible/ansible-creator"
   click tox-ansible href "https://github.com/ansible/tox-ansible"
   click pytest-ansible href "https://github.com/ansible/pytest-ansible"
+
+  linkStyle 0,1,2,3,4,5,6,7,8,9 color:darkcyan
+
 ```
 
-Note:
-
-1. [vscode-yaml](https://github.com/redhat-developer/vscode-yaml) project is not directly supported by Ansible devtools team.
-2. dotted lines are either test, build or optional requirements
-3. 📘 python, 📕 ansible collection, 📗 container
-4. `community.molecule` is only a test dependency of molecule core.
-
-## TypeScript Dependencies (extension)
+## TypeScript repositories
 
 ```mermaid
-graph LR;
+graph TB;
 
   classDef tsclass fill:#f90,stroke:#f90,color:#333;
   classDef containerclass fill:#060,stroke:#060,color:#fff;
   classDef thirdpartyclass fill:#9f6,stroke:#9f6,color:#333;
 
-  vscode-ansible:::tsclass --> ansible-language-server;
-  vscode-ansible:::tsclass --> vscode-yaml;
+  ansible-backstage-plugins:::tsclass;
+  vscode-ansible:::tsclass -- external --> vscode-yaml;
   vscode-yaml:::tsclass;
-  ansible-language-server:::tsclass;
 
+ click ansible-backstage-plugins "https://github.com/ansible/ansible-backstage-plugins"
  click ansible-development-environment "https://github.com/ansible/ansible-development-environment"
  click community.molecule "https://github.com/ansible-collections/community.molecule"
  click creator-ee href "https://github.com/ansible/creator-ee"
- click ansible-language-server href "https://github.com/ansible/ansible-language-server"
  click vscode-ansible href "https://github.com/ansible/vscode-ansible"
  click vscode-yaml href "https://github.com/redhat-developer/vscode-yaml"
 ```
 
-## Collections included in creator-ee
+## Container Image
 
-`creator-ee` execution environment is a development container that contains
-most of the most important tools used in the development and testing of collections. Still,
-while we bundle several collections in it, you need to be warned that **we might
-remove any included collection without notice** if that prevents us from
+`community-ansible-dev-tools-image` **execution environment** is a development
+**container image** that contains most of the most important tools used in the
+development and testing of collections. Still, while we bundle several
+collections in it, you need to be warned that **we might remove any included
+collection without notice** if that prevents us from
 building the container.
 
 ```mermaid
-graph LR;
+graph TB;
 
-creator-ee --> ansible.posix;
-creator-ee --> ansible.windows;
-creator-ee --> awx.awx;
-creator-ee --> containers.podman;
-creator-ee --> kubernetes.core;
-creator-ee --> redhatinsights.insights;
-creator-ee --> theforeman.foreman;
+ee("community-ansible-dev-tools-image<br/><i style="color: #0FF5">fedora-minimal</i>")
+adt(ansible-dev-tools)
+
+ee --> adt;
+ee --> collections;
+
+
+subgraph collections
+  ansible.posix
+  ansible.windows
+  awx.awx
+  containers.podman
+  kubernetes.core
+  redhatinsights.insights
+  theforeman.foreman
+end
+
+click adt "https://github.com/ansible/ansible-dev-tools"
+click ee "https://github.com/ansible/community-ansible-dev-tools-image"
+
 ```
 
-## Molecule ecosystem
+## Internal
 
 ```mermaid
-graph LR;
+graph TB;
 
-  molecule-podman --> molecule;
-  molecule-docker --> molecule;
-  molecule-containers -.-> molecule-podman;
-  molecule-containers -.-> molecule-docker;
-  molecule-vagrant --> molecule;
+ws(ansible-workspace-env-reference-image):::containerclass
+click ws "https://github.com/ansible/ansible-workspace-env-reference-image"
 
-  molecule-libvirt --> molecule;
-  molecule-lxd --> molecule;
-
-
-  pytest-molecule --> molecule;
-  tox-ansible -.-> molecule;
-  tox-ansible -.-> ansible-test;
-
-
- click molecule href "https://github.com/ansible-community/molecule"
- click molecule-podman href "https://github.com/ansible-community/molecule-podman"
 ```
