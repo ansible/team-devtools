@@ -1,44 +1,101 @@
 ---
+# TODO: allow layered loading from other repos like dependabot config
+# Symlink this as ~/pre.yml and use https://github.com/pycontribs/gh-pre
 # This file documents repositories that are nurtured by Ansible DevTools team.
 # Not all these repos are fully managed or maintained by the team.
 # We aim to use this file when performing maintenance and audit.
-#
-# Symlink this as ~/pre.yml and use https://github.com/pycontribs/gh-pre
 # to review open pull requests and issues.
-repos:
-  # primary projects
-  - ansible/ansible-compat
-  - ansible/ansible-creator # scaffolding (templating) for new content
-  - ansible/ansible-dev-tools # former cdk/sdk, the devtools 'bundle', server
-  - ansible/ansible-development-environment # former pip4a (venv installer)
-  - ansible/ansible-lint
-  - ansible/ansible-navigator
-  - ansible/community-ansible-dev-tools-image
-  - ansible/creator-ee # deprecated in favour of community-ansible-dev-tools-image
-  - ansible/molecule
-  - ansible/pytest-ansible
-  - ansible/team-devtools
-  - ansible/tox-ansible
-  - ansible/vscode-ansible
-
-  # experimental / tech-preview
-  - ansible/ansible-backstage-plugins # private
-
-  # auxiliary (usually dependencies)
-  - ansible-collections/community.molecule
-  - ansible/ansible-workspace-env-reference-image # dev-spaces reference
-  - ansible/mkdocs-ansible
-  - ansible/team-devtools
-  - pycontribs/enrich
-  - pycontribs/subprocess-tee
-
-  # nurtured (helped on best effort basis)
-  - ansible-community/molecule-plugins
-
-  # unmaintained, obsoleted or archived:
-  # - ansible-community/protogen # deprecated?
-  # - ansible-community/role2collection
-  # - ansible/ansible-language-server (now part vscode-ansible)
-  # - ansible/ansible-lint-action (now part of ansible-lint)
-  # - pycontribs/selinux
-  # - pytest-molecule
+_version: 1
+# _extends: gh-org/gh-repo
+teams:
+  devtools:
+    # https://rover.redhat.com/groups/group/ansible-devtools (ldap)
+    # https://github.com/orgs/ansible/teams/devtools/members (github)
+    - alisonlhart
+    - audgirka
+    - qalthos
+    - shatakshiiii
+    - ssbarnea
+  indirect:
+    - KB-perByte # Sagar
+    - ansibuddy
+    - ariordan-redhat
+    - cidrblock # Brad
+    - ganeshrn
+    - ruchip16
+    - trishnaguha
+  # repo key can be 'gh-org/gh-repo' or other simple, override url could be
+  # configured using 'repo:' key.
+  _default:
+    # special meaning, all other keys will inherit attributes this entry
+    group: primary
+    # owners: is used to record SMEs, primary, backup, ...
+  ansible-collections/community.molecule:
+    section: community
+  # ansible-community/molecule-plugins:
+  #   section: community
+  ansible/ansible-backstage-plugins:
+    owners: [audgirka]
+    section: experimental
+  ansible/ansible-compat:
+    owners: [qalthos, audgirka]
+    section: primary
+  ansible/ansible-content-actions:
+    owners: [KB-perByte, ssbarnea]
+    section: experimental
+    # https://github.com/marketplace/actions/ansible-content-actions
+  ansible/ansible-creator:
+    owners: [audgirka, shatakshiiii]
+    section: experimental
+  ansible/ansible-dev-environment:
+    owners: [qalthos, shatakshiiii]
+    section: primary
+  ansible/ansible-dev-tools:
+    owners: [audgirka, shatakshiiii]
+    section: primary
+    # https://github.com/orgs/ansible/packages/container/community-ansible-dev-tools/settings
+  ansible/ansible-lint:
+    owners: [audgirka, qalthos]
+    section: primary
+  ansible/ansible-navigator:
+    owners: [shatakshiiii]
+    section: primary
+  ansible/ansible-workspace-env-reference-image:
+    section: community
+  ansible/mkdocs-ansible:
+    section: community
+  ansible/molecule:
+    owners: [qalthos, audgirka]
+  ansible/pytest-ansible:
+    owners: [shatakshiiii, qalthos]
+    section: experimental
+  ansible/team-devtools:
+    owners: [ssbarnea]
+  ansible/tox-ansible:
+    owners: [shatakshiiii, qalthos]
+    section: experimental
+  ansible/vscode-ansible:
+    owners: [alisonlhart, audgirka]
+  ansible/ansible-contributor-metrics:
+    owners: [ssbarnea]
+    section: experimental
+  coactions/dynamic-matrix:
+    section: community
+  pycontribs/enrich:
+    section: community
+  pycontribs/subprocess-tee:
+    section: community
+sections:
+  community:
+  deprecated:
+  experimental:
+  primary:
+# unmaintained, obsoleted or archived:
+# ansible-community/protogen
+# ansible-community/role2collection
+# ansible/ansible-language-server (now part vscode-ansible)
+# ansible/ansible-lint-action (now part of ansible-lint)
+# ansible/community-ansible-dev-tools-image (now part of ansible-dev-tools)
+# ansible/creator-ee (now part of ansible-dev-tools)
+# pycontribs/selinux
+# pytest-molecule
