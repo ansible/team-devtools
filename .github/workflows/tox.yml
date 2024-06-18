@@ -52,7 +52,7 @@ jobs:
             docs
             lint
             pkg
-            py310-milestone
+            py312-milestone
             ${{ inputs.other_names_also }}
           platforms: linux,macos
 
