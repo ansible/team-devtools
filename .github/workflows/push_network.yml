@@ -1,3 +1,4 @@
+---
 # push workflow is shared and expected to perform actions after a merge happens
 # on a maintenance branch (default or release). For example updating the
 # draft release-notes.
@@ -58,9 +59,9 @@ jobs:
 
       - name: Get previous tag
         id: previoustag
-        uses: "WyriHaximus/github-action-get-previous-tag@master"
+        uses: WyriHaximus/github-action-get-previous-tag@master
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       ## this part is commented out to check push workflow
       ## ref - https://github.com/ansible-collections/cisco.nxos/pull/765

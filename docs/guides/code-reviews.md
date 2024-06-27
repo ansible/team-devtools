@@ -15,7 +15,7 @@ A thumb rule regarding code coverage is that any incoming change should not lowe
 - [![codecov](https://codecov.io/github/ansible/ansible-navigator/graph/badge.svg?token=QZKqxsNNsL)](https://codecov.io/github/ansible/ansible-navigator) ansible-navigator
 - [![codecov](https://codecov.io/github/ansible/molecule/graph/badge.svg?token=QZKqxsNNsL)](https://codecov.io/github/ansible/molecule) molecule
 
-- [![codecov](https://codecov.io/github/ansible/ansible-development-environment/graph/badge.svg?token=QZKqxsNNsL)](https://codecov.io/github/ansible/ansible-development-environment) ansible-development-environment
+- [![codecov](https://codecov.io/github/ansible/ansible-dev-environment/graph/badge.svg?token=QZKqxsNNsL)](https://codecov.io/github/ansible/ansible-dev-environment) ansible-dev-environment
 
 - [![codecov](https://codecov.io/github/ansible/ansible-creator/graph/badge.svg?token=QZKqxsNNsL)](https://codecov.io/github/ansible/ansible-creator) ansible-creator
 

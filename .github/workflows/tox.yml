@@ -121,8 +121,7 @@ jobs:
             printf '### Failed as git reported modified and/or untracked files\n```\n%s\n```\n' "$(git status -s)" | tee -a "$GITHUB_STEP_SUMMARY"
             exit 99
           fi
-        # https://github.com/actions/toolkit/issues/193
-
+  # https://github.com/actions/toolkit/issues/193
   check:
     if: always()
     permissions:

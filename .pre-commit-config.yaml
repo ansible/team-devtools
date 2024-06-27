@@ -30,3 +30,8 @@ repos:
         files: \.(yaml|yml)$
         types: [file, yaml]
         entry: yamllint --strict
+  - repo: https://github.com/ansible/ansible-lint
+    rev: v24.6.1
+    hooks:
+      - id: ansible-lint
+        args: [--fix]

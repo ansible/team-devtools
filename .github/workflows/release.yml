@@ -1,3 +1,4 @@
+---
 name: release
 
 on:
@@ -11,16 +12,16 @@ on:
         type: boolean
     secrets:
       pypi_password:
-        description: "API token for pypi.org"
+        description: API token for pypi.org
         required: true
       testpypi_password:
-        description: "API token for test.pypi.org"
+        description: API token for test.pypi.org
         required: true
 
 jobs:
   pypi:
     name: Publish to PyPI registry
-    if: "${{ inputs.pypi }}"
+    if: ${{ inputs.pypi }}
     environment: release
     runs-on: ubuntu-20.04
 

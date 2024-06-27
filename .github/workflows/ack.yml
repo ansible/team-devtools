@@ -1,3 +1,4 @@
+---
 # ack workflow runs on any change made to a pull-request and aims to verify
 # that is following our practices. Initial version is checking correct label
 # presence.

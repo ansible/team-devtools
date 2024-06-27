@@ -19,7 +19,7 @@ graph LR
   compat(ansible-compat):::pyclass
   navigator(ansible-navigator):::pyclass
   adt(ansible-dev-tools):::pyclass;
-  ade(ansible-development-environment):::pyclass
+  ade(ansible-dev-environment):::pyclass
   creator(ansible-creator):::pyclass;
   pytest-ansible(pytest-ansible):::pyclass
   tox-ansible(tox-ansible):::pyclass
@@ -68,7 +68,7 @@ end
   ade --> builder;
 
   click adt "https://github.com/ansible/ansible-dev-tools"
-  click ade "https://github.com/ansible/ansible-development-environment"
+  click ade "https://github.com/ansible/ansible-dev-environment"
   click runner "https://github.com/ansible/ansible-runner"
   click builder "https://github.com/ansible/ansible-builder"
   click community.molecule "https://github.com/ansible-collections/community.molecule"
@@ -100,7 +100,7 @@ graph TB;
   vscode-yaml:::tsclass;
 
  click ansible-backstage-plugins "https://github.com/ansible/ansible-backstage-plugins"
- click ansible-development-environment "https://github.com/ansible/ansible-development-environment"
+ click ansible-dev-environment "https://github.com/ansible/ansible-dev-environment"
  click community.molecule "https://github.com/ansible-collections/community.molecule"
  click creator-ee href "https://github.com/ansible/creator-ee"
  click vscode-ansible href "https://github.com/ansible/vscode-ansible"

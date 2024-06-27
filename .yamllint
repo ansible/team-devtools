@@ -1,5 +1,8 @@
+---
 extends: default
 rules:
+  braces:
+    max-spaces-inside: 1
   comments:
     # prettier compatibility
     min-spaces-from-content: 1
@@ -10,6 +13,9 @@ rules:
   document-start: disable
   # we need to decide if we want to impose one or not
   line-length: disable
+  octal-values:
+    forbid-implicit-octal: true
+    forbid-explicit-octal: true
   truthy:
     # "on:" is perfectly valid key on github actions:
     check-keys: false
