@@ -66,7 +66,7 @@ Completed date:
 
 Notes:
 
-### 2024-08
+### 2024-07
 
 Release manager: @alisonlhart
 
