@@ -2,9 +2,9 @@
 
 ## Overview
 
-The projects maintained by the Ansible dev tools team have a target release frequency of 1 month.  Some project may have more than 1 release per month based on project velocity or frequency of bug fixes or feature additions.
+The projects maintained by the Ansible dev tools team have a target release frequency of 1 month. Some project may have more than 1 release per month based on project velocity or frequency of bug fixes or feature additions.
 
-One person within the devtools team will act as "release manager" each month. This will ensure each project is reviewed to ensure a release for that month was made.  If a particular project's CI tests are failing, the project maintainer will work with the release manager to clear the block.  If a project already has a release within the current month a new release is not necessary unless there are merged PRs and release notes available for a new release.
+One person within the devtools team will act as "release manager" each month. This will ensure each project is reviewed to ensure a release for that month was made. If a particular project's CI tests are failing, the project maintainer will work with the release manager to clear the block. If a project already has a release within the current month a new release is not necessary unless there are merged PRs and release notes available for a new release.
 
 The following project should be release first, in no particular order:
 
@@ -29,8 +29,6 @@ This will release both a python project and image. Both the resulting python pac
 
 - [ansible-dev-tools on pypi](https://pypi.org/project/ansible-dev-tools/#history)
 - [ansible-dev-tools image](https://github.com/ansible/ansible-dev-tools/pkgs/container/community-ansible-dev-tools)
-
-
 
 ## Schedule
 
