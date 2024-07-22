@@ -6,11 +6,11 @@ The projects maintained by the Ansible dev tools team have a target release freq
 
 One person within the devtools team will act as "release manager" each month. This will ensure each project is reviewed to ensure a release for that month was made. If a particular project's CI tests are failing, the project maintainer will work with the release manager to clear the block. If a project already has a release within the current month a new release is not necessary unless there are merged PRs and release notes available for a new release.
 
-The following project should be release first, in no particular order:
+The following project should be released first, in no particular order:
 
 - [ansible-compat](https://github.com/ansible/ansible-compat/releases)
 
-The following projects should be release second, in no particular order:
+The following projects should be released second, in no particular order:
 
 - [ansible-creator](https://github.com/ansible/ansible-creator/releases)
 - [ansible-dev-environment](https://github.com/ansible/ansible-dev-environment/releases)
