@@ -109,8 +109,7 @@ class Post:
             release=self.release,
             release_notes=self.release_notes,
         )
-        now = datetime.datetime.now(tz=datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-        title = f"Release Announcement: {self.project} {self.release} ({now})"
+        title = f"Release Announcement: {self.project} {self.release}"
 
         payload = {
             "title": title,
