@@ -17,7 +17,7 @@ We are happy to announce the release of {project} {release}.
 You can install the latest version of all the ansible developer tools by running the following command:
 
 ```bash
-python3 -m pip -U install ansible-dev-tools
+python3 -m pip install -U ansible-dev-tools
 ```
 
 This will install the following developer tools:
