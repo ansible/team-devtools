@@ -1,7 +1,6 @@
 """A forum poster."""
 
 import argparse
-import datetime
 import json
 import urllib.request
 
