@@ -1,3 +1,7 @@
+# It is not currently possible to use trusted publishing with a shared workflow
+# https://github.com/pypi/warehouse/blob/main/docs/user/trusted-publishers/troubleshooting.md#reusable-workflows-on-github
+# this file is for reference only now
+
 name: release
 
 on:
