@@ -2,7 +2,7 @@ name: release
 
 on:
   workflow_call:
-    
+
 jobs:
   release:
     name: release ${{ github.event.ref }}
