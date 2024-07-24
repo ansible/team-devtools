@@ -81,7 +81,7 @@ class Post:
     def _get_release_notes(self) -> None:
         """Get the release notes for the project."""
         release_url = (
-            f"https://api.github.com/repos/ansible/{self.project}/releases/tags/{self.release}"
+            f"https://api.github.com/repos/{self.project}/releases/tags/{self.release}"
         )
         with urllib.request.urlopen(release_url) as url:  # noqa: S310
             data = json.load(url)
@@ -125,8 +125,8 @@ class Post:
         request.add_header("Api-Username", self.forum_user)
         request.add_header("Content-Type", "application/json")
         data = json.dumps(payload).encode("utf-8")
-        with urllib.request.urlopen(url=request, data=data) as url:  # noqa: S310
-            _response = json.load(url)
+        with urllib.request.urlopen(url=request, data=data):  # noqa: S310
+            print(f"Posted {title} to the forum.")
 
 
 def main() -> None:
@@ -134,7 +134,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Post a release announcement to the Ansible forum.",
     )
-    parser.add_argument("project", help="The project name.")
+    parser.add_argument("project", help="The project name. e.g. ansible/tox-ansible")
     parser.add_argument("release", help="The release version.")
     parser.add_argument("forum_api_key", help="The forum API key.")
     parser.add_argument("forum_user", help="The forum user.")
