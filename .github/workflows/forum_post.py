@@ -22,16 +22,16 @@ python3 -m pip install -U ansible-dev-tools
 
 This will install the following developer tools:
 
-- [ansible-builder](https://ansible.readthedocs.io/projects/builder/): Ansible Builder automates the process of building execution environments using the schemas and tooling defined in various Ansible Collections and by the user.
+- [ansible-builder](https://ansible.readthedocs.io/projects/builder/): a utility for building Ansible execution environments.
 - [ansible-core](https://ansible.readthedocs.io/projects/ansible/): Ansible is a radically simple IT automation platform that makes your applications and systems easier to deploy and maintain. Automate everything from code deployment to network configuration to cloud management, in a language that approaches plain English, using SSH, with no agents to install on remote systems.
-- [ansible-creator](https://ansible.readthedocs.io/projects/creator/): The fastest way to generate all your ansible content!
-- [ansible-dev-environment](https://ansible.readthedocs.io/projects/dev-environment/): A pip-like install for Ansible collections.
-- [ansible-lint](https://ansible.readthedocs.io/projects/lint/): Checks playbooks for practices and behavior that could potentially be improved.
-- [ansible-navigator](https://ansible.readthedocs.io/projects/navigator/) A text-based user interface (TUI) for Ansible.
-- [ansible-sign](https://ansible.readthedocs.io/projects/sign/): Utility for signing and verifying Ansible project directory contents.
-- [molecule](https://ansible.readthedocs.io/projects/molecule/): Molecule aids in the development and testing of Ansible content: collections, playbooks and roles
-- [pytest-ansible](https://ansible.readthedocs.io/projects/pytest-ansible/): A pytest plugin that enables the use of ansible in tests, enables the use of pytest as a collection unit test runner, and exposes molecule scenarios using a pytest fixture.
-- [tox-ansible](https://ansible.readthedocs.io/projects/tox-ansible/): The tox-ansible plugin dynamically creates a full matrix of python interpreter and ansible-core version environments for running integration, sanity, and unit for an ansible collection both locally and in a Github action. tox virtual environments are leveraged for collection building, collection installation, dependency installation, and testing.
+- [ansible-creator](https://ansible.readthedocs.io/projects/creator/): a utility for scaffolding Ansible project and content with recommended practices.
+- [ansible-dev-environment](https://ansible.readthedocs.io/projects/dev-environment/): a utility for building and managing a virtual environment for Ansible content development.
+- [ansible-lint](https://ansible.readthedocs.io/projects/lint/): a utility to identify and correct stylistic errors and anti-patterns in Ansible playbooks and roles.
+- [ansible-navigator](https://ansible.readthedocs.io/projects/navigator/) a text-based user interface (TUI) for developing and troubleshooting Ansible content with execution environments.
+- [ansible-sign](https://ansible.readthedocs.io/projects/sign/): a utility for signing and verifying Ansible content.
+- [molecule](https://ansible.readthedocs.io/projects/molecule/): a functional test runner for Ansible collections, playbooks and roles
+- [pytest-ansible](https://ansible.readthedocs.io/projects/pytest-ansible/): a pytest testing framework extension that provides additional functionality for testing Ansible module and plugin Python code.
+- [tox-ansible](https://ansible.readthedocs.io/projects/tox-ansible/): an extension to the tox testing utility that provides additional functionality to check Ansible module and plugin Python code under different Python interpreters and Ansible core versions.
 
 For a single tool, you can install it by running:
 
@@ -39,7 +39,7 @@ For a single tool, you can install it by running:
 python3 -m pip -U install <project>==<release>
 ```
 
-All ansible developer tools are also packaged in an image that you can use as a [VsCode development container](https://code.visualstudio.com/docs/devcontainers/containers). The image is updated shortly after releases of any individual tool.
+All ansible developer tools are also packaged in an image that you can use as a [VS Code development container](https://code.visualstudio.com/docs/devcontainers/containers). The image is updated shortly after releases of any individual tool.
 The [community-dev-tools](https://github.com/ansible/ansible-dev-tools/pkgs/container/community-ansible-dev-tools) image is available on GitHub Container Registry.
 
 ```
