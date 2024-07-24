@@ -1,3 +1,4 @@
+# cspell:ignore devcontainer
 """A forum poster."""
 
 import argparse
@@ -9,7 +10,7 @@ from urllib.request import Request
 
 POST_MD = """Hello everyone,
 
-We are happy to announce the release of {project} {release}.
+We are happy to announce the release of {project_short} {release}.
 
 # How to get it
 
@@ -47,11 +48,11 @@ podman run -it ghcr.io/ansible/community-ansible-dev-tools:latest
 
 Sample `devcontainer.json` files are available in the [ansible-dev-tools](https://github.com/ansible/ansible-dev-tools/tree/main/.devcontainer) repository.
 
-# Release notes for {project} {release}
+# Release notes for {project_short} {release}
 
 {release_notes}
 
-Release notes for all versions can be found in the [changelog](https://github.com/ansible/{project}/releases).
+Release notes for all versions can be found in the [changelog](https://github.com/ansible/{project_short}/releases).
 
 """  # noqa: E501
 
@@ -73,9 +74,9 @@ class Post:
         self.forum_api_key = forum_api_key
         self.forum_user = forum_user
         self.project = project
+        self.project_short = project.split("/")[-1]
         self.release = release
         self.release_notes: str
-        self.user = "ansible-announce"
 
     def _get_release_notes(self) -> None:
         """Get the release notes for the project."""
@@ -104,11 +105,11 @@ class Post:
         self._get_release_notes()
         self._get_category_id()
         post_md = POST_MD.format(
-            project=self.project,
+            project_short=self.project_short,
             release=self.release,
             release_notes=self.release_notes,
         )
-        title = f"Release Announcement: {self.project} {self.release}"
+        title = f"Release Announcement: {self.project_short} {self.release}"
 
         payload = {
             "title": title,
