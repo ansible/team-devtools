@@ -1,44 +1,33 @@
+# It is not currently possible to use trusted publishing with a shared workflow
+# https://github.com/pypi/warehouse/blob/main/docs/user/trusted-publishers/troubleshooting.md#reusable-workflows-on-github
+# this file is for reference only now
+
 name: release
 
 on:
   workflow_call:
-    # https://docs.github.com/en/actions/learn-github-actions/workflow-syntax-for-github-actions#onworkflow_callinputs
-    inputs:
-      pypi:
-        description: Publish to PyPI registry
-        default: false
-        required: false
-        type: boolean
-    secrets:
-      pypi_password:
-        description: "API token for pypi.org"
-        required: true
-      testpypi_password:
-        description: "API token for test.pypi.org"
-        required: true
 
 jobs:
-  pypi:
-    name: Publish to PyPI registry
-    if: "${{ inputs.pypi }}"
+  release:
+    name: release ${{ github.event.ref }}
     environment: release
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
+    permissions:
+      id-token: write
 
     env:
       FORCE_COLOR: 1
       PY_COLORS: 1
-      TOXENV: packaging
       TOX_PARALLEL_NO_SPINNER: 1
 
     steps:
-      - name: Switch to using Python 3.8 by default
+      - name: Switch to using Python 3.12 by default
         uses: actions/setup-python@v5
         with:
-          python-version: 3.8
+          python-version: "3.12"
 
       - name: Install tox
-        run: >-
-          python3 -m pip install --user tox
+        run: python3 -m pip install --user "tox>=4.0.0"
 
       - name: Check out src from Git
         uses: actions/checkout@v4
@@ -46,15 +35,6 @@ jobs:
           fetch-depth: 0 # needed by setuptools-scm
 
       - name: Build dists
-        run: python3 -m tox
-
-      - name: Publish to test.pypi.org
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.testpypi_password }}
-          repository_url: https://test.pypi.org/legacy/
-
+        run: python3 -m tox -e pkg
       - name: Publish to pypi.org
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.pypi_password }}
