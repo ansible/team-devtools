@@ -60,7 +60,7 @@ Notes:
 
 ### 2024-08
 
-Release manager:
+Release manager: @Qalthos
 
 Completed date:
 
