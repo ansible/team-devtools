@@ -1,3 +1,4 @@
+---
 # It is not currently possible to use trusted publishing with a shared workflow
 # https://github.com/pypi/warehouse/blob/main/docs/user/trusted-publishers/troubleshooting.md#reusable-workflows-on-github
 # this file is for reference only now
@@ -6,12 +7,11 @@ name: release
 
 on:
   workflow_call:
-
 jobs:
   release:
     name: release ${{ github.event.ref }}
     environment: release
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       id-token: write
 

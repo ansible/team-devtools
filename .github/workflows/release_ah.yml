@@ -22,11 +22,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: "Build the collection"
+      - name: Build the collection
         run: |
           ansible-galaxy collection build -v --force
 
-      - name: "Publish the collection on Automation Hub"
+      - name: Publish the collection on Automation Hub
         if: ${{ inputs.ah_publish }}
         run: |
           [[ "${{ secrets.ah_token != '' }}" ]] || { echo "ah_token is required to publish on automation hub" ; exit 1; }

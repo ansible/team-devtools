@@ -1,10 +1,11 @@
+---
 name: test
 on:
   pull_request:
 jobs:
   pre:
     name: pre
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       matrix: ${{ steps.generate_matrix.outputs.matrix }}
     steps:
@@ -12,8 +13,9 @@ jobs:
         id: generate_matrix
         uses: coactions/dynamic-matrix@v1
         with:
-          min_python: "3.11"
-          max_python: "3.11"
+          min_python: "3.12"
+          max_python: "3.12"
+          default_python: "3.12"
           other_names: |
             lint
             docs

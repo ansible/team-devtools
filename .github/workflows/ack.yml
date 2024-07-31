@@ -1,3 +1,4 @@
+---
 # ack workflow runs on any change made to a pull-request and aims to verify
 # that is following our practices. Initial version is checking correct label
 # presence.
@@ -13,7 +14,7 @@ on:
         required: false
 jobs:
   ack:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: ack
     env:
       BOT_PAT: ${{ secrets.BOT_PAT }}

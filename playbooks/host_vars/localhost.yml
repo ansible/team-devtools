@@ -1,3 +1,4 @@
+---
 env_secrets:
   ack: # github environment name
     BOT_PAT: !vault |
