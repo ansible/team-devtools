@@ -1,3 +1,4 @@
+---
 - name: Deploy BOT_PAT secret
   hosts: localhost
   gather_facts: false
@@ -7,7 +8,8 @@
         file: ../config/devtools.yml
         name: devtools
 
-    - debug:
+    - name: Display info
+      ansible.builtin.debug:
         msg: "{{ item }}"
       loop: "{{ env_secrets | dict2items(key_name='env_name', value_name='env_secrets') }}"
 
