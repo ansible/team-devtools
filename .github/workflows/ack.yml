@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-24.04
     environment: ack
     env:
-      BOT_PAT: ${{ secrets.BOT_PAT }}
+      BOT_PAT: ${{ secrets.BOT_PAT || secrets.ANSIBUDDY_BOT_PAT }}
     permissions:
       checks: write
       contents: write # needed to update release
@@ -70,7 +70,7 @@ jobs:
           project-url: https://github.com/orgs/ansible/projects/86
           # Do not use secrets.GITHUB_TOKEN here because it does not have
           # access to projects. Only personal access tokens (PAT) can be used.
-          github-token: ${{ secrets.BOT_PAT }}
+          github-token: ${{ env.BOT_PAT }}
           # labeled: skip-changelog
           # label-operator: NOT
 
@@ -85,11 +85,11 @@ jobs:
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.BOT_PAT || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ env.BOT_PAT }}
 
       - name: Approve a PR
         if: env.BOT_PAT != null && contains(fromJson('["dependabot[bot]", "pre-commit-ci[bot]"]'), github.event.pull_request.user.login)
         run: gh pr review --approve "$PR_URL"
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
-          GH_TOKEN: ${{ secrets.BOT_PAT || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ env.BOT_PAT }}
