@@ -5,9 +5,12 @@ tag-template: v$RESOLVED_VERSION
 # Use '-' instead of '*' for unordered list to match prettier behavior
 change-template: "- $TITLE (#$NUMBER) @$AUTHOR"
 categories:
-  - title: Enhancements
+  # Keep titles single worlds, or they become md bookmarks
+  - title: Major
     labels:
       - major # c6476b
+  - title: Enhancements
+    labels:
       - minor
       - feature # 006b75
       - enhancement # ededed
@@ -15,7 +18,7 @@ categories:
   - title: Bugfixes
     labels:
       - bug # fbca04
-  - title: Other - "patch" - "deprecated" # fef2c0
+  - title: Other # fef2c0
 exclude-labels:
   - bot:chronographer:skip
   - skip-changelog
@@ -24,11 +27,12 @@ replacers:
   - search: /(?:and )?@(pre-commit-ci|dependabot)(?:\[bot\])?,?/g
     replace: ""
 version-resolver:
-  # major:
-  #   labels:
-  minor:
+  # some projects are using SemVer, so keep 'major' label for major.
+  major:
     labels:
       - major
+  minor:
+    labels:
       - minor
       - feature
       - enhancement
