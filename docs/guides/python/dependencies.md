@@ -17,7 +17,7 @@ To upgrade dependencies, it's recommended to use `pip-tools` as part of the `pre
 
 Example `.pre-commit-config.yaml`
 
-```
+```yaml
 - repo: https://github.com/jazzband/pip-tools
     rev: 7.3.0
     hooks:
