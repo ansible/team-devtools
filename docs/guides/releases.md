@@ -66,6 +66,12 @@ Completed date:
 
 Notes:
 
+- ansible-navigator [24.8.0](https://github.com/ansible/ansible-navigator/releases/tag/v24.8.0) released 2024-08-13
+- pytest-ansible [24.8.0](https://github.com/ansible/pytest-ansible/releases/tag/v24.8.0) released 2024-08-16
+- tox-ansible [24.8.0](https://github.com/ansible/tox-ansible/releases/tag/v24.8.0) released 2024-08-16
+- molecule [24.8.0](https://github.com/ansible/molecule/releases/tag/v24.8.0) released 2024-08-16
+- ansible-compat [24.8.0](https://github.com/ansible/ansible-compat/releases/tag/v24.8.0) released 2024-08-19
+
 ### 2024-07
 
 Release manager: @alisonlhart
