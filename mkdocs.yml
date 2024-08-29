@@ -19,6 +19,7 @@ nav:
   - home: index.md
   - guides:
       - Code Reviews: guides/code-reviews.md
+      - Manage Releases: guides/releases.md
       - Github Actions: guides/gha.md
       - Mentoring: guides/mentoring.md
       - CalVer Releases: guides/calver.md
