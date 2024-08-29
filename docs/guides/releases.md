@@ -52,7 +52,7 @@ Notes:
 
 ### 2024-09
 
-Release manager:
+Release manager: @shatakshiiii
 
 Completed date:
 
