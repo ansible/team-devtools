@@ -109,6 +109,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: logs-${{ matrix.name }}.zip
+          include-hidden-files: true
           path: |
             .tox/**/log/
             .tox/**/coverage.xml
@@ -148,6 +149,7 @@ jobs:
         with:
           name: logs.zip
           pattern: logs-*.zip
+          include-hidden-files: true
           separate-directories: true
 
       - name: Download artifacts
