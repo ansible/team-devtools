@@ -1,8 +1,14 @@
+## Release cadence
+
+A pre-release will be done every time we do a stable release.
+This will ensure VSCode extension `auto-update` functionality doesn't break.
+Refer vscode [docs](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#prerelease-extensions) for pre-release and release versions.
+
+## Release steps
+
 These steps are currently manual but we should consider automating, at least some of them in the future.
 
 Assuming that the next version is `0.8.1`:
-
-## Release steps
 
 1. `git checkout -b release/0.8.1`
 1. Copy draft release notes from github
