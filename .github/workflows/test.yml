@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Determine matrix
         id: generate_matrix
-        uses: coactions/dynamic-matrix@v2
+        uses: coactions/dynamic-matrix@v3
         with:
           min_python: "3.12"
           max_python: "3.12"
@@ -42,9 +42,19 @@ jobs:
         run: |
           python3 -m pip install 'tox>=4.0.0'
 
-      - name: Run tox -e ${{ matrix.passed_name }}
-        run: |
-          ${{ matrix.PREFIX }} tox -e ${{ matrix.passed_name }}
+      - run: ${{ matrix.command }}
+
+      - run: ${{ matrix.command2 }}
+        if: ${{ matrix.command2 }}
+
+      - run: ${{ matrix.command3 }}
+        if: ${{ matrix.command3 }}
+
+      - run: ${{ matrix.command4 }}
+        if: ${{ matrix.command4 }}
+
+      - run: ${{ matrix.command5 }}
+        if: ${{ matrix.command5 }}
 
   check: # This job does nothing and is only used for the branch protection
     if: always()
