@@ -54,7 +54,7 @@ Notes:
 
 Release manager: @shatakshiiii
 
-Completed date:
+Completed date: 2024-09-18
 
 Notes:
 
