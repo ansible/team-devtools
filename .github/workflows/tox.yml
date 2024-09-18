@@ -192,6 +192,8 @@ jobs:
         uses: actions/upload-artifact/merge@v4
         with:
           delete-merged: true
+        # this allows us to rerun the check job after a merge was already performed
+        continue-on-error: true
 
       - name: Notify repository owners about changes affecting them
         uses: sourcegraph/codenotify@v0.6.4
