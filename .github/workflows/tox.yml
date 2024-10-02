@@ -31,6 +31,7 @@ on:
         type: string
 
 env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # might be needed by tox commands
   FORCE_COLOR: 1 # tox, pytest, ansible-lint
   PY_COLORS: 1
 
@@ -64,6 +65,8 @@ jobs:
     defaults:
       run:
         shell: ${{ matrix.shell || 'bash'}}
+    permissions:
+      packages: write # some tox environments might produce containers
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
