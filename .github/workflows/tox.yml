@@ -29,6 +29,16 @@ on:
         description: Additional names for the matrix
         required: false
         type: string
+      run_pre:
+        default: ""
+        description: Preparatory command to run before test commands.
+        required: false
+        type: string
+      run_post:
+        default: ""
+        description: Command to run after test commands.
+        required: false
+        type: string
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # might be needed by tox commands
@@ -49,11 +59,10 @@ jobs:
           min_python: ${{ inputs.min_python }}
           max_python: ${{ inputs.max_python }}
           default_python: ${{ inputs.default_python }}
+          # we must use tox to query these
           other_names: |
             docs
             lint
-            pkg
-            py312-milestone
             ${{ inputs.other_names_also }}
           platforms: linux,macos
 
@@ -86,11 +95,15 @@ jobs:
           key: pre-commit-${{ matrix.name }}-${{ hashFiles('.pre-commit-config.yaml') }}
 
       - name: Set up Python ${{ matrix.python_version || '3.12' }}
-        if: "!contains(matrix.shell, 'wsl')"
+        if: ${{ !contains(matrix.shell, 'wsl') }}
         uses: actions/setup-python@v5
         with:
-          cache: pip
+          cache: ${{ hashFiles('requirements.txt', 'pyproject.toml') && 'pip' || '' }}
           python-version: ${{ matrix.python_version || '3.12' }}
+
+      - name: Run pre
+        if: ${{ inputs.run_pre }}
+        run: ${{ inputs.run_pre }}
 
       - name: Install tox
         run: |
@@ -113,6 +126,10 @@ jobs:
 
       - run: ${{ matrix.command5 }}
         if: ${{ matrix.command5 }}
+
+      - name: Run post
+        if: ${{ inputs.run_post }}
+        run: ${{ inputs.run_post }}
 
       - name: Archive logs and coverage data
         uses: actions/upload-artifact@v4
@@ -176,6 +193,7 @@ jobs:
           fi
 
       - name: Upload coverage data
+        if: ${{ inputs.jobs_producing_coverage }}
         uses: codecov/codecov-action@v4
         with:
           name: ${{ matrix.name }}
@@ -183,7 +201,7 @@ jobs:
           use_oidc: true
 
       - name: Check codecov.io status
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && inputs.jobs_producing_coverage
         uses: coactions/codecov-status@main
 
       - name: Decide whether the needed jobs succeeded or failed
