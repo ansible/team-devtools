@@ -1,60 +1,21 @@
 ---
-name: test
+name: tox
 on:
   pull_request:
 jobs:
-  pre:
-    name: pre
-    runs-on: ubuntu-24.04
-    outputs:
-      matrix: ${{ steps.generate_matrix.outputs.matrix }}
-    steps:
-      - name: Determine matrix
-        id: generate_matrix
-        uses: coactions/dynamic-matrix@v3
-        with:
-          min_python: "3.12"
-          max_python: "3.12"
-          default_python: "3.12"
-          other_names: |
-            lint
-            docs
   test:
-    needs: pre
-    name: ${{ matrix.name || matrix.tox_env }}
-    runs-on: ${{ matrix.runs-on || 'ubuntu-latest' }}
-    strategy:
-      fail-fast: true
-      matrix: ${{ fromJson(needs.pre.outputs.matrix) }}
-    steps:
-      - name: Check out src from Git
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # needed by setuptools-scm
-          submodules: recursive
-
-      - name: Install a default Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python_version }}
-
-      - name: Install dependencies
-        run: |
-          python3 -m pip install 'tox>=4.0.0'
-
-      - run: ${{ matrix.command }}
-
-      - run: ${{ matrix.command2 }}
-        if: ${{ matrix.command2 }}
-
-      - run: ${{ matrix.command3 }}
-        if: ${{ matrix.command3 }}
-
-      - run: ${{ matrix.command4 }}
-        if: ${{ matrix.command4 }}
-
-      - run: ${{ matrix.command5 }}
-        if: ${{ matrix.command5 }}
+    # tests reusable tox workflow
+    uses: ./.github/workflows/tox.yml
+    with:
+      default_python: "3.10"
+      jobs_producing_coverage: 0
+      max_python: "3.13"
+      min_python: "3.10"
+      run_post: echo 'Running post'
+      run_pre: echo 'Running pre'
+      other_names: |
+        docs
+        lint
 
   check: # This job does nothing and is only used for the branch protection
     if: always()
