@@ -44,7 +44,7 @@ Notes:
 
 ### 2024-10
 
-Release manager:
+Release manager: @audgirka
 
 Completed date:
 
