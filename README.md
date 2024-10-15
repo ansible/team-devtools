@@ -9,7 +9,7 @@ This repository is used to share practices, workflows and decisions affecting pr
 
 ## Python DevTools project dependencies
 
-It should be noted that our vscode extension would either depend on `ansible-dev-tools` python package or directly use the [execution environment container image](#container-image).
+It should be noted that our vscode extension would either depend on `ansible-dev-tools` python package or directly use our execution environments.
 
 ```mermaid
 %%{init: {'theme':'neutral', 'themeVariables': { 'edgeLabelBackground': 'transparent'}}}%%
@@ -43,29 +43,29 @@ subgraph external
   sign
 end
 
-  adt --> lint
-  adt --> navigator
-  adt --> molecule
-  adt --> ade
-  adt --> creator
-  adt --> sign
+  adt ==> lint
+  adt ==> navigator
+  adt ==> molecule
+  adt ==> ade
+  adt ==> creator
+  adt ==> sign
 
-  lint --> compat
-  compat -. test .-> community.molecule
-  molecule --> compat
-  molecule -. test .-> community.molecule:::collectionclass
+  lint ==> compat
+  compat ==. test .==> community.molecule
+  molecule ==> compat
+  molecule ==. test .==> community.molecule:::collectionclass
 
-  navigator -.-> lint
-  navigator -.-> image
-  navigator --> runner
-  navigator -..-> builder
+  navigator ==.==> lint
+  navigator ==.==> image
+  navigator ==> runner
+  navigator ==..==> builder
 
-  adt --> ade;
-  adt --> creator
-  adt --> pytest-ansible
-  adt --> tox-ansible;
+  adt ==> ade;
+  adt ==> creator
+  adt ==> pytest-ansible
+  adt ==> tox-ansible;
 
-  ade --> builder;
+  ade ==> builder;
 
   click adt "https://github.com/ansible/ansible-dev-tools"
   click ade "https://github.com/ansible/ansible-dev-environment"
@@ -88,15 +88,16 @@ end
 
 ## TypeScript repositories
 
-```mermaid
-graph TB;
-
   classDef tsclass fill:#f90,stroke:#f90,color:#333;
   classDef containerclass fill:#060,stroke:#060,color:#fff;
   classDef thirdpartyclass fill:#9f6,stroke:#9f6,color:#333;
 
+```mermaid
+
+graph TB;
+
   ansible-backstage-plugins:::tsclass;
-  vscode-ansible:::tsclass -- external --> vscode-yaml;
+  vscode-ansible:::tsclass == external ==> vscode-yaml;
   vscode-yaml:::tsclass;
 
  click ansible-backstage-plugins "https://github.com/ansible/ansible-backstage-plugins"
