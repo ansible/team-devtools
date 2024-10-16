@@ -1,7 +1,12 @@
 ---
 name: tox
 on:
+  push:
+    branches: # any integration branch but not tag
+      - "main"
   pull_request:
+    branches:
+      - "main"
 jobs:
   test:
     # tests reusable tox workflow
@@ -27,3 +32,10 @@ jobs:
         uses: re-actors/alls-green@release/v1
         with:
           jobs: ${{ toJSON(needs) }}
+  push:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/workflows/push.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

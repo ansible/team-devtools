@@ -5,12 +5,6 @@
 name: push
 
 on:
-  push:
-    # branches to consider in the event; optional, defaults to all
-    branches:
-      - main
-      - releases/**
-      - stable/**
   workflow_call: # allows reuse of this workflow from other devtools repos
 
 jobs:
