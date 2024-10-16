@@ -3,10 +3,10 @@ name: tox
 on:
   push:
     branches: # any integration branch but not tag
-      - "main"
+      - main
   pull_request:
     branches:
-      - "main"
+      - main
 jobs:
   test:
     # tests reusable tox workflow
