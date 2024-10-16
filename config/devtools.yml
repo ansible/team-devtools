@@ -60,8 +60,6 @@ teams:
   ansible/ansible-navigator:
     owners: [shatakshiiii]
     section: primary
-  ansible/ansible-workspace-env-reference-image:
-    section: community
   ansible/mkdocs-ansible:
     section: community
   ansible/molecule:
