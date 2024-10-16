@@ -102,12 +102,11 @@ graph TB;
  click ansible-backstage-plugins "https://github.com/ansible/ansible-backstage-plugins"
  click ansible-dev-environment "https://github.com/ansible/ansible-dev-environment"
  click community.molecule "https://github.com/ansible-collections/community.molecule"
- click creator-ee href "https://github.com/ansible/creator-ee"
  click vscode-ansible href "https://github.com/ansible/vscode-ansible"
  click vscode-yaml href "https://github.com/redhat-developer/vscode-yaml"
 ```
 
-## Container Image
+## Container Images
 
 `community-ansible-dev-tools-image` **execution environment** is a development
 **container image** that contains most of the most important tools used in the
@@ -116,37 +115,45 @@ collections in it, you need to be warned that **we might remove any included
 collection without notice** if that prevents us from
 building the container.
 
+Below you can see the list of collections are currently included in the
+container images but this list is subject to change, even on a minor release.
+If a collections fails to install or causes installation failures, we will
+release the container without it.
+
+- ansible.posix
+- ansible.windows
+- awx.awx
+- containers.podman
+- kubernetes.core
+- redhatinsights.insights
+- theforeman.foreman
+
+Some common command line **tools** are also included in order to help developers:
+
+- git
+- podman
+- tar
+- zsh (default shell)
+
 ```mermaid
 graph TB;
 
-ee("community-ansible-dev-tools-image<br/><i style="color: #0FF5">fedora-minimal</i>")
+ee("community-ansible-dev-tools-image<br/><i style="color: #0FF5">fedora-minimal based container</i>")
+adt(ansible-dev-tools)
+devspaces("ansible-devspaces<br/><i style="color: #0FF5">ubi8 based container</i>")
 adt(ansible-dev-tools)
 
-ee --> adt;
-ee --> collections;
+build --> ee;
+build --> devspaces;
 
-
-subgraph collections
-  ansible.posix
-  ansible.windows
-  awx.awx
-  containers.podman
-  kubernetes.core
-  redhatinsights.insights
-  theforeman.foreman
+subgraph build
+  collections
+  adt
+  tools
 end
 
 click adt "https://github.com/ansible/ansible-dev-tools"
-click ee "https://github.com/ansible/community-ansible-dev-tools-image"
-
-```
-
-## Internal
-
-```mermaid
-graph TB;
-
-ws(ansible-workspace-env-reference-image):::containerclass
-click ws "https://github.com/ansible/ansible-workspace-env-reference-image"
+click ee "https://github.com/ansible/ansible-dev-tools/pkgs/container/community-ansible-dev-tools"
+click devspaces "https://github.com/ansible/ansible-dev-tools/pkgs/container/ansible-devspaces"
 
 ```
