@@ -36,6 +36,7 @@ nav:
           - Release: guides/vscode/release.md
   - stats:
       - Molecule Plugins: stats/molecule-plugins.md
+      - Repository Status: stats/repos.md
 # - ansible-language-server: '!import https://github.com/ansible/ansible-language-server?branch=main&multi_docs=False'
 # - projects: "*include .cache/*/mkdocs.yml"
 plugins:
