@@ -112,13 +112,20 @@ jobs:
         if: ${{ inputs.run_pre }}
         run: ${{ inputs.run_pre }}
 
+      - name: Prepare path for uv
+        run: |
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
       - name: Install tox
         run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install --upgrade "tox>=4.0.0"
+          echo $PATH
+          python3 -m pip install --upgrade pip uv
+          uv tool update-shell
+          uv tool install "tox>=4.21.2" --with "tox-uv>=1.15.0"
+          tox --version
 
       - name: Log installed dists
-        run: python3 -m pip freeze --all
+        run: python3 -m uv pip freeze
 
       - run: ${{ matrix.command }}
 
