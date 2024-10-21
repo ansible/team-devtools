@@ -9,6 +9,11 @@ on:
         description: Default python version for other jobs
         required: false
         type: string
+      environment:
+        default: ""
+        description: Which GHA environment to use
+        required: false
+        type: string
       jobs_producing_coverage:
         default: 6
         description: Number of jobs producing coverage.xml files
@@ -58,6 +63,7 @@ jobs:
   prepare:
     name: prepare
     runs-on: ubuntu-24.04
+    environment: ${{ inputs.environment }}
     outputs:
       matrix: ${{ steps.generate_matrix.outputs.matrix }}
     steps:
@@ -76,6 +82,7 @@ jobs:
   test:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os || 'ubuntu-24.04' }}
+    environment: ${{ inputs.environment }}
     needs:
       - prepare
     defaults:
@@ -158,6 +165,7 @@ jobs:
   # https://github.com/actions/toolkit/issues/193
   check:
     if: always()
+    environment: ${{ inputs.environment }}
     permissions:
       pull-requests: write # allow codenotify to comment on pull-request
       id-token: write
