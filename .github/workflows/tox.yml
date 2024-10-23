@@ -58,6 +58,7 @@ env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # might be needed by tox commands
   FORCE_COLOR: 1 # tox, pytest, ansible-lint
   PY_COLORS: 1
+  UV_SYSTEM_PYTHON: 1
 
 jobs:
   prepare:
@@ -119,13 +120,22 @@ jobs:
         if: ${{ inputs.run_pre }}
         run: ${{ inputs.run_pre }}
 
-      - name: Install tox
+      - name: Prepare path for uv
         run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install --upgrade "tox>=4.0.0"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install python build tools
+        run: |
+          set -exuo pipefail
+          echo $PATH
+          python3 -m pip install --upgrade pip uv
+          # uv tool update-shell
+          uv tool install "tox>=4.21.2" --with "tox-uv>=1.15.0"
+          tox --version
+          which -a uv
 
       - name: Log installed dists
-        run: python3 -m pip freeze --all
+        run: python3 -m uv pip freeze
 
       - run: ${{ matrix.command }}
 
