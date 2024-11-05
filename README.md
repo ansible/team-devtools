@@ -88,9 +88,9 @@ end
 
 ## TypeScript repositories
 
-  classDef tsclass fill:#f90,stroke:#f90,color:#333;
-  classDef containerclass fill:#060,stroke:#060,color:#fff;
-  classDef thirdpartyclass fill:#9f6,stroke:#9f6,color:#333;
+classDef tsclass fill:#f90,stroke:#f90,color:#333;
+classDef containerclass fill:#060,stroke:#060,color:#fff;
+classDef thirdpartyclass fill:#9f6,stroke:#9f6,color:#333;
 
 ```mermaid
 
