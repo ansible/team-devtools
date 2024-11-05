@@ -176,9 +176,10 @@ jobs:
     if: always()
     environment: ${{ inputs.environment }}
     permissions:
-      pull-requests: write # allow codenotify to comment on pull-request
-      id-token: write
       checks: read
+      contents: read
+      id-token: write
+      pull-requests: write # allow codenotify to comment on pull-request
 
     needs:
       - test
@@ -211,8 +212,9 @@ jobs:
         env:
           JOBS_PRODUCING_COVERAGE: ${{ inputs.jobs_producing_coverage }}
         run: |
-          if [ "$(find . -name coverage.xml | wc -l | bc)" -ne "${JOBS_PRODUCING_COVERAGE}" ]; then
-            echo "::error::Number of coverage.xml files was not the expected one (${JOBS_PRODUCING_COVERAGE}): $(find . -name coverage.xml |xargs echo)"
+          FOUND_REPORTS=$(find . -name coverage.xml | wc -l | bc)
+          if [ "${FOUND_REPORTS}" -ne "${JOBS_PRODUCING_COVERAGE}" ]; then
+            echo "::error::Found ${FOUND_REPORTS} coverage.xml files instead of the expected ${JOBS_PRODUCING_COVERAGE}: $(find . -name coverage.xml | xargs echo)"
             exit 1
           fi
 
@@ -222,7 +224,7 @@ jobs:
         with:
           name: ${{ matrix.name }}
           fail_ci_if_error: true
-          use_oidc: true
+          use_oidc: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) }}
 
       - name: Check codecov.io status
         if: github.event_name == 'pull_request' && inputs.jobs_producing_coverage
