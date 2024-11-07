@@ -54,7 +54,13 @@ on:
         description: Command to run after test commands.
         required: false
         type: string
-
+# keep permissions at top level because this is a composite workflow
+permissions:
+  checks: read
+  contents: read
+  id-token: write
+  packages: write # some tox environments might produce containers
+  pull-requests: write # allow codenotify to comment on pull-request
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # might be needed by tox commands
   FORCE_COLOR: 1 # tox, pytest, ansible-lint
@@ -89,8 +95,6 @@ jobs:
     defaults:
       run:
         shell: ${{ matrix.shell || 'bash'}}
-    permissions:
-      packages: write # some tox environments might produce containers
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
@@ -176,12 +180,6 @@ jobs:
   check:
     if: always()
     environment: ${{ inputs.environment }}
-    permissions:
-      checks: read
-      contents: read
-      id-token: write
-      pull-requests: write # allow codenotify to comment on pull-request
-
     needs:
       - test
     runs-on: ubuntu-24.04
