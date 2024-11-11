@@ -54,11 +54,16 @@ on:
         description: Command to run after test commands.
         required: false
         type: string
+      publish_pypi:
+        default: false
+        description: Whether to publish to PyPI
+        required: false
+        type: boolean
 # keep permissions at top level because this is a composite workflow
 permissions:
   checks: read
   contents: read
-  id-token: write
+  id-token: write # release
   packages: write # some tox environments might produce containers
   pull-requests: write # allow codenotify to comment on pull-request
 env:
@@ -247,3 +252,44 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # https://github.com/sourcegraph/codenotify/issues/19
         continue-on-error: true
+
+  pypi:
+    name: release ${{ github.event.ref }}
+    # if: github.ref_type == 'tag' || inputs.publish_pypi == 'true'
+    needs: check
+    environment: release # keep it here to allow users to prompt for release
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Switch to using Python 3.12 by default
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install tox
+        run: python3 -m pip install --user "tox>=4.0.0"
+
+      - name: Check out src from Git
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # needed by setuptools-scm
+
+      - name: Build dists
+        run: python3 -m tox -e pkg
+
+      - name: Fail if secrets are not available
+        env:
+          PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          if [ -z "${PYPI_API_TOKEN}" ]; then
+            echo "PYPI_API_TOKEN is not set, please add it to your repository environment named 'release'."
+            exit 1
+          fi
+
+      - name: Publish to pypi.org
+        uses: pypa/gh-action-pypi-publish@release/v1
+        if: inputs.publish_pypi
+        with:
+          # trusted publishing is not possible with shared workflows due to
+          # https://github.com/pypi/warehouse/issues/11096 so we need to use
+          # secrets instead.
+          password: ${{ secrets.PYPI_API_TOKEN }}
