@@ -13,7 +13,7 @@ jobs:
     uses: ./.github/workflows/tox.yml
     with:
       default_python: "3.10"
-      jobs_producing_coverage: 0
+      jobs_producing_coverage: 6
       max_python: "3.13"
       min_python: "3.10"
       run_post: echo 'Running post'

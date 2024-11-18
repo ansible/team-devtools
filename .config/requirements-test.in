@@ -1,0 +1,5 @@
+coverage>=7.6.9
+# pytest-cov
+pytest-instafail
+pytest-plus
+pytest>=8

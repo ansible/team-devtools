@@ -132,3 +132,4 @@ dmypy.json
 .vault
 
 _readthedocs/
+src/team_devtools/_version.py

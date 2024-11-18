@@ -16,6 +16,10 @@ python:
   install:
     - method: pip
       path: tox
+    - method: pip
+      path: .
+      extra_requirements:
+        - docs
 submodules:
   include: all
   recursive: true
