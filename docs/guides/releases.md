@@ -50,6 +50,13 @@ Completed date:
 
 Notes:
 
+ansible-compat (done) => [v24.10.0](https://github.com/ansible/ansible-compat/releases/tag/v24.10.0)
+ansible-lint (done) => [v24.10.0](https://github.com/ansible/ansible-lint/releases/tag/v24.10.0)
+tox-ansible (done) => [v24.10.0](https://github.com/ansible/tox-ansible/releases/tag/v24.10.0)
+ansible-navigator (done) => [v24.10.0](https://github.com/ansible/ansible-navigator/releases/tag/v24.10.0)
+ansible-creator (done) => [v24.11.0](https://github.com/ansible/ansible-creator/releases/tag/v24.11.0)
+ansible-dev-tools (done) => [v24.11.0](https://github.com/ansible/ansible-dev-tools/releases/tag/v24.11.0)
+
 ### 2024-09
 
 Release manager: @shatakshiiii
