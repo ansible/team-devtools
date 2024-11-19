@@ -50,12 +50,12 @@ Completed date:
 
 Notes:
 
-ansible-compat (done) => [v24.10.0](https://github.com/ansible/ansible-compat/releases/tag/v24.10.0)
-ansible-lint (done) => [v24.10.0](https://github.com/ansible/ansible-lint/releases/tag/v24.10.0)
-tox-ansible (done) => [v24.10.0](https://github.com/ansible/tox-ansible/releases/tag/v24.10.0)
-ansible-navigator (done) => [v24.10.0](https://github.com/ansible/ansible-navigator/releases/tag/v24.10.0)
-ansible-creator (done) => [v24.11.0](https://github.com/ansible/ansible-creator/releases/tag/v24.11.0)
-ansible-dev-tools (done) => [v24.11.0](https://github.com/ansible/ansible-dev-tools/releases/tag/v24.11.0)
+- ansible-compat [v24.10.0](https://github.com/ansible/ansible-compat/releases/tag/v24.10.0)
+- ansible-lint [v24.10.0](https://github.com/ansible/ansible-lint/releases/tag/v24.10.0)
+- tox-ansible [v24.10.0](https://github.com/ansible/tox-ansible/releases/tag/v24.10.0)
+- ansible-navigator [v24.10.0](https://github.com/ansible/ansible-navigator/releases/tag/v24.10.0)
+- ansible-creator [v24.11.0](https://github.com/ansible/ansible-creator/releases/tag/v24.11.0)
+- ansible-dev-tools [v24.11.0](https://github.com/ansible/ansible-dev-tools/releases/tag/v24.11.0)
 
 ### 2024-09
 
