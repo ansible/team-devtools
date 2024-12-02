@@ -10,36 +10,18 @@ on:
 jobs:
   test:
     # tests reusable tox workflow
-    runs-on: ubuntu-latest
-    steps:
-      # Test with the default value (no `node-version-file` passed)
-      - name: Test with default values
-        uses: ./.github/workflows/tox.yml
-        with:
-          default_python: "3.10"
-          jobs_producing_coverage: 0
-          max_python: "3.13"
-          min_python: "3.10"
-          run_post: echo 'Running post'
-          run_pre: echo 'Running pre'
-          other_names: |
-            docs
-            lint
-
-      # Test with an explicit `node-version-file`
-      - name: Test with explicit node-version-file
-        uses: ./.github/workflows/tox.yml
-        with:
-          default_python: "3.10"
-          jobs_producing_coverage: 0
-          max_python: "3.13"
-          min_python: "3.10"
-          run_post: echo 'Running post'
-          run_pre: echo 'Running pre'
-          other_names: |
-            docs
-            lint
-          node-version-file: .tool-versions
+    uses: ./.github/workflows/tox.yml
+    with:
+      default_python: "3.10"
+      jobs_producing_coverage: 0
+      max_python: "3.13"
+      min_python: "3.10"
+      run_post: echo 'Running post'
+      run_pre: echo 'Running pre'
+      other_names: |
+        docs
+        lint
+      node-version-file: .tool-versions
 
   check: # This job does nothing and is only used for the branch protection
     if: always()
