@@ -54,7 +54,7 @@ on:
         description: Command to run after test commands.
         required: false
         type: string
-      default_node:
+      node-version-file:
         default: ""
         description: Path to the Node.js version file (e.g., `.tool-versions`)
         required: false
@@ -126,10 +126,10 @@ jobs:
           python-version: ${{ matrix.python_version || '3.12' }}
 
       - name: Set up Node.js
-        if: ${{ inputs.default_node != '' }}
+        if: ${{ inputs.node-version-file != '' }}
         uses: actions/setup-node@v3
         with:
-          node-version-file: ${{ inputs.default_node }}
+          node-version-file: ${{ inputs.node-version-file }}
 
       - name: Run pre
         if: ${{ inputs.run_pre }}
