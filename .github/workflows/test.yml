@@ -21,6 +21,7 @@ jobs:
       other_names: |
         docs
         lint
+      node-version-file: .tool-versions
 
   check: # This job does nothing and is only used for the branch protection
     if: always()

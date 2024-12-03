@@ -54,6 +54,11 @@ on:
         description: Command to run after test commands.
         required: false
         type: string
+      node-version-file:
+        default: ""
+        description: Path to the Node.js version file (e.g., `.tool-versions`)
+        required: false
+        type: string
 # keep permissions at top level because this is a composite workflow
 permissions:
   checks: read
@@ -119,6 +124,12 @@ jobs:
         with:
           cache: ${{ hashFiles('requirements.txt', 'pyproject.toml') && 'pip' || '' }}
           python-version: ${{ matrix.python_version || '3.12' }}
+
+      - name: Set up Node.js
+        if: ${{ inputs.node-version-file != '' }}
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: ${{ inputs.node-version-file }}
 
       - name: Run pre
         if: ${{ inputs.run_pre }}
