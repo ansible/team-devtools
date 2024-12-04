@@ -3,3 +3,5 @@ cairosvg
 markdown-include
 mkdocs-ansible
 mkdocs-exclude
+coverage>=7.6.7
+pytest>=8
