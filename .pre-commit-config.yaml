@@ -1,8 +1,8 @@
 ---
 repos:
-  - repo: https://github.com/pycontribs/mirrors-prettier
+  - repo: https://github.com/rbubley/mirrors-prettier
     # keep it before yamllint
-    rev: v3.3.3
+    rev: v3.4.1
     hooks:
       - id: prettier
         always_run: true
