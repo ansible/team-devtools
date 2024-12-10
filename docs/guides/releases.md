@@ -16,8 +16,8 @@ The following projects should be released second, in no particular order:
 - [ansible-dev-environment](https://github.com/ansible/ansible-dev-environment/releases)
 - [ansible-lint](https://github.com/ansible/ansible-lint/releases)
 - [ansible-navigator](https://github.com/ansible/ansible-navigator/releases)
-- [molecule](https://github.com/ansible/ansible-molecule/releases)
-- [pytest-ansible](https://github.com/ansible/ansible-creator/releases)
+- [molecule](https://github.com/ansible/molecule/releases)
+- [pytest-ansible](https://github.com/ansible/pytest-ansible/releases)
 - [tox-ansible](https://github.com/ansible/tox-ansible/releases)
 - [VsCode extension](https://github.com/ansible/vscode-ansible/releases)
 
