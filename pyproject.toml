@@ -1,0 +1,12 @@
+[tool.coverage.report]
+exclude_also = ["pragma: no cover", "if TYPE_CHECKING:"]
+show_missing = true
+skip_empty = true
+
+[tool.coverage.run]
+concurrency = ["multiprocessing", "thread"]
+# Do not use branch until bug is fixes:
+# https://github.com/nedbat/coveragepy/issues/605
+# branch = true
+parallel = true
+source = ["test"]
