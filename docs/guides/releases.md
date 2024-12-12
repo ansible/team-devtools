@@ -34,6 +34,14 @@ This will release both a python project and image. Both the resulting python pac
 
 Releases should be made on the first Wednesday of the month, but can be made the following Wednesday if necessary. This document should be updated with a pull request after the releases are complete.
 
+### 2024-12
+
+Release manager: @shatakshiiii
+
+Completed date:
+
+Notes:
+
 ### 2024-11
 
 Release manager:
