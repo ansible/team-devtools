@@ -54,6 +54,10 @@ on:
         description: Command to run after test commands.
         required: false
         type: string
+      skip_explode:
+        default: "0"
+        description: Set it to "1" to skip creating jobs for each python version.
+        type: string
       node-version-file:
         default: ""
         description: Path to the Node.js version file (e.g., `.tool-versions`)
@@ -89,6 +93,7 @@ jobs:
           other_names: |
             ${{ inputs.other_names }}
             ${{ inputs.other_names_also }}
+          skip_explode: ${{ inputs.skip_explode }}
           platforms: linux,macos
 
   test:
