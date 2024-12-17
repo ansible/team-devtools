@@ -124,7 +124,7 @@ jobs:
           key: pre-commit-${{ matrix.name }}-${{ hashFiles('.pre-commit-config.yaml') }}
 
       - name: Set up Python ${{ matrix.python_version || '3.12' }}
-        if: ${{ !contains(matrix.shell, 'wsl') }}
+        if: ${{ !contains(matrix.shell, 'wsl') &&  matrix.mise != 'true' }}
         uses: actions/setup-python@v5
         with:
           cache: ${{ hashFiles('requirements.txt', 'pyproject.toml') && 'pip' || '' }}
@@ -144,18 +144,43 @@ jobs:
         run: |
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
+      - name: Install mise
+        if: ${{ matrix.mise == 'true' }}
+        run: |
+          set -exuo pipefail
+          type mise >/dev/null || {
+            curl -s https://mise.run | MISE_QUIET=1 sh
+            echo "$HOME/.local/share/mise/bin" >> $GITHUB_PATH
+            echo "$HOME/.local/share/mise/shims" >> $GITHUB_PATH
+          }
+          mise install
+
+      - name: Ensure mise python3 is used by default
+        if: ${{ matrix.mise == 'true' }}
+        run: |
+          set -exuo pipefail
+          if [[ "$(which python3)" != */mise/* ]]; then
+              echo "python3 is not the mise python3"
+              exit 1
+          fi
+
       - name: Install python build tools
         run: |
           set -exuo pipefail
-          echo $PATH
-          python3 -m pip install --upgrade pip uv
-          # uv tool update-shell
-          uv tool install "tox>=4.23.2" --with "tox-uv>=1.16.0"
+          echo PATH=$PATH
+          # that depends on python3 blend being used and might not be already in path:
+          SCRIPTS_DIR=$(python3 -c 'import os,sysconfig;print(sysconfig.get_path("scripts",f"{os.name}_user"))')
+          if [[ ":$PATH:" != *":$SCRIPTS_DIR:"* ]]; then
+              export PATH=$SCRIPTS_DIR:$PATH
+              echo "$SCRIPTS_DIR" >> $GITHUB_PATH
+              echo "Added $SCRIPTS_DIR to PATH to avoid further issues."
+          fi
+          python3 -m pip install --disable-pip-version-check --upgrade --user --break-system-packages pip uv 'tox>=4.23.2' 'tox-uv>=1.16.0'
+          which -a uv pip tox
+          echo "uv tool update-shell"
           tox --version
-          which -a uv
-
-      - name: Log installed dists
-        run: python3 -m uv pip freeze
+          echo "Log installed dists"
+          python3 -m uv pip freeze
 
       - run: ${{ matrix.command }}
 
