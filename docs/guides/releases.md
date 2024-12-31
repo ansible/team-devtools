@@ -38,9 +38,9 @@ Releases should be made on the first Wednesday of the month, but can be made the
 
 Release manager: @shatakshiiii
 
-Completed date:
+Completed date: 2024-12-17
 
-Notes:
+Notes: All projects are released
 
 ### 2024-11
 
