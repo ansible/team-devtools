@@ -9,7 +9,7 @@ repos:
         additional_dependencies:
           - prettier
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.0
+    rev: v2.4.1
     hooks:
       - id: codespell
   - repo: https://github.com/pre-commit/pre-commit-hooks.git
@@ -31,8 +31,7 @@ repos:
         types: [file, yaml]
         entry: yamllint --strict
   - repo: https://github.com/ansible/ansible-lint
-    rev: v25.1.0
+    rev: v25.1.1
     hooks:
       - id: ansible-lint
-        language_version: "3.12"
         args: [--fix]
