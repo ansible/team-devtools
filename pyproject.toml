@@ -33,6 +33,7 @@ concurrency = ["multiprocessing", "thread"]
 # branch = true
 parallel = true
 source = ["src"]
+
 [tool.pytest.ini_options]
 addopts = "-p no:pytest_cov --durations=10 --failed-first"
 norecursedirs = [

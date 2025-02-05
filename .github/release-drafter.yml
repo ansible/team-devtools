@@ -69,5 +69,11 @@ autolabeler:
       - /^deprecat(ed|ion)/i
     body:
       - "/type: deprecat(ed|ion)/i"
+  - label: dependencies
+    files:
+      - /.config/*requirements*.in
+      - /.config/*requirements*.txt
+      - /.config/*constraints*.txt
+      - /.config/*.spec/
 template: |
   $CHANGES
