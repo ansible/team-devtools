@@ -260,7 +260,7 @@ jobs:
 
       - name: Upload coverage data
         if: ${{ inputs.jobs_producing_coverage }}
-        uses: codecov/codecov-action@v5.3.1
+        uses: codecov/codecov-action@v5.4.0
         with:
           name: ${{ matrix.name }}
           fail_ci_if_error: true
