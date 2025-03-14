@@ -24,6 +24,37 @@ teams:
     - ganeshrn
     - ruchip16
     - trishnaguha
+labels:
+  AAP:
+    color: "#F9D0C4"
+    description: "Ansible Automation Platform"
+  dependabot-deps-updates:
+    description: "PRs from GitHub Dependabot with the dependency updates"
+    color: "#9c55f0"
+  bug:
+    color: "#fbca04"
+    description: "Something isn't working"
+  major:
+    color: "#c6476b"
+    description: "Used for release notes, requires major versioning bump"
+  minor:
+    color: "#FBCA04"
+  new:
+    color: "#0E8A16"
+  patch:
+    color: "#e99695"
+    description: "Patch"
+  upstream:
+    color: "#C239D6"
+  stale:
+    color: "#AAAAAA"
+  skip-changelog:
+    color: "#EEEEEE"
+    description: "Do not include in changelog"
+  keep:
+    color: "#000000"
+    description: "Do not close"
+repos:
   # repo key can be 'gh-org/gh-repo' or other simple, override url could be
   # configured using 'repo:' key.
   _default:
