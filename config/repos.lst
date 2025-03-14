@@ -1,0 +1,14 @@
+ansible-backstage-plugins
+ansible-compat
+ansible-content-actions
+ansible-creator
+ansible-dev-environment
+ansible-dev-tools
+ansible-lint
+ansible-navigator
+mkdocs-ansible
+molecule
+pytest-ansible
+team-devtools
+tox-ansible
+vscode-ansible

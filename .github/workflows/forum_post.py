@@ -3,11 +3,11 @@
 
 import argparse
 import json
+import logging
 import urllib.request
-
 from urllib.request import Request
 
-
+LOGGER = logging.getLogger(__name__)
 POST_MD = """Hello everyone,
 
 We are happy to announce the release of {project_short} {release}.
@@ -54,14 +54,18 @@ Sample `devcontainer.json` files are available in the [ansible-dev-tools](https:
 
 Release notes for all versions can be found in the [changelog](https://github.com/ansible/{project_short}/releases).
 
-"""  # noqa: E501
+"""
 
 
 class Post:
     """A class to post a release on the Ansible forum."""
 
     def __init__(
-        self, project: str, release: str, forum_api_key: str, forum_user: str
+        self,
+        project: str,
+        release: str,
+        forum_api_key: str,
+        forum_user: str,
     ) -> None:
         """Initialize the Post class.
 
@@ -70,13 +74,14 @@ class Post:
             release: The release version.
             forum_api_key: The forum API key.
             forum_user: The forum user.
+
         """
         self.category_id: int
         self.created: str
         self.forum_api_key = forum_api_key
         self.forum_user = forum_user
         self.project = project
-        self.project_short = project.split("/")[-1]
+        self.project_short = project.rsplit("/", maxsplit=1)[-1]
         self.release = release
         self.release_notes: str
 
@@ -128,7 +133,7 @@ class Post:
         request.add_header("Content-Type", "application/json")
         data = json.dumps(payload).encode("utf-8")
         with urllib.request.urlopen(url=request, data=data):  # noqa: S310
-            print(f"Posted {title} to the forum.")
+            LOGGER.info("Posted %s to the forum.", title)
 
 
 def main() -> None:

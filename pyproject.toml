@@ -57,6 +57,28 @@ concurrency = ["multiprocessing", "thread"]
 parallel = true
 source = ["src"]
 
+[tool.mypy]
+check_untyped_defs = true
+color_output = true
+disallow_any_generics = true
+disallow_any_unimported = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+error_summary = true
+# site-packages is here to help vscode mypy integration getting confused
+exclude = "(.cache|.config|.eggs|.tox|_readthedocs|build|dist|test/local-content|site|site-packages|~/.pyenv|examples|plugins/modules).*"
+# https://github.com/python/mypy/issues/12664
+follow_untyped_imports = true
+incremental = false
+no_implicit_optional = true
+python_version = "3.10"
+show_error_code_links = true
+show_error_codes = true
+strict = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unused_configs = true
+
 [tool.pytest.ini_options]
 addopts = "-p no:pytest_cov --durations=10 --failed-first"
 norecursedirs = [
@@ -78,6 +100,35 @@ norecursedirs = [
   "site",
   "src/*.egg-info"
 ]
+
+[tool.ruff]
+cache-dir = "./.cache/.ruff"
+fix = true
+# Same as Black.
+line-length = 88
+preview = true
+target-version = "py310"
+
+[tool.ruff.lint]
+ignore = [
+  "COM812", # conflicts with ISC001 on format
+  "CPY001", # missing-copyright-notice
+  "D203", # incompatible with D211
+  "D213", # incompatible with D212
+  "E501", # we use black
+  "ERA001", # auto-removal of commented out code affects development and vscode integration
+  "INP001", # "is part of an implicit namespace package", all false positives
+  "ISC001", # conflicts with COM812 on format
+  "PLW2901", # PLW2901: Redefined loop variable
+  "RET504" # Unnecessary variable assignment before `return` statement
+]
+select = ["ALL"]
+
+[tool.ruff.lint.per-file-ignores]
+"test/**/*.py" = ["DOC201", "DOC501", "PLC2701", "S"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 
 [tool.setuptools_scm]
 # To prevent accidental pick of mobile version tags such 'v6'
@@ -149,11 +200,6 @@ commands = [
 ]
 dependency_groups = ["lint"]
 description = "Run all linters"
-pass_env = [
-  "HOMEPATH",
-  "PROGRAMDATA",
-  "RUFF_OUTPUT_FORMAT"
-]
 runner = "uv-venv-runner"
 skip_install = true
 
@@ -180,19 +226,23 @@ package = "editable"
 pass_env = [
   "CURL_CA_BUNDLE", # https proxies, https://github.com/tox-dev/tox/issues/1437
   "FORCE_COLOR",
+  "GH_TOKEN",
   "HOME",
+  "HOMEPATH",
   "LANG",
   "LC_*",
   "NO_COLOR",
+  "PROGRAMDATA",
   "PYTEST_*", # allows developer to define their own preferences
   "PYTEST_REQPASS", # needed for CI
   "PYTHON*", # PYTHONPYCACHEPREFIX, PYTHONIOENCODING, PYTHONBREAKPOINT,...
   "PY_COLORS",
-  "RTD_TOKEN",
   "REQUESTS_CA_BUNDLE", # https proxies
+  "RTD_TOKEN",
+  "RUFF_OUTPUT_FORMAT",
   "SETUPTOOLS_SCM_DEBUG",
-  "SSL_CERT_FILE", # https proxies
   "SSH_AUTH_SOCK", # may be needed by git
+  "SSL_CERT_FILE", # https proxies
   "UV_*"
 ]
 runner = "uv-venv-lock-runner"
