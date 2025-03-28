@@ -34,6 +34,16 @@ This will release both a python project and image. Both the resulting python pac
 
 Releases should be made on the first Wednesday of the month, but can be made the following Wednesday if necessary. This document should be updated with a pull request after the releases are complete.
 
+### 2025-03
+
+Release manager: @alisonlhart
+
+Completed date:
+
+Releases:
+
+- ansible-creator [v25.3.1](https://github.com/ansible/ansible-creator/releases/tag/v25.3.1)
+
 ### 2025-01
 
 Release manager: @audgirka
