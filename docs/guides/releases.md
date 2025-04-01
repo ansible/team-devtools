@@ -34,6 +34,20 @@ This will release both a python project and image. Both the resulting python pac
 
 Releases should be made on the first Wednesday of the month, but can be made the following Wednesday if necessary. This document should be updated with a pull request after the releases are complete.
 
+### 2025-04
+
+Release manager: @alisonlhart
+
+Releases:
+
+- ansible-lint
+- ansible-dev-tools
+- ansible-navigator [v25.4.0](https://github.com/ansible/ansible-navigator/releases/tag/v25.4.0)
+- molecule [v25.4.0](https://github.com/ansible/molecule/releases/tag/v25.4.0)
+- pytest-ansible [v25.4.0](https://github.com/ansible/pytest-ansible/releases/tag/v25.4.0)
+- tox-ansible [v25.4.0](https://github.com/ansible/tox-ansible/releases/tag/v25.4.0)
+
+
 ### 2025-03
 
 Release manager: @alisonlhart
