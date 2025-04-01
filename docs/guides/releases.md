@@ -47,7 +47,6 @@ Releases:
 - pytest-ansible [v25.4.0](https://github.com/ansible/pytest-ansible/releases/tag/v25.4.0)
 - tox-ansible [v25.4.0](https://github.com/ansible/tox-ansible/releases/tag/v25.4.0)
 
-
 ### 2025-03
 
 Release manager: @alisonlhart
