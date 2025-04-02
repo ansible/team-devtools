@@ -40,8 +40,8 @@ Release manager: @alisonlhart
 
 Releases:
 
-- ansible-lint
-- ansible-dev-tools
+- ansible-lint [25.2.0](https://github.com/ansible/ansible-lint/releases/tag/v25.2.0)
+- ansible-dev-tools [25.4.0](https://github.com/ansible/ansible-dev-tools/releases/tag/v25.4.0)
 - ansible-navigator [v25.4.0](https://github.com/ansible/ansible-navigator/releases/tag/v25.4.0)
 - molecule [v25.4.0](https://github.com/ansible/molecule/releases/tag/v25.4.0)
 - pytest-ansible [v25.4.0](https://github.com/ansible/pytest-ansible/releases/tag/v25.4.0)
