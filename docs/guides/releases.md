@@ -30,6 +30,10 @@ This will release both a python project and image. Both the resulting python pac
 - [ansible-dev-tools on pypi](https://pypi.org/project/ansible-dev-tools/#history)
 - [ansible-dev-tools image](https://github.com/ansible/ansible-dev-tools/pkgs/container/community-ansible-dev-tools)
 
+## Step after ADT release - Update devspaces sandbox image
+
+Every time we release the upstream ansible-devspaces container a PR needs to be raised in https://github.com/redhat-developer-demos/ansible-devspaces-demo repository updating the image SHA in the `devfile.yaml` file.
+
 ## Schedule
 
 Releases should be made on the first Wednesday of the month, but can be made the following Wednesday if necessary. This document should be updated with a pull request after the releases are complete.
