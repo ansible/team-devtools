@@ -31,7 +31,7 @@ repos:
         types: [file, yaml]
         entry: yamllint --strict
   - repo: https://github.com/ansible/ansible-lint
-    rev: v25.1.3
+    rev: v25.2.1
     hooks:
       - id: ansible-lint
         language_version: "3.12"
