@@ -209,6 +209,16 @@ jobs:
             .tox/**/log/
             .tox/**/coverage.xml
 
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() && hashFiles('junit.xml') != '' }}
+        uses: codecov/test-results-action@v1
+        with:
+          fail_ci_if_error: true
+          name: ${{ matrix.name }}
+          # unable to use wildcards yet due to https://github.com/codecov/test-results-action/issues/110
+          flags: ${{ matrix.python_version }},${{ matrix.os }}
+          use_oidc: true
+
       - name: Report failure if git reports dirty status
         run: |
           if [[ -n $(git status -s) ]]; then
