@@ -40,15 +40,17 @@ Releases should be made on the first Wednesday of the month, but can be made the
 
 ### 2025-04
 
-Release manager: @alisonlhart
+Release manager: @abhikdps
 
 Releases:
 
-- ansible-lint [v25.2.0](https://github.com/ansible/ansible-lint/releases/tag/v25.2.0)
-- ansible-dev-tools [v25.4.0](https://github.com/ansible/ansible-dev-tools/releases/tag/v25.4.0)
-- ansible-navigator [v25.4.0](https://github.com/ansible/ansible-navigator/releases/tag/v25.4.0)
+- ansible-creator - [v25.4.1](https://github.com/ansible/ansible-creator/releases/tag/v25.4.1)
+- ansible-dev-environment - [v25.4.0](https://github.com/ansible/ansible-dev-environment/releases/tag/v25.4.0)
+- ansible-dev-tools - [v25.4.1](https://github.com/ansible/ansible-dev-tools/releases/tag/v25.4.1)
+- ansible-lint - [v25.4.0](https://github.com/ansible/ansible-lint/releases/tag/v25.4.0)
+- ansible-navigator - [v25.4.1](https://github.com/ansible/ansible-navigator/releases/tag/v25.4.1)
 - molecule [v25.4.0](https://github.com/ansible/molecule/releases/tag/v25.4.0)
-- pytest-ansible [v25.4.0](https://github.com/ansible/pytest-ansible/releases/tag/v25.4.0)
+- pytest-ansible - [v25.4.1](https://github.com/ansible/pytest-ansible/releases/tag/v25.4.1)
 - tox-ansible [v25.4.0](https://github.com/ansible/tox-ansible/releases/tag/v25.4.0)
 
 ### 2025-03
