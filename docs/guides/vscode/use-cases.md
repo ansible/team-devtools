@@ -6,8 +6,8 @@ WIP work to codify various use-cases for vscode-ansible extension.
   - Windows (`W`)
 - Execution
   - Native (`N`) -- ansible installed locally, likely inside a virtualenv
-  - Podman (`P`) - creator-ee
-  - Docker (`C`) - creator-ee
+  - Podman (`P`) - community-ansible-dev-tools image
+  - Docker (`C`) - community-ansible-dev-tools image
 
 ## Cases
 

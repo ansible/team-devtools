@@ -45,7 +45,6 @@ These are the projects that will be transitioning to CalVer:
 - ansible-dev-environment
 - ansible-lint
 - ansible-navigator
-- creator-ee
 - molecule
 - pytest-ansible
 - tox-ansible
