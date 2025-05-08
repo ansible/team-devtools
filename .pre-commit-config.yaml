@@ -30,6 +30,11 @@ repos:
         files: \.(yaml|yml)$
         types: [file, yaml]
         entry: yamllint --strict
+  - repo: https://github.com/pappasam/toml-sort
+    rev: v0.24.2
+    hooks:
+      - id: toml-sort-fix
+        alias: toml
   - repo: https://github.com/ansible/ansible-lint
     rev: v25.4.0
     hooks:
