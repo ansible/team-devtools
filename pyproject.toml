@@ -12,6 +12,7 @@ name = "team-devtools"
 readme = "README.md"
 # https://peps.python.org/pep-0621/#readme
 requires-python = ">=3.10"
+
 # Keep this default because xml/report do not know to use load it from config file:
 # data_file = ".coverage"
 [tool.coverage.paths]
@@ -60,6 +61,7 @@ norecursedirs = [
 dependencies = {file = [".config/requirements.in"]}
 optional-dependencies.docs = {file = [".config/requirements-docs.in"]}
 optional-dependencies.test = {file = [".config/requirements-test.in"]}
+
 [tool.setuptools_scm]
 # To prevent accidental pick of mobile version tags such 'v6'
 git_describe_command = [
