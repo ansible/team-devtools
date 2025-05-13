@@ -123,12 +123,31 @@ jobs:
             ~/.cache/pre-commit
           key: pre-commit-${{ matrix.name }}-${{ hashFiles('.pre-commit-config.yaml') }}
 
-      - name: Set up Python ${{ matrix.python_version || '3.12' }}
+      - name: Install the latest version of uv
         if: ${{ !contains(matrix.shell, 'wsl') &&  matrix.mise != 'true' }}
-        uses: actions/setup-python@v5
+        uses: astral-sh/setup-uv@v5
         with:
-          cache: ${{ hashFiles('requirements.txt', 'pyproject.toml') && 'pip' || '' }}
+          version: "latest"
           python-version: ${{ matrix.python_version || '3.12' }}
+          cache-dependency-glob: |
+            **/.config/*.*
+            **/uv.lock
+            **/pyproject.toml
+
+      - name: Debug python
+        run: |
+          set -exuo pipefail
+          python3 --version
+          which -a python3
+          which -a uv
+          uv --version
+
+      # - name: Set up Python ${{ matrix.python_version || '3.12' }}
+      #   if: ${{ !contains(matrix.shell, 'wsl') &&  matrix.mise != 'true' }}
+      #   uses: actions/setup-python@v5
+      #   with:
+      #     cache: ${{ hashFiles('requirements.txt', 'pyproject.toml') && 'pip' || '' }}
+      #     python-version: ${{ matrix.python_version || '3.12' }}
 
       - name: Set up Node.js
         if: ${{ inputs.node-version-file != '' }}
