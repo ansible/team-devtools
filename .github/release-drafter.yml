@@ -18,10 +18,10 @@ categories:
   - title: Bugfixes
     labels:
       - bug # fbca04
-  - title: Other # fef2c0
-exclude-labels:
-  - bot:chronographer:skip
-  - skip-changelog
+  - title: Maintenance # fef2c0
+    labels:
+      - chore
+      - skip-changelog
 replacers:
   # https://github.com/release-drafter/release-drafter/issues/569#issuecomment-645942909
   - search: /(?:and )?@(pre-commit-ci|dependabot)(?:\[bot\])?,?/g
@@ -47,7 +47,7 @@ exclude-contributors:
   - dependabot
   - pre-commit-ci
 autolabeler:
-  - label: skip-changelog
+  - label: chore
     title:
       - /pre-commit autoupdate/
     body:

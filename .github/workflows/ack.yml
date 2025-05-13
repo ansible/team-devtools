@@ -50,6 +50,7 @@ jobs:
           exit_type: failure
           labels: |
             bug
+            chore
             enhancement
             major
             minor
