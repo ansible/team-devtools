@@ -32,11 +32,27 @@ This will release both a python project and image. Both the resulting python pac
 
 ## Step after ADT release - Update devspaces sandbox image
 
-Every time we release the upstream ansible-devspaces container a PR needs to be raised in https://github.com/redhat-developer-demos/ansible-devspaces-demo repository updating the image SHA in the `devfile.yaml` file.
+Whenever the upstream `ansible-devspaces` container is released, the image SHA in the `devfile.yaml` of [ansible-devspaces-demo](https://github.com/redhat-developer-demos/ansible-devspaces-demo) repository must be updated. Verification needed whether the automated pull request for this update has been created correctly.
 
 ## Schedule
 
 Releases should be made on the first Wednesday of the month, but can be made the following Wednesday if necessary. This document should be updated with a pull request after the releases are complete.
+
+### 2025-05
+
+Release manager: @shatakshiiii
+
+Releases:
+
+- ansible-compat - [v25.5.0](https://github.com/ansible/ansible-compat/releases/tag/v25.5.0)
+- ansible-dev-environment - [v25.5.0](https://github.com/ansible/ansible-dev-environment/releases/tag/v25.5.0)
+- ansible-lint - [v25.5.0](https://github.com/ansible/ansible-lint/releases/tag/v25.5.0)
+- ansible-creator - [v25.5.0](https://github.com/ansible/ansible-creator/releases/tag/v25.5.0)
+- molecule - [v25.5.0](https://github.com/ansible/molecule/releases/tag/v25.5.0)
+- pytest-ansible - [v25.5.0](https://github.com/ansible/pytest-ansible/releases/tag/v25.5.0)
+- ansible-navigator - [v25.5.0](https://github.com/ansible/ansible-navigator/releases/tag/v25.5.0)
+- tox-ansible - [v25.5.0](https://github.com/ansible/tox-ansible/releases/tag/v25.5.0)
+- ansible-dev-tools - [v25.5.2](https://github.com/ansible/ansible-dev-tools/releases/tag/v25.5.2)
 
 ### 2025-04
 
