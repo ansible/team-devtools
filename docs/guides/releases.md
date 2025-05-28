@@ -21,14 +21,13 @@ The following projects should be released second, in no particular order:
 - [tox-ansible](https://github.com/ansible/tox-ansible/releases)
 - [VsCode extension](https://github.com/ansible/vscode-ansible/releases)
 
-
 Before a downstream release, also release the following:
 
 - [galaxy-importer](https://github.com/ansible/galaxy-importer)
-    - Update ansible-lint version in [setup.cfg](https://github.com/ansible/galaxy-importer/blob/master/setup.cfg) and open a PR. Ensure the ansible-lint version is confirmed for the downstream release before doing this. Ask the Hub team to review the PR in either `#ansible-galaxy-internal` or `#wg-hub-delivery` Slack channels.
-    - Notify Partner Engineering about the ansible-lint version update in importer in the `#ansible-partners` Slack channel using `@ansible-pe`.
-    - Ask the Hub team to make a new release of galaxy-importer.
-    - Add the new released version of importer to downstream packages list to notify PDE of the change.
+  - Update ansible-lint version in [setup.cfg](https://github.com/ansible/galaxy-importer/blob/master/setup.cfg) and open a PR. Ensure the ansible-lint version is confirmed for the downstream release before doing this. Ask the Hub team to review the PR in either `#ansible-galaxy-internal` or `#wg-hub-delivery` Slack channels.
+  - Notify Partner Engineering about the ansible-lint version update in importer in the `#ansible-partners` Slack channel using `@ansible-pe`.
+  - Ask the Hub team to make a new release of galaxy-importer.
+  - Add the new released version of importer to downstream packages list to notify PDE of the change.
 
 Finally, after running dependabot so the release notes are updated with dependencies:
 
