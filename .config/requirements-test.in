@@ -3,3 +3,4 @@ coverage>=7.6.9
 pytest-instafail
 pytest-plus
 pytest>=8
+pyyaml
