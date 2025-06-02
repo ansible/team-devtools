@@ -201,13 +201,16 @@ jobs:
         run: ${{ inputs.run_post }}
 
       - name: Archive logs and coverage data
-        uses: actions/upload-artifact@v4
+        uses: coactions/upload-artifact@v4
         with:
           name: logs-${{ matrix.name }}.zip
           include-hidden-files: true
+          if-no-files-found: error
           path: |
-            .tox/**/log/
+            .tox/**/pyvenv.cfg
             .tox/**/coverage.xml
+          # Temporary disable of tox log collection until its new release:
+          # .tox/**/log/
 
       - name: Upload test results to Codecov
         if: ${{ !cancelled() && hashFiles('junit.xml') != '' }}
