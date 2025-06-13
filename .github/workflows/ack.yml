@@ -6,6 +6,7 @@ name: ack
 on:
   issues:
     types: [opened, reopened]
+  merge_group:
   pull_request_target:
     types: [opened, labeled, unlabeled, synchronize]
   workflow_call: # allows reuse of this workflow from other devtools repos
@@ -30,7 +31,7 @@ jobs:
       # either title, body or source branch name. We ignore potential failure
       # of this step.
       - name: Auto-add labels
-        if: github.event.action == 'opened' && github.event.issue.labels.length == 0
+        if: github.event.action == 'opened' && github.event.issue.labels.length == 0 && github.event_name != 'merge_group'
         uses: release-drafter/release-drafter@v6
         with:
           # we only want to use the auto-labeler bits:
@@ -42,6 +43,7 @@ jobs:
         continue-on-error: true
 
       - name: Verify PR label action
+        if: github.event_name != 'merge_group'
         uses: mheap/github-action-required-labels@v5
         with:
           mode: exactly
@@ -65,7 +67,8 @@ jobs:
 
       - name: Add issue or pull-request to 'devtools' project
         # Workaround for running this step only if BOT_PAT secret is found
-        if: env.BOT_PAT != null
+        # also this action would not work on merge_group events.
+        if: env.BOT_PAT != null && github.event_name != 'merge_group'
         uses: actions/add-to-project@main
         with:
           project-url: https://github.com/orgs/ansible/projects/86
@@ -82,14 +85,18 @@ jobs:
 
       # https://docs.github.com/en/code-security/dependabot/working-with-dependabot/automating-dependabot-with-github-actions#approve-a-pull-request
       - name: Enable auto-merge for safe bots PRs
-        if: env.BOT_PAT != null && contains(fromJson('["dependabot[bot]", "pre-commit-ci[bot]"]'), github.event.pull_request.user.login)
+        if: >
+          env.BOT_PAT != null &&
+          contains(fromJson('["dependabot[bot]", "pre-commit-ci[bot]"]'), github.event.pull_request.user.login) &&
+          github.event_name != 'merge_group'
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ env.BOT_PAT }}
 
       - name: Approve a PR
-        if: env.BOT_PAT != null && contains(fromJson('["dependabot[bot]", "pre-commit-ci[bot]"]'), github.event.pull_request.user.login)
+        if: env.BOT_PAT != null && contains(fromJson('["dependabot[bot]", "pre-commit-ci[bot]"]'), github.event.pull_request.user.login) && github.event_name !=
+          'merge_group'
         run: gh pr review --approve "$PR_URL"
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
