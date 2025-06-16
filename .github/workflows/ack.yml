@@ -27,6 +27,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: echo "$GITHUB_CONTEXT"
+
       # Use of release drafter action for adding semantic labels based on
       # either title, body or source branch name. We ignore potential failure
       # of this step.
@@ -77,11 +82,6 @@ jobs:
           github-token: ${{ env.BOT_PAT }}
           # labeled: skip-changelog
           # label-operator: NOT
-
-      - name: Dump GitHub context
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-        run: echo "$GITHUB_CONTEXT"
 
       # https://docs.github.com/en/code-security/dependabot/working-with-dependabot/automating-dependabot-with-github-actions#approve-a-pull-request
       - name: Enable auto-merge for safe bots PRs
