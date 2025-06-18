@@ -230,6 +230,17 @@ jobs:
             printf '### Failed as git reported modified and/or untracked files\n```\n%s\n```\n' "$(git status -s)" | tee -a "$GITHUB_STEP_SUMMARY"
             exit 99
           fi
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@v5
+        # Tun sonar only for lint job if sonar config is present or sonar key
+        # being present. This ensures that we fail the build if is misconfigured
+        # but we do skip the step for projects that do not use sonar.
+        if: matrix.name == 'lint' && (hashFiles('sonar-project.properties') != '' || env.SONAR_TOKEN != '') # 'if' cannot use 'secrets' context
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets[format('{0}', vars.SONAR_TOKEN_SECRET_NAME)]  || secrets.SONAR_TOKEN }}
+
   # https://github.com/actions/toolkit/issues/193
   check:
     if: always()
