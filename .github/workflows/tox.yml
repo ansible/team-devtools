@@ -16,7 +16,7 @@ on:
         type: string
       jobs_producing_coverage:
         default: 8
-        description: Number of jobs producing coverage.xml files
+        description: Number of jobs producing coverage.xml files (deprecated, no longer used
         required: false
         type: number
       min_python:
@@ -63,6 +63,14 @@ on:
         description: Path to the Node.js version file (e.g., `.tool-versions`)
         required: false
         type: string
+      log_paths:
+        default: |
+          .tox/**/pyvenv.cfg
+          .tox/**/coverage.xml
+          .tox/**/log/
+        description: Paths to log files to upload as artifacts.
+        required: false
+        type: string
 # keep permissions at top level because this is a composite workflow
 permissions:
   checks: read
@@ -105,6 +113,9 @@ jobs:
     defaults:
       run:
         shell: ${{ matrix.shell || 'bash'}}
+    outputs:
+      upload_coverage_conclusion: ${{ steps.results.outputs.upload_coverage_conclusion }}
+      upload_test_results_conclusion: ${{ steps.results.outputs.upload_test_results_conclusion }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
@@ -175,8 +186,8 @@ jobs:
               echo "$SCRIPTS_DIR" >> $GITHUB_PATH
               echo "Added $SCRIPTS_DIR to PATH to avoid further issues."
           fi
-          python3 -m pip install --disable-pip-version-check --upgrade --user --break-system-packages pip uv 'tox>=4.23.2' 'tox-uv>=1.16.0'
-          which -a uv pip tox
+          python3 -m pip install --disable-pip-version-check --upgrade --user --break-system-packages pip uv 'tox>=4.23.2' 'tox-uv>=1.16.0' 'coverage>=7.5.1'
+          which -a uv pip tox coverage
           echo "uv tool update-shell"
           tox --version
           echo "Log installed dists"
@@ -206,13 +217,21 @@ jobs:
           name: logs-${{ matrix.name }}.zip
           include-hidden-files: true
           if-no-files-found: error
-          path: |
-            .tox/**/pyvenv.cfg
-            .tox/**/coverage.xml
-          # Temporary disable of tox log collection until its new release:
-          # .tox/**/log/
+          path: ${{ inputs.log_paths }}
 
-      - name: Upload test results to Codecov
+      - name: Upload coverage data to codecov.io
+        id: upload-coverage
+        if: ${{ !cancelled() && hashFiles('**/coverage.xml') != '' }}
+        uses: codecov/codecov-action@v5.4.3
+        with:
+          name: ${{ matrix.name }}
+          fail_ci_if_error: true
+          files: "**/coverage.xml"
+          flags: ${{ matrix.python_version }},${{ runner.os }},${{ runner.arch }}
+          use_oidc: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) }}
+
+      - name: Upload test results to codecov.io
+        id: upload-test-results
         if: ${{ !cancelled() && hashFiles('junit.xml') != '' }}
         uses: codecov/test-results-action@v1
         with:
@@ -221,6 +240,12 @@ jobs:
           # unable to use wildcards yet due to https://github.com/codecov/test-results-action/issues/110
           flags: ${{ matrix.python_version }},${{ matrix.os }}
           use_oidc: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) }}
+
+      - name: Output information about executed steps
+        id: results
+        run: |
+          echo "upload_coverage_conclusion=${{ steps.upload-coverage.conclusion }}" >> $GITHUB_OUTPUT
+          echo "upload_test_results_conclusion=${{ steps.upload-test-results.conclusion }}" >> $GITHUB_OUTPUT
 
       - name: Report failure if git reports dirty status
         run: |
@@ -239,14 +264,24 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
+      - name: Fail if no coverage files were uploaded
+        if: ${{ !contains(needs.*.outputs.upload_coverage_conclusion, 'success') }}
+        run: |
+          echo "::error::Failing because no coverage files were uploaded by any of the previous jobs. ${{ toJson(needs.*) }}"
+          exit 1
+
+      - name: Fail if no junit.xml reports were uploaded
+        if: ${{ !contains(needs.*.outputs.upload_test_results_conclusion, 'success') }}
+        run: |
+          echo "::error::Failing because no junit.xml reports were uploaded by any of the previous jobs. ${{ toJson(needs.*) }}"
+          exit 1
+
       - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
-      - run: pip3 install 'coverage>=7.5.1'
 
       - name: Merge logs into a single archive
         # Should do nothing if job is retried
@@ -262,24 +297,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: logs.zip
-
-      - name: Check for expected number of coverage.xml reports
-        env:
-          JOBS_PRODUCING_COVERAGE: ${{ inputs.jobs_producing_coverage }}
-        run: |
-          FOUND_REPORTS=$(find . -name coverage.xml | wc -l | bc)
-          if [ "${FOUND_REPORTS}" -ne "${JOBS_PRODUCING_COVERAGE}" ]; then
-            echo "::error::Found ${FOUND_REPORTS} coverage.xml files instead of the expected ${JOBS_PRODUCING_COVERAGE}: $(find . -name coverage.xml | xargs echo)"
-            exit 1
-          fi
-
-      - name: Upload coverage data
-        if: ${{ inputs.jobs_producing_coverage }}
-        uses: codecov/codecov-action@v5.4.3
-        with:
-          name: ${{ matrix.name }}
-          fail_ci_if_error: true
-          use_oidc: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) }}
 
       - name: Decide whether the needed jobs succeeded or failed
         uses: re-actors/alls-green@release/v1
