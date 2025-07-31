@@ -249,6 +249,8 @@ jobs:
 
       - name: Report failure if git reports dirty status
         run: |
+          # See https://github.com/codecov/codecov-action/issues/1851
+          rm -rf codecov codecov.SHA256SUM codecov.SHA256SUM.sig
           if [[ -n $(git status -s) ]]; then
             # shellcheck disable=SC2016
             echo -n '::error file=git-status::'
