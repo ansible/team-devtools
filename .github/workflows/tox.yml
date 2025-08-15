@@ -121,7 +121,7 @@ jobs:
       matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0 # needed by setuptools-scm
           submodules: true
@@ -186,7 +186,7 @@ jobs:
               echo "$SCRIPTS_DIR" >> $GITHUB_PATH
               echo "Added $SCRIPTS_DIR to PATH to avoid further issues."
           fi
-          python3 -m pip install --disable-pip-version-check --upgrade --user --break-system-packages pip uv 'tox>=4.23.2' 'tox-uv>=1.16.0' 'coverage>=7.5.1'
+          python3 -m pip install --disable-pip-version-check --upgrade --user --break-system-packages pip uv 'tox>=4.28.4' 'tox-uv>=1.28.0' 'coverage>=7.5.1'
           which -a uv pip tox coverage
           echo "uv tool update-shell"
           tox --version
@@ -278,7 +278,7 @@ jobs:
           echo "::error::Failing because no junit.xml reports were uploaded by any of the previous jobs. ${{ toJson(needs.*) }}"
           exit 1
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -296,7 +296,7 @@ jobs:
           separate-directories: true
 
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: logs.zip
 

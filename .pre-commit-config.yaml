@@ -15,13 +15,14 @@ repos:
     rev: v2.4.1
     hooks:
       - id: codespell
+        additional_dependencies: ["tomli>=2.2.1; python_version<'3.11'"]
   - repo: https://github.com/pre-commit/pre-commit-hooks.git
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
       - id: mixed-line-ending
-      - id: check-byte-order-marker
+      - id: fix-byte-order-marker
       - id: check-executables-have-shebangs
       - id: check-merge-conflict
       - id: debug-statements
@@ -34,8 +35,7 @@ repos:
         types: [file, yaml]
         entry: yamllint --strict
   - repo: https://github.com/ansible/ansible-lint
-    rev: v25.7.0
+    rev: v25.8.1
     hooks:
       - id: ansible-lint
-        language_version: "3.12"
         args: [--fix]
