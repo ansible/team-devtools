@@ -121,7 +121,7 @@ jobs:
       matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0 # needed by setuptools-scm
           submodules: true
@@ -278,7 +278,7 @@ jobs:
           echo "::error::Failing because no junit.xml reports were uploaded by any of the previous jobs. ${{ toJson(needs.*) }}"
           exit 1
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Python
         uses: actions/setup-python@v5
