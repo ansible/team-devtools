@@ -16,7 +16,7 @@ jobs:
     uses: ./.github/workflows/tox.yml
     with:
       default_python: "3.10"
-      max_python: "3.13"
+      max_python: "3.14"
       min_python: "3.10"
       run_post: echo 'Running post'
       run_pre: echo 'Running pre'
