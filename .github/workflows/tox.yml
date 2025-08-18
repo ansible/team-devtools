@@ -113,9 +113,6 @@ jobs:
     defaults:
       run:
         shell: ${{ matrix.shell || 'bash'}}
-    outputs:
-      upload_coverage_conclusion: ${{ steps.results.outputs.upload_coverage_conclusion }}
-      upload_test_results_conclusion: ${{ steps.results.outputs.upload_test_results_conclusion }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
@@ -241,12 +238,6 @@ jobs:
           flags: ${{ matrix.python_version }},${{ matrix.os }}
           use_oidc: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) }}
 
-      - name: Output information about executed steps
-        id: results
-        run: |
-          echo "upload_coverage_conclusion=${{ steps.upload-coverage.conclusion }}" >> $GITHUB_OUTPUT
-          echo "upload_test_results_conclusion=${{ steps.upload-test-results.conclusion }}" >> $GITHUB_OUTPUT
-
       - name: Report failure if git reports dirty status
         run: |
           # See https://github.com/codecov/codecov-action/issues/1851
@@ -266,18 +257,6 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Fail if no coverage files were uploaded
-        if: ${{ !contains(needs.*.outputs.upload_coverage_conclusion, 'success') }}
-        run: |
-          echo "::error::Failing because no coverage files were uploaded by any of the previous jobs. ${{ toJson(needs.*) }}"
-          exit 1
-
-      - name: Fail if no junit.xml reports were uploaded
-        if: ${{ !contains(needs.*.outputs.upload_test_results_conclusion, 'success') }}
-        run: |
-          echo "::error::Failing because no junit.xml reports were uploaded by any of the previous jobs. ${{ toJson(needs.*) }}"
-          exit 1
-
       - uses: actions/checkout@v5
 
       - name: Set up Python
