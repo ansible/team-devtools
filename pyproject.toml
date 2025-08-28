@@ -12,14 +12,14 @@ name = "team-devtools"
 readme = "README.md"
 # https://peps.python.org/pep-0621/#readme
 requires-python = ">=3.10"
+
+[tool.codespell]
+ignore-words-list = ["SME"]
+
 # Keep this default because xml/report do not know to use load it from config file:
 # data_file = ".coverage"
 [tool.coverage.paths]
 source = ["src", "test", ".tox/*/site-packages"]
-
-
-[tool.codespell]
-ignore-words-list = ["SME"]
 
 [tool.coverage.report]
 exclude_also = ["pragma: no cover", "if TYPE_CHECKING:"]
@@ -64,6 +64,7 @@ norecursedirs = [
 dependencies = {file = [".config/requirements.in"]}
 optional-dependencies.docs = {file = [".config/requirements-docs.in"]}
 optional-dependencies.test = {file = [".config/requirements-test.in"]}
+
 [tool.setuptools_scm]
 # To prevent accidental pick of mobile version tags such 'v6'
 git_describe_command = [
@@ -83,6 +84,99 @@ write_to = "src/team_devtools/_version.py"
 in_place = true
 sort_inline_tables = true
 sort_table_keys = true
+
+[tool.tox]
+env_list = [
+  "lint",
+  "pkg",
+  "py",
+  "docs"
+]
+isolated_build = true
+min_version = "4.28.4"
+requires = [
+  "tox>=4.28.4",
+  "tox-extra >= 2.0.1",
+  "tox-uv >= 1.28.0",
+  "setuptools >= 65.3.0" # editable installs
+]
+
+[tool.tox.env.docs]
+commands = [
+  ["{env_python}", "-m", "mkdocs", {default = ["build", "--strict", "--site-dir=_readthedocs/html/"], extend = true, replace = "posargs"}]
+]
+description = "Build docs"
+extras = ["docs"]
+skip_install = false
+use_develop = false
+
+[tool.tox.env.lint]
+commands = [
+  ["pre-commit", "run", "--all-files", "--show-diff-on-failure"]
+]
+deps = ["pre-commit>=3.5.0"]
+description = "Run linting"
+pass_env = [
+  "HOMEPATH",
+  "PROGRAMDATA",
+  "RUFF_OUTPUT_FORMAT"
+]
+
+[tool.tox.env.pkg]
+commands = [
+  ["rm", "-rf", "{tox_root}/dist/"],
+  ["python", "-m", "build", "--outdir", "{tox_root}/dist/", "{tox_root}"],
+  ["sh", "-c", "python -m twine check --strict {tox_root}/dist/*"],
+  ["check-manifest", "--ignore-bad-ideas", "*.md,docs/**", "{tox_root}"]
+]
+deps = [
+  "build[virtualenv]",
+  "check-manifest",
+  "twine"
+]
+description = "Build package and check metadata"
+skip_install = true
+
+[tool.tox.env_run_base]
+allowlist_externals = ["sh"]
+change_dir = "{tox_root}"
+commands = [
+  ["coverage", "run", "-m", "pytest", {default = ["-ra", "--showlocals", "--doctest-modules", "--durations=10", "--junitxml=./junit.xml"], extend = true, replace = "posargs"}],
+  ["sh", "-xec", "coverage combine -a -q --data-file={env_dir}/.coverage {work_dir}/*/.coverage.* && coverage report --data-file={env_dir}/.coverage && coverage xml --data-file={env_dir}/.coverage -o {env_dir}/coverage.xml"]
+]
+commands_pre = [
+  ["sh", "-c", "rm -f {env_dir}/.coverage.* 2>/dev/null || true"]
+]
+editable = true
+extras = ["test"]
+pass_env = [
+  "CURL_CA_BUNDLE", # https proxies, https://github.com/tox-dev/tox/issues/1437
+  "FORCE_COLOR",
+  "HOME",
+  "LANG",
+  "LC_*",
+  "NO_COLOR",
+  "PYTEST_*", # allows developer to define their own preferences
+  "PYTEST_REQPASS", # needed for CI
+  "PYTHON*", # PYTHONPYCACHEPREFIX, PYTHONIOENCODING, PYTHONBREAKPOINT,...
+  "PY_COLORS",
+  "RTD_TOKEN",
+  "REQUESTS_CA_BUNDLE", # https proxies
+  "SETUPTOOLS_SCM_DEBUG",
+  "SSL_CERT_FILE", # https proxies
+  "SSH_AUTH_SOCK", # may be needed by git
+  "UV_*"
+]
+skip_install = false
+use_develop = false
+uv_seed = true
+
+[tool.tox.env_run_base.set_env]
+COVERAGE_FILE = "{env:COVERAGE_FILE:{env_dir}/.coverage.{env_name}}"
+COVERAGE_PROCESS_START = "{tox_root}/pyproject.toml"
+# see https://github.com/tox-dev/tox/issues/2092#issuecomment-2538729079
+# see https://github.com/Kozea/CairoSVG/issues/392#issuecomment-2538707712
+DYLD_FALLBACK_LIBRARY_PATH = "/opt/homebrew/lib:{env:DYLD_FALLBACK_LIBRARY_PATH}"
 
 [tool.uv.pip]
 annotation-style = "line"
