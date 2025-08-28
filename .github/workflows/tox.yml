@@ -219,7 +219,7 @@ jobs:
       - name: Upload coverage data to codecov.io
         id: upload-coverage
         if: ${{ !cancelled() && hashFiles('**/coverage.xml') != '' }}
-        uses: codecov/codecov-action@v5.4.3
+        uses: codecov/codecov-action@fdcc8476540edceab3de004e990f80d881c6cc00 # v5.5.0
         with:
           name: ${{ matrix.name }}
           fail_ci_if_error: true
