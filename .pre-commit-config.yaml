@@ -27,6 +27,19 @@ repos:
       - id: check-merge-conflict
       - id: debug-statements
         language_version: python3
+  - repo: https://github.com/pappasam/toml-sort
+    rev: v0.24.2
+    hooks:
+      - id: toml-sort-fix
+        alias: toml
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.10
+    hooks:
+      - id: ruff-format
+        alias: ruff
+      - id: ruff-check
+        args: ["--fix"]
+        alias: ruff
   - repo: https://github.com/adrienverge/yamllint.git
     rev: v1.37.1
     hooks:
