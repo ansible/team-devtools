@@ -93,7 +93,7 @@ jobs:
     steps:
       - name: Determine matrix
         id: generate_matrix
-        uses: coactions/dynamic-matrix@v4
+        uses: coactions/dynamic-matrix@adb35c02b55e67564ae7feebfcbc3358d8d02900 # v4
         with:
           min_python: ${{ inputs.min_python }}
           max_python: ${{ inputs.max_python }}
@@ -118,13 +118,13 @@ jobs:
       matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
         with:
           fetch-depth: 0 # needed by setuptools-scm
           submodules: true
 
       - name: Set pre-commit cache
-        uses: actions/cache@v4
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4
         if: ${{ matrix.name == 'lint' }}
         with:
           path: |
@@ -133,14 +133,14 @@ jobs:
 
       - name: Set up Python ${{ matrix.python_version || '3.12' }}
         if: ${{ !contains(matrix.shell, 'wsl') &&  matrix.mise != 'true' }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           cache: ${{ hashFiles('requirements.txt', 'pyproject.toml') && 'pip' || '' }}
           python-version: ${{ matrix.python_version || '3.12' }}
 
       - name: Set up Node.js
         if: ${{ inputs.node-version-file != '' }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: ${{ inputs.node-version-file }}
 
@@ -209,7 +209,7 @@ jobs:
         run: ${{ inputs.run_post }}
 
       - name: Archive logs and coverage data
-        uses: coactions/upload-artifact@v4
+        uses: coactions/upload-artifact@ec1957e16e4ecd304d3a115907ccb4ba5f636e9d # v4
         with:
           name: logs-${{ matrix.name }}.zip
           include-hidden-files: true
@@ -219,7 +219,7 @@ jobs:
       - name: Upload coverage data to codecov.io
         id: upload-coverage
         if: ${{ !cancelled() && hashFiles('**/coverage.xml') != '' }}
-        uses: codecov/codecov-action@v5.4.3
+        uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5.4.3
         with:
           name: ${{ matrix.name }}
           fail_ci_if_error: true
@@ -232,7 +232,7 @@ jobs:
       - name: Upload test results to codecov.io
         id: upload-test-results
         if: ${{ !cancelled() && hashFiles('junit.xml') != '' }}
-        uses: codecov/test-results-action@v1
+        uses: codecov/test-results-action@47f89e9acb64b76debcd5ea40642d25a4adced9f # v1
         with:
           fail_ci_if_error: true
           name: ${{ matrix.name }}
@@ -259,16 +259,16 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.12"
 
       - name: Merge logs into a single archive
         # Should do nothing if job is retried
-        uses: actions/upload-artifact/merge@v4
+        uses: actions/upload-artifact/merge@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: logs.zip
           pattern: logs-*.zip
@@ -277,7 +277,7 @@ jobs:
           separate-directories: true
 
       - name: Download artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
         with:
           name: logs.zip
 
@@ -287,7 +287,7 @@ jobs:
           jobs: ${{ toJSON(needs) }}
 
       - name: Notify repository owners about changes affecting them
-        uses: sourcegraph/codenotify@v0.6.4
+        uses: sourcegraph/codenotify@54e4320f0d93f162a371d8d9dc1fb11018199746 # v0.6.4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # https://github.com/sourcegraph/codenotify/issues/19
