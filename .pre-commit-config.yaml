@@ -3,6 +3,17 @@ ci:
   skip:
     - ansible-lint
 repos:
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.8.13
+    hooks:
+      - id: uv-sync
+      - id: uv-lock
+        alias: lock
+      - id: uv-lock
+        name: "deps: upgrade via uv sync --upgrade"
+        alias: deps
+        args: ["--upgrade"]
+        stages: [manual, pre-push]
   - repo: https://github.com/rbubley/mirrors-prettier
     # keep it before yamllint
     rev: v3.6.2

@@ -5,9 +5,28 @@ requires = [
   "setuptools_scm[toml] >= 7.0.5" # required for "no-local-version" scheme
 ]
 
+[dependency-groups]
+dev = [
+  "coverage>=7.6.9",
+  "mkdocs-exclude>=1.0.2",
+  "pytest>=8",
+  "pytest-instafail>=0.5.0",
+  "pytest-plus>=0.8.1"
+]
+docs = [
+  "argparse-manpage>=4.7",
+  "mkdocs-ansible>=24.12.0",
+  "mkdocs-exclude>=1.0.2"
+]
+lint = ["pre-commit>=3.5.0", "pre-commit-uv>=4.1.4"]
+pkg = [
+  "build[virtualenv]",
+  "twine"
+]
+
 [project]
 description = "..."
-dynamic = ["version", "dependencies", "optional-dependencies"]
+dynamic = ["version"]
 name = "team-devtools"
 readme = "README.md"
 # https://peps.python.org/pep-0621/#readme
@@ -60,11 +79,6 @@ norecursedirs = [
   "src/*.egg-info"
 ]
 
-[tool.setuptools.dynamic]
-dependencies = {file = [".config/requirements.in"]}
-optional-dependencies.docs = {file = [".config/requirements-docs.in"]}
-optional-dependencies.test = {file = [".config/requirements-test.in"]}
-
 [tool.setuptools_scm]
 # To prevent accidental pick of mobile version tags such 'v6'
 git_describe_command = [
@@ -90,7 +104,8 @@ env_list = [
   "lint",
   "pkg",
   "py",
-  "docs"
+  "docs",
+  "devel"
 ]
 isolated_build = true
 min_version = "4.28.4"
@@ -101,54 +116,67 @@ requires = [
   "setuptools >= 65.3.0" # editable installs
 ]
 
+[tool.tox.env.devel]
+commands = [
+  [
+    "sh",
+    "-c",
+    "uv pip list -q --format=freeze | tr '\\n' ','"
+  ],
+  {extend = true, of = ["tool", "tox", "env_run_base", "commands"], replace = "ref"},
+  [
+    "git",
+    "restore",
+    "uv.lock"
+  ]
+]
+description = "Run the tests with newest dependencies (no lock and allowing prereleases)"
+runner = "uv-venv-lock-runner"
+uv_sync_flags = ["--upgrade", "--prerelease=allow"]
+uv_sync_locked = false
+
 [tool.tox.env.docs]
 commands = [
   ["{env_python}", "-m", "mkdocs", {default = ["build", "--strict", "--site-dir=_readthedocs/html/"], extend = true, replace = "posargs"}]
 ]
-description = "Build docs"
-extras = ["docs"]
+description = "Builds docs"
+groups = ["docs"]
 skip_install = false
-use_develop = false
 
 [tool.tox.env.lint]
 commands = [
   ["pre-commit", "run", "--all-files", "--show-diff-on-failure"]
 ]
-deps = ["pre-commit>=3.5.0"]
-description = "Run linting"
+dependency_groups = ["lint"]
+description = "Run all linters"
 pass_env = [
   "HOMEPATH",
   "PROGRAMDATA",
   "RUFF_OUTPUT_FORMAT"
 ]
+runner = "uv-venv-runner"
+skip_install = true
 
 [tool.tox.env.pkg]
 commands = [
   ["rm", "-rf", "{tox_root}/dist/"],
   ["python", "-m", "build", "--outdir", "{tox_root}/dist/", "{tox_root}"],
-  ["sh", "-c", "python -m twine check --strict {tox_root}/dist/*"],
-  ["check-manifest", "--ignore-bad-ideas", "*.md,docs/**", "{tox_root}"]
-]
-deps = [
-  "build[virtualenv]",
-  "check-manifest",
-  "twine"
+  ["sh", "-c", "python -m twine check --strict {tox_root}/dist/*"]
 ]
 description = "Build package and check metadata"
-skip_install = true
+group = "pkg"
 
 [tool.tox.env_run_base]
-allowlist_externals = ["sh"]
-change_dir = "{tox_root}"
+allowlist_externals = ["rm", "sh"]
 commands = [
-  ["coverage", "run", "-m", "pytest", {default = ["-ra", "--showlocals", "--doctest-modules", "--durations=10", "--junitxml=./junit.xml"], extend = true, replace = "posargs"}],
+  ["python", "-m", "coverage", "run", "-m", "pytest", {default = ["-ra", "--showlocals", "--doctest-modules", "--durations=10", "--junitxml=./junit.xml"], extend = true, replace = "posargs"}],
   ["sh", "-xec", "coverage combine -a -q --data-file={env_dir}/.coverage {work_dir}/*/.coverage.* && coverage report --data-file={env_dir}/.coverage && coverage xml --data-file={env_dir}/.coverage -o {env_dir}/coverage.xml"]
 ]
 commands_pre = [
   ["sh", "-c", "rm -f {env_dir}/.coverage.* 2>/dev/null || true"]
 ]
-editable = true
-extras = ["test"]
+group = "dev"
+package = "editable"
 pass_env = [
   "CURL_CA_BUNDLE", # https proxies, https://github.com/tox-dev/tox/issues/1437
   "FORCE_COLOR",
@@ -167,9 +195,7 @@ pass_env = [
   "SSH_AUTH_SOCK", # may be needed by git
   "UV_*"
 ]
-skip_install = false
-use_develop = false
-uv_seed = true
+runner = "uv-venv-lock-runner"
 
 [tool.tox.env_run_base.set_env]
 COVERAGE_FILE = "{env:COVERAGE_FILE:{env_dir}/.coverage.{env_name}}"
@@ -178,7 +204,6 @@ COVERAGE_PROCESS_START = "{tox_root}/pyproject.toml"
 # see https://github.com/Kozea/CairoSVG/issues/392#issuecomment-2538707712
 DYLD_FALLBACK_LIBRARY_PATH = "/opt/homebrew/lib:{env:DYLD_FALLBACK_LIBRARY_PATH}"
 
-[tool.uv.pip]
-annotation-style = "line"
-custom-compile-command = "tox run deps"
-no-emit-package = ["ansible-core", "pip", "resolvelib", "typing_extensions", "uv"]
+[tool.uv]
+default-groups = ["dev", "docs", "lint", "pkg"]
+package = true
