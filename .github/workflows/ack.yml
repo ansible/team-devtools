@@ -25,7 +25,7 @@ jobs:
       pull-requests: write # pr approval and merge
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
 
       - name: Dump GitHub context
         env:
@@ -37,7 +37,7 @@ jobs:
       # of this step.
       - name: Auto-add labels
         if: github.event.action == 'opened' && github.event.issue.labels.length == 0 && github.event_name != 'merge_group'
-        uses: release-drafter/release-drafter@v6
+        uses: release-drafter/release-drafter@b1476f6e6eb133afa41ed8589daba6dc69b4d3f5 # v6
         with:
           # we only want to use the auto-labeler bits:
           disable-autolabeler: false
@@ -49,7 +49,7 @@ jobs:
 
       - name: Verify PR label action
         if: github.event_name != 'merge_group'
-        uses: mheap/github-action-required-labels@v5
+        uses: mheap/github-action-required-labels@8afbe8ae6ab7647d0c9f0cfa7c2f939650d22509 # v5
         with:
           mode: exactly
           count: 1
@@ -66,7 +66,7 @@ jobs:
 
       - name: Update release notes if this is already merged
         if: github.event.pull_request.merged == true
-        uses: release-drafter/release-drafter@v6
+        uses: release-drafter/release-drafter@b1476f6e6eb133afa41ed8589daba6dc69b4d3f5 # v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
