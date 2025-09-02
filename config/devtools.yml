@@ -24,16 +24,47 @@ teams:
     - ganeshrn
     - ruchip16
     - trishnaguha
+labels:
+  AAP:
+    color: "#F9D0C4"
+    description: "Ansible Automation Platform"
+  # official prefixes from: https://www.conventionalcommits.org
+  fix:
+    color: "#fbca04"
+    description: "Patch a bug in the codebase"
+  feat:
+    color: "#c6476b"
+    description: "Introduce a feature in the code base"
+  breaking:
+    color: "#FBCA04"
+    description: "Breaking change"
+  chore:
+    description: "Maintenance tasks, include ones with chore, build, ci, docs, style, refactor, perf, test."
+    color: "#EEEEEE"
+  # other labels, no special meaning
+  new:
+    color: "#0E8A16"
+# upstream:
+#   color: "#C239D6"
+# stale:
+#   color: "#AAAAAA"
+# skip-changelog:
+#   color: "#EEEEEE"
+#   description: "Do not include in changelog"
+# keep:
+#   color: "#000000"
+#   description: "Do not close"
+repos:
   # repo key can be 'gh-org/gh-repo' or other simple, override url could be
   # configured using 'repo:' key.
   _default:
     # special meaning, all other keys will inherit attributes this entry
     group: primary
     # owners: is used to record SMEs, primary, backup, ...
-  ansible-collections/community.molecule:
-    section: community
-  # ansible-community/molecule-plugins:
-  #   section: community
+  ansible-automation-platform/ansible-workspaces-container:
+    section: primary
+  ansible-automation-platform/ansible-devtools-container:
+    section: primary
   ansible/ansible-backstage-plugins:
     owners: [audgirka]
     section: experimental
