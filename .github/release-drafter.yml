@@ -63,13 +63,9 @@ autolabeler:
     title:
       - /^(feat)/i
   - label: fix
-    branch:
-      - /^(fix|docs|perf|refactor)/i
   - label: chore
     title:
       - /pre-commit autoupdate/
       - /^(chore|build|ci|test|style)/i
-    branch:
-      - /^chore/i
 template: |
   $CHANGES

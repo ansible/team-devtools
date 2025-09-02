@@ -36,7 +36,7 @@ jobs:
       # either title, body or source branch name. We ignore potential failure
       # of this step.
       - name: Auto-add labels
-        if: github.event.action == 'opened' && github.event.issue.labels.length == 0 && github.event_name != 'merge_group'
+        # if: github.event.action == 'opened' && github.event.issue.labels.length == 0 && github.event_name != 'merge_group'
         uses: release-drafter/release-drafter@b1476f6e6eb133afa41ed8589daba6dc69b4d3f5 # v6
         with:
           # we only want to use the auto-labeler bits:
@@ -54,14 +54,15 @@ jobs:
           mode: exactly
           count: 1
           add_comment: true
-          message: "Label error. Requires {{errorString}} {{count}} of: {{ provided }}. Found: {{ applied }}. Follow https://www.conventionalcommits.org to get auto-labeling
-            to workcorrectly."
+          message: >
+            Label error. Requires {{errorString}} {{count}} of: {{ provided }}.
+            Found: {{ applied }}. Follow https://www.conventionalcommits.org to
+            get auto-labeling to work correctly.
           exit_type: failure
           # see conventional commits prefixes: https://www.conventionalcommits.org
           labels: |
             breaking
             build
-            chore
             chore
             ci
             docs
