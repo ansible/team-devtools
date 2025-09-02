@@ -54,15 +54,22 @@ jobs:
           mode: exactly
           count: 1
           add_comment: true
+          message: "Label error. Requires {{errorString}} {{count}} of: {{ provided }}. Found: {{ applied }}. Follow https://www.conventionalcommits.org to get auto-labeling
+            to workcorrectly."
           exit_type: failure
+          # see conventional commits prefixes: https://www.conventionalcommits.org
           labels: |
-            bug
+            breaking
+            build
             chore
-            enhancement
-            major
-            minor
-            patch
-            skip-changelog
+            chore
+            ci
+            docs
+            fix
+            perf
+            refactor
+            style
+            test
 
       - name: Update release notes if this is already merged
         if: github.event.pull_request.merged == true
