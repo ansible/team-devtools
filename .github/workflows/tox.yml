@@ -131,12 +131,24 @@ jobs:
             ~/.cache/pre-commit
           key: pre-commit-${{ matrix.name }}-${{ hashFiles('.pre-commit-config.yaml') }}
 
-      - name: Set up Python ${{ matrix.python_version || '3.12' }}
-        if: ${{ !contains(matrix.shell, 'wsl') &&  matrix.mise != 'true' }}
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v6
         with:
-          cache: ${{ hashFiles('requirements.txt', 'pyproject.toml') && 'pip' || '' }}
-          python-version: ${{ matrix.python_version || '3.12' }}
+          python-version: ${{ matrix.uv_python_version || '3.12' }}
+
+      - name: Install and validate python build tools
+        run: |
+          set -exuo pipefail
+          python3 --version
+          which -a python3
+          which -a uv
+          uv --version
+          uv tool install --with tox-uv tox
+          uv tool install pip
+          uv tool install coverage
+          pip --version
+          tox --version
+          coverage --version
 
       - name: Set up Node.js
         if: ${{ inputs.node-version-file != '' }}
@@ -171,24 +183,6 @@ jobs:
               echo "python3 is not the mise python3"
               exit 1
           fi
-
-      - name: Install python build tools
-        run: |
-          set -exuo pipefail
-          echo PATH=$PATH
-          # that depends on python3 blend being used and might not be already in path:
-          SCRIPTS_DIR=$(python3 -c 'import os,sysconfig;print(sysconfig.get_path("scripts",f"{os.name}_user"))')
-          if [[ ":$PATH:" != *":$SCRIPTS_DIR:"* ]]; then
-              export PATH=$SCRIPTS_DIR:$PATH
-              echo "$SCRIPTS_DIR" >> $GITHUB_PATH
-              echo "Added $SCRIPTS_DIR to PATH to avoid further issues."
-          fi
-          python3 -m pip install --disable-pip-version-check --upgrade --user --break-system-packages pip uv 'tox>=4.28.4' 'tox-uv>=1.28.0' 'coverage>=7.5.1'
-          which -a uv pip tox coverage
-          echo "uv tool update-shell"
-          tox --version
-          echo "Log installed dists"
-          python3 -m uv pip freeze
 
       - run: ${{ matrix.command }}
 
@@ -261,10 +255,8 @@ jobs:
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
 
-      - name: Set up Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        with:
-          python-version: "3.13"
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v6
 
       - name: Merge logs into a single archive
         # Should do nothing if job is retried
