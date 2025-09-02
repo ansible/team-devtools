@@ -87,7 +87,7 @@ jobs:
       - name: Enable auto-merge for safe bots PRs
         if: >
           env.BOT_PAT != null &&
-          contains(fromJson('["dependabot[bot]", "pre-commit-ci[bot]"]'), github.event.pull_request.user.login) &&
+          contains(fromJson('["dependabot[bot]", "pre-commit-ci[bot]", "renovate[bot]", "konflux-internal-p02[bot]"]'), github.event.pull_request.user.login) &&
           github.event_name != 'merge_group'
         run: gh pr merge --auto --squash "$PR_URL"
         env:
