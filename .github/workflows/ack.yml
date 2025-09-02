@@ -66,6 +66,7 @@ jobs:
             chore
             ci
             docs
+            feat
             fix
             perf
             refactor
