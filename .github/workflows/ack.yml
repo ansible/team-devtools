@@ -93,7 +93,7 @@ jobs:
           # label-operator: NOT
 
       # https://docs.github.com/en/code-security/dependabot/working-with-dependabot/automating-dependabot-with-github-actions#approve-a-pull-request
-      - name: Enable auto-merge for safe bots PRs
+      - name: Enable auto-merge and approve PRs from safe bots
         # do not use github.actor as this can be someone else than the PR author
         if: >
           env.BOT_PAT != null &&
@@ -103,15 +103,10 @@ jobs:
           github.event.pull_request.user.login == 'konflux-internal-p02[bot]' ||
           github.event.pull_request.user.login == 'renovate[bot]'
           )
-        run: gh pr merge --auto --squash "$PR_URL"
+        run: |
+          set -e
+          gh pr merge --auto --squash "$PR_URL"
+          gh pr review --approve "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ env.BOT_PAT }}
-
-      - name: Approve a PR
-        if: env.BOT_PAT != null && contains(fromJson('["dependabot[bot]", "pre-commit-ci[bot]"]'), github.event.pull_request.user.login) && github.event_name !=
-          'merge_group'
-        run: gh pr review --approve "$PR_URL"
-        env:
-          PR_URL: ${{github.event.pull_request.html_url}}
           GH_TOKEN: ${{ env.BOT_PAT }}
