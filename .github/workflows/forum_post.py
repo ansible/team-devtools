@@ -99,7 +99,7 @@ class Post:
         with urllib.request.urlopen(url=categories_request) as url:  # noqa: S310
             data = json.load(url)
         self.category_id = next(
-            c for c in data["category_list"]["categories"] if c["name"] == "Sandbox"
+            c for c in data["category_list"]["categories"] if c["name"] == "Ecosystem Releases"
         )["id"]
 
     def post(self) -> None:
