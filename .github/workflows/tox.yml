@@ -93,7 +93,7 @@ jobs:
     steps:
       - name: Determine matrix
         id: generate_matrix
-        uses: coactions/dynamic-matrix@adb35c02b55e67564ae7feebfcbc3358d8d02900 # v4
+        uses: ansible/actions/matrix@main
         with:
           min_python: ${{ inputs.min_python }}
           max_python: ${{ inputs.max_python }}

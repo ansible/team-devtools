@@ -63,6 +63,8 @@ autolabeler:
     title:
       - /^(feat)/i
   - label: fix
+    title:
+      - /^(fix)/i
   - label: chore
     title:
       - /pre-commit autoupdate/
