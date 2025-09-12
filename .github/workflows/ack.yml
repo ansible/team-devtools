@@ -32,20 +32,7 @@ jobs:
           GITHUB_CONTEXT: ${{ toJson(github) }}
         run: echo "$GITHUB_CONTEXT"
 
-      # Use of release drafter action for adding semantic labels based on
-      # either title, body or source branch name. We ignore potential failure
-      # of this step.
-      - name: Auto-add labels
-        # if: github.event.action == 'opened' && github.event.issue.labels.length == 0 && github.event_name != 'merge_group'
-        uses: release-drafter/release-drafter@b1476f6e6eb133afa41ed8589daba6dc69b4d3f5 # v6
-        with:
-          # we only want to use the auto-labeler bits:
-          disable-autolabeler: false
-          disable-releaser: true
-        # config from .github/release-drafter.yml
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
+      - uses: bcoe/conventional-release-labels@v1
 
       - name: Verify PR label action
         if: github.event_name != 'merge_group'
