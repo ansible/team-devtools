@@ -60,7 +60,9 @@ Release notes for all versions can be found in the [changelog](https://github.co
 class Post:
     """A class to post a release on the Ansible forum."""
 
-    def __init__(self, project: str, release: str, forum_api_key: str, forum_user: str) -> None:
+    def __init__(
+        self, project: str, release: str, forum_api_key: str, forum_user: str
+    ) -> None:
         """Initialize the Post class.
 
         Args:
@@ -97,7 +99,9 @@ class Post:
         with urllib.request.urlopen(url=categories_request) as url:  # noqa: S310
             data = json.load(url)
         self.category_id = next(
-            c for c in data["category_list"]["categories"] if c["name"] == "Sandbox"
+            c
+            for c in data["category_list"]["categories"]
+            if c["name"] == "Ecosystem Releases"
         )["id"]
 
     def post(self) -> None:

@@ -25,7 +25,7 @@ jobs:
       pull-requests: write # pr approval and merge
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
 
       - name: Dump GitHub context
         env:
@@ -36,24 +36,33 @@ jobs:
 
       - name: Verify PR label action
         if: github.event_name != 'merge_group'
-        uses: mheap/github-action-required-labels@v5
+        uses: mheap/github-action-required-labels@8afbe8ae6ab7647d0c9f0cfa7c2f939650d22509 # v5
         with:
           mode: exactly
           count: 1
           add_comment: true
+          message: >
+            Label error. Requires {{errorString}} {{count}} of: {{ provided }}.
+            Found: {{ applied }}. Follow https://www.conventionalcommits.org to
+            get auto-labeling to work correctly.
           exit_type: failure
+          # see conventional commits prefixes: https://www.conventionalcommits.org
           labels: |
-            bug
+            breaking
+            build
             chore
-            enhancement
-            major
-            minor
-            patch
-            skip-changelog
+            ci
+            docs
+            feat
+            fix
+            perf
+            refactor
+            style
+            test
 
       - name: Update release notes if this is already merged
         if: github.event.pull_request.merged == true
-        uses: release-drafter/release-drafter@v6
+        uses: release-drafter/release-drafter@b1476f6e6eb133afa41ed8589daba6dc69b4d3f5 # v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -71,20 +80,20 @@ jobs:
           # label-operator: NOT
 
       # https://docs.github.com/en/code-security/dependabot/working-with-dependabot/automating-dependabot-with-github-actions#approve-a-pull-request
-      - name: Enable auto-merge for safe bots PRs
+      - name: Enable auto-merge and approve PRs from safe bots
+        # do not use github.actor as this can be someone else than the PR author
         if: >
           env.BOT_PAT != null &&
-          contains(fromJson('["dependabot[bot]", "pre-commit-ci[bot]"]'), github.event.pull_request.user.login) &&
-          github.event_name != 'merge_group'
-        run: gh pr merge --auto --squash "$PR_URL"
+          github.event_name != 'merge_group' && (
+          github.event.pull_request.user.login == 'dependabot[bot]' ||
+          github.event.pull_request.user.login == 'pre-commit-ci[bot]' ||
+          github.event.pull_request.user.login == 'konflux-internal-p02[bot]' ||
+          github.event.pull_request.user.login == 'renovate[bot]'
+          )
+        run: |
+          set -e
+          gh pr merge --auto --squash "$PR_URL"
+          gh pr review --approve "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ env.BOT_PAT }}
-
-      - name: Approve a PR
-        if: env.BOT_PAT != null && contains(fromJson('["dependabot[bot]", "pre-commit-ci[bot]"]'), github.event.pull_request.user.login) && github.event_name !=
-          'merge_group'
-        run: gh pr review --approve "$PR_URL"
-        env:
-          PR_URL: ${{github.event.pull_request.html_url}}
           GH_TOKEN: ${{ env.BOT_PAT }}

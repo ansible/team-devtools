@@ -3,4 +3,3 @@
 
 def test_placeholder():
     """Placeholder test."""
-    from team_devtools import __version__

@@ -1,8 +1,27 @@
 ---
 ci:
+  # We rely on renovate to update it but there is no way to fully disable it
+  # https://github.com/pre-commit-ci/issues/issues/83
+  autoupdate_schedule: quarterly
   skip:
     - ansible-lint
+    - renovate-config-validator # container limits
 repos:
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.8.14
+    hooks:
+      - id: uv-sync
+      - id: uv-lock
+        name: "deps: upgrade via uv sync --upgrade"
+        alias: deps
+        args: ["--upgrade"]
+        stages: [manual]
+  - repo: https://github.com/renovatebot/pre-commit-hooks
+    rev: 41.91.1
+    hooks:
+      - id: renovate-config-validator
+        alias: renovate
+        args: [--strict]
   - repo: https://github.com/rbubley/mirrors-prettier
     # keep it before yamllint
     rev: v3.6.2
@@ -27,6 +46,19 @@ repos:
       - id: check-merge-conflict
       - id: debug-statements
         language_version: python3
+  - repo: https://github.com/pappasam/toml-sort
+    rev: v0.24.2
+    hooks:
+      - id: toml-sort-fix
+        alias: toml
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.11
+    hooks:
+      - id: ruff-format
+        alias: ruff
+      - id: ruff-check
+        args: ["--fix"]
+        alias: ruff
   - repo: https://github.com/adrienverge/yamllint.git
     rev: v1.37.1
     hooks:
@@ -35,7 +67,7 @@ repos:
         types: [file, yaml]
         entry: yamllint --strict
   - repo: https://github.com/ansible/ansible-lint
-    rev: v25.8.1
+    rev: v25.8.2
     hooks:
       - id: ansible-lint
         args: [--fix]
