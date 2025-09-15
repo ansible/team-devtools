@@ -101,7 +101,9 @@ class Post:
         with urllib.request.urlopen(url=categories_request) as url:  # noqa: S310
             data = json.load(url)
         category = next(
-            c for c in data["categories"] if c["name"] == "News & Announcements"
+            c
+            for c in data["category_list"]["categories"]
+            if c["name"] == "News & Announcements"
         )
         self.category_id = next(
             c for c in category["subcategory_list"] if c["name"] == "Ecosystem Releases"
