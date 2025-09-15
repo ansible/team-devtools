@@ -92,7 +92,9 @@ class Post:
 
     def _get_category_id(self) -> None:
         """Get the category ID for the project."""
-        categories_url = "https://forum.ansible.com/categories.json?include_subcategories=true"
+        categories_url = (
+            "https://forum.ansible.com/categories.json?include_subcategories=true"
+        )
         categories_request = Request(categories_url)  # noqa: S310
         categories_request.add_header("Api-Key", self.forum_api_key)
         categories_request.add_header("Api-Username", self.forum_user)
