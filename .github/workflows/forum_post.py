@@ -88,7 +88,7 @@ class Post:
         with urllib.request.urlopen(release_url) as url:  # noqa: S310
             data = json.load(url)
         self.release_notes = data["body"]
-        self.created = data["created_at"]
+        self.created = data["published_at"]
 
     def _get_category_id(self) -> None:
         """Get the category ID for the project."""
