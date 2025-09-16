@@ -61,7 +61,12 @@ class Post:
     """A class to post a release on the Ansible forum."""
 
     def __init__(
-        self, project: str, release: str, forum_api_key: str, forum_user: str
+        self,
+        project: str,
+        release: str,
+        forum_api_key: str,
+        forum_user: str,
+        tags: list[str],
     ) -> None:
         """Initialize the Post class.
 
@@ -79,6 +84,7 @@ class Post:
         self.project_short = project.split("/")[-1]
         self.release = release
         self.release_notes: str
+        self.additional_tags = tags
 
     def _get_release_notes(self) -> None:
         """Get the release notes for the project."""
@@ -125,7 +131,7 @@ class Post:
             "raw": post_md,
             "category": self.category_id,
             "created_at": self.created,
-            "tags": ["devtools", "release-management"],
+            "tags": ["devtools", "release-management"] + self.additional_tags,
         }
         url = "https://forum.ansible.com/posts.json"
         request = Request(url)  # noqa: S310
@@ -147,8 +153,13 @@ def main() -> None:
     parser.add_argument("release", help="The release version.")
     parser.add_argument("forum_api_key", help="The forum API key.")
     parser.add_argument("forum_user", help="The forum user.")
+    parser.add_argument(
+        "-t", "--tags", nargs="+", help="Additional tags to apply to the post."
+    )
     args = parser.parse_args()
-    post = Post(args.project, args.release, args.forum_api_key, args.forum_user)
+    post = Post(
+        args.project, args.release, args.forum_api_key, args.forum_user, args.tags
+    )
     post.post()
 
 
