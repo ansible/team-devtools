@@ -117,7 +117,7 @@ class Post:
             "raw": post_md,
             "category": self.category_id,
             "created_at": self.created,
-            "tags": ["devtools", "release-management"],
+            "tags": ["devtools", "release-management", self.project_short],
         }
 
     def post(self) -> None:
