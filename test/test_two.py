@@ -1,3 +1,5 @@
+"""Test module for archive exclusion."""
+
 import os
 from pathlib import Path
 
