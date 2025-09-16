@@ -61,9 +61,7 @@ Release notes for all versions can be found in the [changelog](https://github.co
 class Post:
     """A class to post a release on the Ansible forum."""
 
-    def __init__(
-        self, project: str, release: str, forum_api_key: str, forum_user: str
-    ) -> None:
+    def __init__(self, project: str, release: str, forum_api_key: str, forum_user: str) -> None:
         """Initialize the Post class.
 
         Args:
@@ -72,7 +70,7 @@ class Post:
             forum_api_key: The forum API key.
             forum_user: The forum user.
         """
-        self.category_id: int
+        self.category_id: str
         self.created: str
         self.forum_api_key = forum_api_key
         self.forum_user = forum_user
@@ -81,19 +79,17 @@ class Post:
         self.release = release
         self.release_notes: str
 
-        # Populate release notes and forum category
-        self._get_release_notes()
-        self._get_category_id()
-
-    def _get_release_notes(self) -> None:
+    def _get_release_notes(self) -> tuple[str, str]:
         """Get the release notes for the project."""
         release_url = f"https://api.github.com/repos/{self.project}/releases/tags/{self.release}"
         with urllib.request.urlopen(release_url) as url:  # noqa: S310
             data = json.load(url)
-        self.release_notes = data["body"]
-        self.created = data["published_at"]
 
-    def _get_category_id(self) -> None:
+        release_notes = data["body"]
+        created = data["published_at"]
+        return release_notes, created
+
+    def _get_category_id(self) -> str:
         """Get the category ID for the project."""
         categories_url = "https://forum.ansible.com/categories.json?include_subcategories=true"
         categories_request = Request(categories_url)  # noqa: S310
@@ -104,9 +100,9 @@ class Post:
         category = next(
             c for c in data["category_list"]["categories"] if c["name"] == "News & Announcements"
         )
-        self.category_id = next(
-            c for c in category["subcategory_list"] if c["name"] == "Ecosystem Releases"
-        )["id"]
+        return next(c for c in category["subcategory_list"] if c["name"] == "Ecosystem Releases")[
+            "id"
+        ]
 
     def _prepare_post(self) -> dict[str, str | list[str]]:
         post_md = POST_MD.format(
@@ -126,15 +122,19 @@ class Post:
 
     def post(self) -> None:
         """Post the release announcement to the forum."""
+        # Populate release notes and forum category
+        self.release_notes, self.created = self._get_release_notes()
+        self.category_id = self._get_category_id()
+
+        payload = self._prepare_post()
+        data = json.dumps(payload).encode("utf-8")
+
         url = "https://forum.ansible.com/posts.json"
         request = Request(url)  # noqa: S310
         request.method = "POST"
         request.add_header("Api-Key", self.forum_api_key)
         request.add_header("Api-Username", self.forum_user)
         request.add_header("Content-Type", "application/json")
-
-        payload = self._prepare_post()
-        data = json.dumps(payload).encode("utf-8")
         with urllib.request.urlopen(url=request, data=data):  # noqa: S310
             print(f"Posted {payload['title']} to the forum.")  # noqa: T201
 
