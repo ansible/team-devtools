@@ -71,15 +71,14 @@ class Post:
             forum_api_key: The forum API key.
             forum_user: The forum user.
         """
+        self.category_id: str
+        self.created: str
         self.forum_api_key = forum_api_key
         self.forum_user = forum_user
         self.project = project
         self.project_short = project.split("/")[-1]
         self.release = release
-
-        # Populate release notes and forum category
-        self.release_notes, self.created = self._get_release_notes()
-        self.category_id = self._get_category_id()
+        self.release_notes: str
 
     def _get_release_notes(self) -> tuple[str, str]:
         """Get the release notes for the project."""
@@ -124,15 +123,19 @@ class Post:
 
     def post(self) -> None:
         """Post the release announcement to the forum."""
+        # Populate release notes and forum category
+        self.release_notes, self.created = self._get_release_notes()
+        self.category_id = self._get_category_id()
+
+        payload = self._prepare_post()
+        data = json.dumps(payload).encode("utf-8")
+
         url = "https://forum.ansible.com/posts.json"
         request = Request(url)  # noqa: S310
         request.method = "POST"
         request.add_header("Api-Key", self.forum_api_key)
         request.add_header("Api-Username", self.forum_user)
         request.add_header("Content-Type", "application/json")
-
-        payload = self._prepare_post()
-        data = json.dumps(payload).encode("utf-8")
         with urllib.request.urlopen(url=request, data=data):  # noqa: S310
             print(f"Posted {payload['title']} to the forum.")  # noqa: T201
 
