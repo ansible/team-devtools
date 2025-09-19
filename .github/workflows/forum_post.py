@@ -61,7 +61,11 @@ class Post:
     """A class to post a release on the Ansible forum."""
 
     def __init__(
-        self, project: str, release: str, forum_api_key: str, forum_user: str
+        self,
+        project: str,
+        release: str,
+        forum_api_key: str,
+        forum_user: str,
     ) -> None:
         """Initialize the Post class.
 
@@ -125,7 +129,7 @@ class Post:
             "raw": post_md,
             "category": self.category_id,
             "created_at": self.created,
-            "tags": ["devtools", "release-management"],
+            "tags": ["devtools", "release-management", self.project_short],
         }
         url = "https://forum.ansible.com/posts.json"
         request = Request(url)  # noqa: S310
