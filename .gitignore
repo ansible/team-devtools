@@ -138,3 +138,4 @@ dmypy.json
 _readthedocs/
 src/team_devtools/_version.py
 .ansible
+coverage.lcov
