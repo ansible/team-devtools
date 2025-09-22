@@ -7,11 +7,13 @@ requires = [
 
 [dependency-groups]
 dev = [
-  "coverage>=7.6.9",
+  "coverage[toml]>=7.6.9",
   "mkdocs-exclude>=1.0.2",
   "pytest>=8",
   "pytest-instafail>=0.5.0",
-  "pytest-plus>=0.8.1"
+  "pytest-plus>=0.8.1",
+  "pytest-sugar>=1.1.1",
+  "pytest-xdist>=3.8.0"
 ]
 docs = [
   "argparse-manpage>=4.7",
@@ -41,19 +43,20 @@ ignore-words-list = ["SME"]
 source = ["src", "test", ".tox/*/site-packages"]
 
 [tool.coverage.report]
-exclude_also = ["pragma: no cover", "if TYPE_CHECKING:"]
-# Increase it just so it would pass on any single-python run
+exclude_also = ["if TYPE_CHECKING:", "pragma: no cover"]
 fail_under = 100
+ignore_errors = false
 omit = ["test/*"]
 show_missing = true
 skip_covered = true
 skip_empty = true
 
 [tool.coverage.run]
+# branch is more reliable than lines, protects against false positives
+branch = true
 concurrency = ["multiprocessing", "thread"]
-# Do not use branch until bug is fixes:
-# https://github.com/nedbat/coveragepy/issues/605
-# branch = true
+# avoid failse positive warning, we still fail if coverage level is not met
+disable_warnings = ['no-data-collected']
 parallel = true
 source = ["src"]
 
@@ -79,6 +82,9 @@ norecursedirs = [
   "src/*.egg-info"
 ]
 
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
 [tool.setuptools_scm]
 # To prevent accidental pick of mobile version tags such 'v6'
 git_describe_command = [
@@ -92,7 +98,7 @@ git_describe_command = [
 ]
 local_scheme = "no-local-version"
 tag_regex = "^(?P<prefix>v)?(?P<version>[0-9.]+)(?P<suffix>.*)?$"
-write_to = "src/team_devtools/_version.py"
+version_file = "src/team_devtools/_version.py"
 
 [tool.tomlsort]
 in_place = true
@@ -101,10 +107,10 @@ sort_table_keys = true
 
 [tool.tox]
 env_list = [
-  "lint",
   "pkg",
-  "py",
+  "lint",
   "docs",
+  "py",
   "devel"
 ]
 isolated_build = true
@@ -137,16 +143,23 @@ uv_sync_locked = false
 
 [tool.tox.env.docs]
 commands = [
-  ["{env_python}", "-m", "mkdocs", {default = ["build", "--strict", "--site-dir=_readthedocs/html/"], extend = true, replace = "posargs"}]
+  [
+    "mkdocs",
+    {default = ["build", "--strict", "--site-dir=_readthedocs/html/"], extend = true, replace = "posargs"}
+  ]
 ]
+commands_post = []
+commands_pre = []
+dependency_groups = ["docs"]
 description = "Builds docs"
-groups = ["docs"]
 skip_install = false
 
 [tool.tox.env.lint]
 commands = [
   ["pre-commit", "run", "--all-files", "--show-diff-on-failure"]
 ]
+commands_post = []
+commands_pre = []
 dependency_groups = ["lint"]
 description = "Run all linters"
 pass_env = [
@@ -169,27 +182,60 @@ group = "pkg"
 [tool.tox.env_run_base]
 allowlist_externals = ["rm", "sh"]
 commands = [
-  ["python", "-m", "coverage", "run", "-m", "pytest", {default = ["-ra", "--showlocals", "--doctest-modules", "--durations=10", "--junitxml=./junit.xml"], extend = true, replace = "posargs"}],
-  ["sh", "-xec", "coverage combine -a -q --data-file={env_dir}/.coverage {work_dir}/*/.coverage.* && coverage report --data-file={env_dir}/.coverage && coverage xml --data-file={env_dir}/.coverage -o {env_dir}/coverage.xml"]
+  ["python", "-c", "import pathlib; pathlib.Path(\"{env_site_packages_dir}/cov.pth\").write_text(\"import coverage; coverage.process_startup()\")"],
+  [
+    "coverage",
+    "run",
+    "-m",
+    "pytest",
+    {default = [
+      "-ra",
+      "-n",
+      "auto",
+      "--showlocals",
+      "--doctest-modules",
+      "--durations=10",
+      "--junitxml=./junit.xml"
+    ], extend = true, replace = "posargs"}
+  ],
+  ["coverage", "combine", "-q"],
+  ["coverage", "xml", "-o", "{env_dir}/coverage.xml", "--fail-under=0"],
+  ["coverage", "lcov", "-q", "--fail-under=0"],
+  ["coverage", "report"]
+]
+commands_post = [
 ]
 commands_pre = [
-  ["sh", "-c", "rm -f {env_dir}/.coverage.* 2>/dev/null || true"]
+  ["coverage", "erase"]
 ]
+dependency_groups = ["dev"]
+description = """Run the tests: py{py_dot_ver}"""
 package = "editable"
 pass_env = [
-  "CURL_CA_BUNDLE", # https proxies, https://github.com/tox-dev/tox/issues/1437
+  "CI",
+  "CONTAINER_*",
+  "CURL_CA_BUNDLE",
   "FORCE_COLOR",
+  "DOCKER_*",
+  "GITHUB_*",
   "HOME",
   "LANG",
   "LC_*",
   "NO_COLOR",
+  "PRE_COMMIT_HOME",
   "PYTEST_*", # allows developer to define their own preferences
   "PYTEST_REQPASS", # needed for CI
   "PYTHON*", # PYTHONPYCACHEPREFIX, PYTHONIOENCODING, PYTHONBREAKPOINT,...
+  "PYTHONBREAKPOINT",
+  "PYTHONIOENCODING",
+  "PYTHONPYCACHEPREFIX",
   "PY_COLORS",
+  "REQUESTS_CA_BUNDLE",
   "RTD_TOKEN",
-  "REQUESTS_CA_BUNDLE", # https proxies
   "SETUPTOOLS_SCM_DEBUG",
+  "SSH_AUTH_SOCK",
+  "TERM",
+  "USER",
   "SSL_CERT_FILE", # https proxies
   "SSH_AUTH_SOCK", # may be needed by git
   "UV_*"
@@ -197,6 +243,7 @@ pass_env = [
 runner = "uv-venv-lock-runner"
 
 [tool.tox.env_run_base.set_env]
+COVERAGE_COMBINED = "{env_dir}/.coverage"
 COVERAGE_FILE = "{env:COVERAGE_FILE:{env_dir}/.coverage.{env_name}}"
 COVERAGE_PROCESS_START = "{tox_root}/pyproject.toml"
 # see https://github.com/tox-dev/tox/issues/2092#issuecomment-2538729079
