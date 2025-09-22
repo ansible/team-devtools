@@ -68,6 +68,9 @@ on:
           .tox/**/pyvenv.cfg
           .tox/**/coverage.xml
           .tox/**/log/
+          !.DS_Store
+          !popen-gw0
+          !venv
         description: Paths to log files to upload as artifacts.
         required: false
         type: string
