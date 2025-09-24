@@ -2,6 +2,8 @@
 # cspell: disable-next-line
 # compatibility between toml-sort-fix pre-commit hook and panekj.even-betterer-toml extension
 align_comments = false
+array_auto_collapse = false
+array_auto_expand = false
 array_trailing_comma = false
 compact_arrays = true
 compact_entries = false
