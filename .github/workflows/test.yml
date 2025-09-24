@@ -23,7 +23,7 @@ jobs:
       other_names: |
         docs
         lint
-        py-mise-macos:tox -e py:runner=macos-latest;mise=true
+        py-mise-macos:tox -e py:runner=macos-15;mise=true
         py-mise-ubuntu:tox -e py:runner=ubuntu-24.04;mise=true
       node-version-file: .tool-versions
 

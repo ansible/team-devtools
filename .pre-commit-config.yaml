@@ -5,14 +5,11 @@ ci:
   autoupdate_schedule: quarterly
   skip:
     - ansible-lint
-    - renovate-config-validator # container limits
 repos:
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.8.13
+    rev: 0.8.14
     hooks:
       - id: uv-sync
-      - id: uv-lock
-        alias: lock
       - id: uv-lock
         name: "deps: upgrade via uv sync --upgrade"
         alias: deps

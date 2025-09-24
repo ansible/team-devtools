@@ -21,10 +21,10 @@ jobs:
       TOX_PARALLEL_NO_SPINNER: 1
 
     steps:
-      - name: Switch to using Python 3.12 by default
+      - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
-          python-version: "3.12"
+          python-version: "3.13"
 
       - name: Install tox
         run: python3 -m pip install --user "tox>=4.0.0"

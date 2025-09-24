@@ -6,74 +6,68 @@ tag-template: v$RESOLVED_VERSION
 change-template: "- $TITLE (#$NUMBER) @$AUTHOR"
 categories:
   # Keep titles single worlds, or they become md bookmarks
-  - title: Major
+  - title: Breaking
     labels:
-      - major # c6476b
-  - title: Enhancements
+      - breaking
+  - title: Features
     labels:
-      - minor
-      - feature # 006b75
-      - enhancement # ededed
-      - refactoring
-  - title: Bugfixes
+      - feat # 006b75
+  - title: Fixes
     labels:
-      - bug # fbca04
+      - docs
+      - fix # fbca04
+      - perf
+      - refactor
   - title: Maintenance # fef2c0
     labels:
+      - build
       - chore
-      - skip-changelog
+      - ci
+      - style
+      - test
 replacers:
   # https://github.com/release-drafter/release-drafter/issues/569#issuecomment-645942909
-  - search: /(?:and )?@(pre-commit-ci|dependabot)(?:\[bot\])?,?/g
+  - search: /(?:and )?@(pre-commit-ci|dependabot|renovate|konflux-internal-p02)(?:\[bot\])?,?/g
     replace: ""
 version-resolver:
   # some projects are using SemVer, so keep 'major' label for major.
-  major:
-    labels:
-      - major
   minor:
     labels:
-      - minor
-      - feature
-      - enhancement
-      - refactoring
+      - breaking
+      - feat
   patch:
     labels:
-      - patch
-      - bug
-      - deprecated
+      - docs
+      - fix
+      - perf
+      - refactor
   default: patch
 exclude-contributors:
   - dependabot
+  - dependabot[bot]
+  - github-actions
+  - github-actions[bot]
+  - konflux-internal-p02
+  - konflux-internal-p02[bot]
   - pre-commit-ci
+  - pre-commit-ci[bot]
+  - renovate
+  - renovate[bot]
 autolabeler:
+  - label: breaking
+    title: # "!" determines a breaking change
+      - "^[a-z]+(\\([^)]+\\))?!:"
+    body:
+      - "/^BREAKING CHANGE: /i"
+  - label: feat
+    title:
+      - /^(feat)/i
+  - label: fix
+    title:
+      - /^(fix)/i
   - label: chore
     title:
       - /pre-commit autoupdate/
-    body:
-      - "/type: chore/i"
-    branch:
-      - /^chore/i
-  - label: bug
-    branch:
-      - /^fix/i
-    body:
-      - "/type: fix/i"
-  - label: feature
-    title:
-      - /^(feat|feature)/i
-    body:
-      - "/type: feature/i"
-  - label: deprecated
-    title:
-      - /^deprecat(ed|ion)/i
-    body:
-      - "/type: deprecat(ed|ion)/i"
-  - label: dependencies
-    files:
-      - /.config/*requirements*.in
-      - /.config/*requirements*.txt
-      - /.config/*constraints*.txt
-      - /.config/*.spec/
+      - /^(chore|build|ci|test|style)/i
 template: |
   $CHANGES

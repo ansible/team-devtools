@@ -61,6 +61,10 @@ repos:
     # special meaning, all other keys will inherit attributes this entry
     group: primary
     # owners: is used to record SMEs, primary, backup, ...
+  ansible-automation-platform/ansible-workspaces-container:
+    section: primary
+  ansible-automation-platform/ansible-devtools-container:
+    section: primary
   ansible/ansible-backstage-plugins:
     owners: [audgirka]
     section: experimental
