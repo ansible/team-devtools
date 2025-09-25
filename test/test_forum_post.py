@@ -45,5 +45,5 @@ def test_prepare_post(post_instance: forum_post.Post) -> None:
         "raw": release_notes,
         "category": post_instance.category_id,
         "created_at": post_instance.created,
-        "tags": ["devtools", "release-management"],
+        "tags": ["devtools", "release", "molecule"],
     }
