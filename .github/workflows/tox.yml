@@ -105,7 +105,7 @@ jobs:
             ${{ inputs.other_names }}
             ${{ inputs.other_names_also }}
             py310-macos:tox -e py310:runner=macos-15
-            py313-macos:tox -e py313:runner=macos-15
+            py313-macos:tox -e py313:runner=macos-15  # Skip Python 3.14 on macOS, see https://github.com/ansible/ansible-lint/issues/4792
           skip_explode: ${{ inputs.skip_explode }}
           platforms: linux
 
