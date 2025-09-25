@@ -10,7 +10,7 @@ on:
         required: false
         type: string
       environment:
-        default: ""
+        default: notify
         description: Which GHA environment to use
         required: false
         type: string
@@ -90,10 +90,24 @@ jobs:
   prepare:
     name: prepare
     runs-on: ubuntu-24.04
-    environment: ${{ inputs.environment }}
+    environment: ${{ inputs.environment || 'notify' }}
     outputs:
       matrix: ${{ steps.generate_matrix.outputs.matrix }}
     steps:
+      - name: Notify on slack about scheduled jobs failures
+        # failure() && github.event_name == 'schedule' &&
+        # if: ${{ env.SLACK_BOT_TOKEN != '' && env.SLACK_CHANNEL_ID != '' }}
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
+        uses: slackapi/slack-github-action@v2
+        with:
+          method: chat.postMessage
+          token: ${{ secrets.SLACK_BOT_TOKEN }}
+          payload: |
+            channel: ${{ secrets.SLACK_CHANNEL_ID }}
+            text: "Scheduled build ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
+
       - name: Determine matrix
         id: generate_matrix
         uses: ansible/actions/matrix@main
