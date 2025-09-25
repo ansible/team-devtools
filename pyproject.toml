@@ -60,6 +60,28 @@ disable_warnings = ['no-data-collected']
 parallel = true
 source = ["src"]
 
+[tool.mypy]
+check_untyped_defs = true
+color_output = true
+disallow_any_generics = true
+disallow_any_unimported = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+error_summary = true
+# site-packages is here to help vscode mypy integration getting confused
+exclude = "(.cache|.config|.eggs|.tox|_readthedocs|build|dist|test/local-content|site|site-packages|~/.pyenv|examples|plugins/modules).*"
+# https://github.com/python/mypy/issues/12664
+follow_untyped_imports = true
+incremental = false
+no_implicit_optional = true
+python_version = "3.10"
+show_error_code_links = true
+show_error_codes = true
+strict = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unused_configs = true
+
 [tool.pytest.ini_options]
 addopts = "-p no:pytest_cov --durations=10 --failed-first"
 norecursedirs = [
@@ -86,20 +108,24 @@ norecursedirs = [
 builtins = ["__"]
 cache-dir = "./.cache/.ruff"
 fix = true
-line-length = 100
+# Same as Black.
+line-length = 88
+preview = true
 required-version = ">=0.7.1"
 target-version = "py310"
 
 [tool.ruff.lint]
-external = [
-  "DOC" # pydoclint
-]
 ignore = [
   "COM812", # conflicts with ISC001 on format
-  "E501", # line-too-long / rely on black
+  "CPY001", # missing-copyright-notice
+  "D203", # incompatible with D211
+  "D213", # incompatible with D212
+  "E501", # we use black
+  "ERA001", # auto-removal of commented out code affects development and vscode integration
+  "INP001", # "is part of an implicit namespace package", all false positives
   "ISC001", # conflicts with COM812 on format
-  "S603", # subprocess
-  "S607" # subprocess
+  "PLW2901", # PLW2901: Redefined loop variable
+  "RET504" # Unnecessary variable assignment before `return` statement
 ]
 select = ["ALL"]
 
@@ -111,7 +137,7 @@ known-first-party = ["src"]
 lines-after-imports = 2 # Ensures consistency for cases when there's variable vs function/class definitions after imports
 
 [tool.ruff.lint.per-file-ignores]
-"test/*" = ["S101", "PLC0415"]
+"test/**/*.py" = ["DOC201", "DOC501", "PLC2701", "S"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -193,11 +219,6 @@ commands_post = []
 commands_pre = []
 dependency_groups = ["lint"]
 description = "Run all linters"
-pass_env = [
-  "HOMEPATH",
-  "PROGRAMDATA",
-  "RUFF_OUTPUT_FORMAT"
-]
 runner = "uv-venv-runner"
 skip_install = true
 
@@ -248,12 +269,15 @@ pass_env = [
   "CURL_CA_BUNDLE",
   "FORCE_COLOR",
   "DOCKER_*",
+  "GH_TOKEN",
   "GITHUB_*",
   "HOME",
+  "HOMEPATH",
   "LANG",
   "LC_*",
   "NO_COLOR",
   "PRE_COMMIT_HOME",
+  "PROGRAMDATA",
   "PYTEST_*", # allows developer to define their own preferences
   "PYTEST_REQPASS", # needed for CI
   "PYTHON*", # PYTHONPYCACHEPREFIX, PYTHONIOENCODING, PYTHONBREAKPOINT,...
@@ -261,14 +285,14 @@ pass_env = [
   "PYTHONIOENCODING",
   "PYTHONPYCACHEPREFIX",
   "PY_COLORS",
-  "REQUESTS_CA_BUNDLE",
+  "REQUESTS_CA_BUNDLE", # https proxies
   "RTD_TOKEN",
+  "RUFF_OUTPUT_FORMAT",
   "SETUPTOOLS_SCM_DEBUG",
   "SSH_AUTH_SOCK",
+  "SSL_CERT_FILE", # https proxies
   "TERM",
   "USER",
-  "SSL_CERT_FILE", # https proxies
-  "SSH_AUTH_SOCK", # may be needed by git
   "UV_*"
 ]
 runner = "uv-venv-lock-runner"

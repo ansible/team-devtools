@@ -15,6 +15,12 @@ repos:
         alias: deps
         args: ["--upgrade"]
         stages: [manual]
+  - repo: https://github.com/renovatebot/pre-commit-hooks
+    rev: 41.88.1
+    hooks:
+      - id: renovate-config-validator
+        alias: renovate
+        args: [--strict]
   - repo: https://github.com/rbubley/mirrors-prettier
     # keep it before yamllint
     rev: v3.6.2
@@ -52,6 +58,17 @@ repos:
       - id: ruff-check
         args: ["--fix"]
         alias: ruff
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.17.1
+    hooks:
+      - id: mypy
+        # "." and pass_files are used to make pre-commit mypy behave the same as standalone mypy
+        args: ["."]
+        pass_filenames: false
+        language_version: python3.10
+        additional_dependencies:
+          - types-pyyaml
+          - pytest
   - repo: https://github.com/adrienverge/yamllint.git
     rev: v1.37.1
     hooks:
