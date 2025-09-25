@@ -104,8 +104,10 @@ jobs:
           other_names: |
             ${{ inputs.other_names }}
             ${{ inputs.other_names_also }}
+            py310-macos:tox -e py310:runner=macos-15
+            py313-macos:tox -e py313:runner=macos-15
           skip_explode: ${{ inputs.skip_explode }}
-          platforms: linux,macos
+          platforms: linux
 
   test:
     name: ${{ matrix.name }}
