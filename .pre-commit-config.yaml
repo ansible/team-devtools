@@ -8,8 +8,11 @@ ci:
     - tombi-format
     - tombi-lint
 repos:
+  - repo: meta
+    hooks:
+      - id: check-useless-excludes
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.8.14
+    rev: 0.8.17
     hooks:
       - id: uv-sync
       - id: uv-lock
@@ -17,14 +20,13 @@ repos:
         alias: deps
         args: ["--upgrade"]
         stages: [manual]
-  - repo: https://github.com/rbubley/mirrors-prettier
-    # keep it before yamllint
-    rev: v3.6.2
+  - repo: https://github.com/biomejs/pre-commit
+    rev: "v2.2.4"
     hooks:
-      - id: prettier
-        always_run: true
-        additional_dependencies:
-          - prettier
+      - id: biome-check
+        name: biome
+        alias: biome
+        args: [--unsafe]
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.1
     hooks:

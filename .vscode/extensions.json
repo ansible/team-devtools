@@ -1,3 +1,12 @@
 {
-  "recommendations": ["tombi-toml.tombi"]
+  "recommendations": [
+    "biomejs.biome",
+    "charliermarsh.ruff",
+    "github.vscode-github-actions",
+    "tombi-toml.tombi"
+  ],
+  "unwantedRecommendations": [
+    "esbenp.prettier-vscode",
+    "tamasfe.even-better-toml"
+  ]
 }
