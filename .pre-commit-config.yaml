@@ -5,6 +5,8 @@ ci:
   autoupdate_schedule: quarterly
   skip:
     - ansible-lint
+    - tombi-format
+    - tombi-lint
 repos:
   - repo: https://github.com/astral-sh/uv-pre-commit
     rev: 0.8.14
@@ -39,10 +41,12 @@ repos:
       - id: check-merge-conflict
       - id: debug-statements
         language_version: python3
-  - repo: https://github.com/pappasam/toml-sort
-    rev: v0.24.2
+  - repo: https://github.com/tombi-toml/tombi-pre-commit
+    rev: v0.6.17
     hooks:
-      - id: toml-sort-fix
+      - id: tombi-format
+        alias: toml
+      - id: tombi-lint
         alias: toml
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.12.11

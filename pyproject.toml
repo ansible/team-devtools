@@ -1,9 +1,10 @@
-[build-system]
-build-backend = "setuptools.build_meta"
-requires = [
-  "setuptools >= 65.3.0", # required by pyproject+setuptools_scm integration and editable installs
-  "setuptools_scm[toml] >= 7.0.5" # required for "no-local-version" scheme
-]
+[project]
+name = "team-devtools"
+description = "..."
+readme = "README.md"
+# https://peps.python.org/pep-0621/#readme
+requires-python = ">=3.10"
+dynamic = ["version"]
 
 [dependency-groups]
 dev = [
@@ -13,26 +14,22 @@ dev = [
   "pytest-instafail>=0.5.0",
   "pytest-plus>=0.8.1",
   "pytest-sugar>=1.1.1",
-  "pytest-xdist>=3.8.0"
+  "pytest-xdist>=3.8.0",
 ]
 docs = [
   "argparse-manpage>=4.7",
   "mkdocs-ansible>=24.12.0",
-  "mkdocs-exclude>=1.0.2"
+  "mkdocs-exclude>=1.0.2",
 ]
 lint = ["pre-commit>=3.5.0", "pre-commit-uv>=4.1.4"]
-pkg = [
-  "build[virtualenv]",
-  "twine"
-]
+pkg = ["build[virtualenv]", "twine"]
 
-[project]
-description = "..."
-dynamic = ["version"]
-name = "team-devtools"
-readme = "README.md"
-# https://peps.python.org/pep-0621/#readme
-requires-python = ">=3.10"
+[build-system]
+requires = [
+  "setuptools_scm[toml] >= 7.0.5",  # required for "no-local-version" scheme
+  "setuptools >= 65.3.0",  # required by pyproject+setuptools_scm integration and editable installs
+]
+build-backend = "setuptools.build_meta"
 
 [tool.codespell]
 ignore-words-list = ["SME"]
@@ -56,7 +53,7 @@ skip_empty = true
 branch = true
 concurrency = ["multiprocessing", "thread"]
 # avoid failse positive warning, we still fail if coverage level is not met
-disable_warnings = ['no-data-collected']
+disable_warnings = ["no-data-collected"]
 parallel = true
 source = ["src"]
 
@@ -79,7 +76,7 @@ norecursedirs = [
   "dist",
   "docs",
   "site",
-  "src/*.egg-info"
+  "src/*.egg-info",
 ]
 
 [tool.ruff]
@@ -92,14 +89,14 @@ target-version = "py310"
 
 [tool.ruff.lint]
 external = [
-  "DOC" # pydoclint
+  "DOC",  # pydoclint
 ]
 ignore = [
-  "COM812", # conflicts with ISC001 on format
-  "E501", # line-too-long / rely on black
-  "ISC001", # conflicts with COM812 on format
-  "S603", # subprocess
-  "S607" # subprocess
+  "COM812",  # conflicts with ISC001 on format
+  "E501",  # line-too-long / rely on black
+  "ISC001",  # conflicts with COM812 on format
+  "S603",  # subprocess
+  "S607",  # subprocess
 ]
 select = ["ALL"]
 
@@ -108,7 +105,7 @@ parametrize-values-type = "tuple"
 
 [tool.ruff.lint.isort]
 known-first-party = ["src"]
-lines-after-imports = 2 # Ensures consistency for cases when there's variable vs function/class definitions after imports
+lines-after-imports = 2  # Ensures consistency for cases when there's variable vs function/class definitions after imports
 
 [tool.ruff.lint.per-file-ignores]
 "test/*" = ["S101", "PLC0415"]
@@ -125,7 +122,7 @@ git_describe_command = [
   "--long",
   "--tags",
   "--match",
-  "v*.*"
+  "v*.*",
 ]
 local_scheme = "no-local-version"
 tag_regex = "^(?P<prefix>v)?(?P<version>[0-9.]+)(?P<suffix>.*)?$"
@@ -137,35 +134,21 @@ sort_inline_tables = true
 sort_table_keys = true
 
 [tool.tox]
-env_list = [
-  "pkg",
-  "lint",
-  "docs",
-  "py",
-  "devel"
-]
+env_list = ["pkg", "lint", "docs", "py", "devel"]
 isolated_build = true
 min_version = "4.28.4"
 requires = [
   "tox>=4.28.4",
   "tox-extra >= 2.0.1",
   "tox-uv >= 1.28.0",
-  "setuptools >= 65.3.0" # editable installs
+  "setuptools >= 65.3.0",  # editable installs
 ]
 
 [tool.tox.env.devel]
 commands = [
-  [
-    "sh",
-    "-c",
-    "uv pip list -q --format=freeze | tr '\\n' ','"
-  ],
-  {extend = true, of = ["tool", "tox", "env_run_base", "commands"], replace = "ref"},
-  [
-    "git",
-    "restore",
-    "uv.lock"
-  ]
+  ["sh", "-c", "uv pip list -q --format=freeze | tr '\\n' ','"],
+  { extend = true, of = ["tool", "tox", "env_run_base", "commands"], replace = "ref" },
+  ["git", "restore", "uv.lock"],
 ]
 description = "Run the tests with newest dependencies (no lock and allowing prereleases)"
 runner = "uv-venv-lock-runner"
@@ -176,8 +159,8 @@ uv_sync_locked = false
 commands = [
   [
     "mkdocs",
-    {default = ["build", "--strict", "--site-dir=_readthedocs/html/"], extend = true, replace = "posargs"}
-  ]
+    { default = ["build", "--strict", "--site-dir=_readthedocs/html/"], extend = true, replace = "posargs" },
+  ],
 ]
 commands_post = []
 commands_pre = []
@@ -186,26 +169,27 @@ description = "Builds docs"
 skip_install = false
 
 [tool.tox.env.lint]
-commands = [
-  ["pre-commit", "run", "--all-files", "--show-diff-on-failure"]
-]
+commands = [["pre-commit", "run", "--all-files", "--show-diff-on-failure"]]
 commands_post = []
 commands_pre = []
 dependency_groups = ["lint"]
 description = "Run all linters"
-pass_env = [
-  "HOMEPATH",
-  "PROGRAMDATA",
-  "RUFF_OUTPUT_FORMAT"
-]
+pass_env = ["HOMEPATH", "PROGRAMDATA", "RUFF_OUTPUT_FORMAT"]
 runner = "uv-venv-runner"
 skip_install = true
 
 [tool.tox.env.pkg]
 commands = [
   ["rm", "-rf", "{tox_root}/dist/"],
-  ["python", "-m", "build", "--outdir", "{tox_root}/dist/", "{tox_root}"],
-  ["sh", "-c", "python -m twine check --strict {tox_root}/dist/*"]
+  [
+    "python",
+    "-m",
+    "build",
+    "--outdir",
+    "{tox_root}/dist/",
+    "{tox_root}",
+  ],
+  ["sh", "-c", "python -m twine check --strict {tox_root}/dist/*"],
 ]
 description = "Build package and check metadata"
 group = "pkg"
@@ -213,32 +197,33 @@ group = "pkg"
 [tool.tox.env_run_base]
 allowlist_externals = ["rm", "sh"]
 commands = [
-  ["python", "-c", "import pathlib; pathlib.Path(\"{env_site_packages_dir}/cov.pth\").write_text(\"import coverage; coverage.process_startup()\")"],
+  [
+    "python",
+    "-c",
+    "import pathlib; pathlib.Path(\"{env_site_packages_dir}/cov.pth\").write_text(\"import coverage; coverage.process_startup()\")",
+  ],
   [
     "coverage",
     "run",
     "-m",
     "pytest",
-    {default = [
+    { default = [
       "-ra",
       "-n",
       "auto",
       "--showlocals",
       "--doctest-modules",
       "--durations=10",
-      "--junitxml=./junit.xml"
-    ], extend = true, replace = "posargs"}
+      "--junitxml=./junit.xml",
+    ], extend = true, replace = "posargs" },
   ],
   ["coverage", "combine", "-q"],
   ["coverage", "xml", "-o", "{env_dir}/coverage.xml", "--fail-under=0"],
   ["coverage", "lcov", "-q", "--fail-under=0"],
-  ["coverage", "report"]
+  ["coverage", "report"],
 ]
-commands_post = [
-]
-commands_pre = [
-  ["coverage", "erase"]
-]
+commands_post = []
+commands_pre = [["coverage", "erase"]]
 dependency_groups = ["dev"]
 description = """Run the tests: py{py_dot_ver}"""
 package = "editable"
@@ -254,9 +239,9 @@ pass_env = [
   "LC_*",
   "NO_COLOR",
   "PRE_COMMIT_HOME",
-  "PYTEST_*", # allows developer to define their own preferences
-  "PYTEST_REQPASS", # needed for CI
-  "PYTHON*", # PYTHONPYCACHEPREFIX, PYTHONIOENCODING, PYTHONBREAKPOINT,...
+  "PYTEST_*",  # allows developer to define their own preferences
+  "PYTEST_REQPASS",  # needed for CI
+  "PYTHON*",  # PYTHONPYCACHEPREFIX, PYTHONIOENCODING, PYTHONBREAKPOINT,...
   "PYTHONBREAKPOINT",
   "PYTHONIOENCODING",
   "PYTHONPYCACHEPREFIX",
@@ -267,9 +252,9 @@ pass_env = [
   "SSH_AUTH_SOCK",
   "TERM",
   "USER",
-  "SSL_CERT_FILE", # https proxies
-  "SSH_AUTH_SOCK", # may be needed by git
-  "UV_*"
+  "SSL_CERT_FILE",  # https proxies
+  "SSH_AUTH_SOCK",  # may be needed by git
+  "UV_*",
 ]
 runner = "uv-venv-lock-runner"
 

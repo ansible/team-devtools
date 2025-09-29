@@ -1,0 +1,5 @@
+{
+  "[toml]": {
+    "editor.defaultFormatter": "tombi-toml.tombi"
+  }
+}
