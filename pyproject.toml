@@ -151,7 +151,7 @@ commands = [
   ["git", "restore", "uv.lock"],
 ]
 description = "Run the tests with newest dependencies (no lock and allowing prereleases)"
-runner = "uv-venv-lock-runner"
+runner = "uv-venv-runner"
 uv_sync_flags = ["--upgrade", "--prerelease=allow"]
 uv_sync_locked = false
 
