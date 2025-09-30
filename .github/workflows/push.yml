@@ -25,4 +25,4 @@ jobs:
         run: |
           curl -X POST -H 'Content-type: application/json' \
           --data '{"text":"❌ Release/CI workflow failed on main branch for '${{ github.repository }}' (push.yml). Check logs: '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}' \
-          ${{ secrets.SLACK_WEBHOOK_URL }}
+          ${{ secrets.DEVTOOLS_CI_SLACK_URL }}
