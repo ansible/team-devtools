@@ -339,7 +339,11 @@ jobs:
       - check
     steps:
       - name: Send CI failure notification
+        if: secrets.DEVTOOLS_CI_SLACK_URL != ''
         run: |
           curl -X POST -H 'Content-type: application/json' \
           --data '{"text":"❌ Python tests failed on main branch for '${{ github.repository }}' (tox.yml). Check logs: '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}' \
           ${{ secrets.DEVTOOLS_CI_SLACK_URL }}
+      - name: Skip notification (no webhook configured)
+        if: secrets.DEVTOOLS_CI_SLACK_URL == ''
+        run: echo "Skipping Slack notification - DEVTOOLS_CI_SLACK_URL secret not configured"
