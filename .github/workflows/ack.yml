@@ -33,6 +33,9 @@ jobs:
         run: echo "$GITHUB_CONTEXT"
 
       - uses: bcoe/conventional-release-labels@v1
+        with:
+          type_labels: '{"feat": "feature", "fix": "fix", "breaking": "breaking", "chore": "chore"}'
+          ignored_types: "[]"
 
       - name: Verify PR label action
         if: github.event_name != 'merge_group'

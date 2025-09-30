@@ -254,9 +254,18 @@ jobs:
       # - name: Fix paths in coverage file
       #   run: |
       #     sed -i 's/\/home\/runner\/work\/anonymizer\/anonymizer/\/github\/workspace\//g' coverage.xml
-      - name: "Extract and export repo owner/name"
+      - name: Prepare SonarCloud args
+        # Run only for pull requests or push to main
+        if: >
+          ${{ !cancelled() &&
+          hashFiles('**/coverage.xml') != '' &&
+          (github.event_name == 'pull_request' ||
+          (github.event_name == 'push' && github.ref_name =='main')
+          )}}
         shell: bash
         run: |
+          PR_NUMBER=${{ github.event.number }}
+          PR_HEAD_SHA=${{ github.event.pull_request.head.sha }}
           # 1. Read the full slug (owner/repo)
           REPO_SLUG="${GITHUB_REPOSITORY}"
           # 2. Split into owner and repo
@@ -264,30 +273,25 @@ jobs:
           # 3. Export to the workflow environment
           echo "REPO_OWNER=$REPO_OWNER" >> $GITHUB_ENV
           echo "REPO_NAME=$REPO_NAME"   >> $GITHUB_ENV
+          SONAR_ARGS="-Dsonar.projectKey=${REPO_OWNER}_${REPO_NAME} -Dsonar.organization=${REPO_OWNER}"
+          if [[ -n "$PR_NUMBER" ]]; then
+            SONAR_ARGS="${SONAR_ARGS} -Dsonar.pullrequest.key=${PR_NUMBER} -Dsonar.pullrequest.branch=${PR_HEAD_SHA}"
+          fi
+          echo SONAR_ARGS="$SONAR_ARGS" >> $GITHUB_ENV
 
-      - name: SonarCloud scan (pull request)
-        if: ${{ !cancelled() && hashFiles('**/coverage.xml') != ''  && github.event_name == 'pull_request' }}
+      - name: SonarCloud scan
+        # Run only for pull requests or push to main
+        if: >
+          ${{ !cancelled() &&
+          hashFiles('**/coverage.xml') != '' &&
+          (github.event_name == 'pull_request' ||
+          (github.event_name == 'push' && github.ref_name =='main')
+          )}}
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.CICD_ORG_SONAR_TOKEN_CICD_BOT || secrets.AAP_ORG_SONAR_TOKEN_ANSIBLE_CICD_BOT }}
         with:
-          args: >
-            -Dsonar.projectKey=${{ env.REPO_OWNER }}_${{ env.REPO_NAME }}
-            -Dsonar.organization=${{ env.REPO_OWNER }}
-            -Dsonar.scm.revision=${{ github.event.workflow_run.head_sha }}
-            -Dsonar.pullrequest.key=${{ env.PR_NUMBER }}
-            -Dsonar.pullrequest.branch=${{ env.PR_HEAD }}
-        continue-on-error: true
-
-      - name: SonarCloud scan (push)
-        if: ${{ !cancelled() && hashFiles('**/coverage.xml') != '' && github.event_name == 'push' && github.ref_name == 'main' }}
-        uses: SonarSource/sonarqube-scan-action@v6
-        env:
-          SONAR_TOKEN: ${{ secrets.CICD_ORG_SONAR_TOKEN_CICD_BOT || secrets.AAP_ORG_SONAR_TOKEN_ANSIBLE_CICD_BOT }}
-        with:
-          args: >
-            -Dsonar.projectKey=${{ env.REPO_OWNER }}_${{ env.REPO_NAME }}
-            -Dsonar.organization=${{ env.REPO_OWNER }}
+          args: ${{ env.SONAR_ARGS }}
         continue-on-error: true
 
   check:
