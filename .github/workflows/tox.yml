@@ -330,3 +330,16 @@ jobs:
       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       #   # https://github.com/sourcegraph/codenotify/issues/19
       #   continue-on-error: true
+
+  notify:
+    if: always() && (needs.test.result == 'failure' || needs.check.result == 'failure') && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs:
+      - test
+      - check
+    steps:
+      - name: Send CI failure notification
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+          --data '{"text":"❌ Python tests failed on main branch for '${{ github.repository }}' (tox.yml). Check logs: '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}' \
+          ${{ secrets.SLACK_WEBHOOK_URL }}
