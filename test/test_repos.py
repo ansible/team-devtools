@@ -42,3 +42,10 @@ def test_label(repo: Repo, label: Label) -> None:
         text=True,
     )
     assert result.returncode == 0, result
+
+
+def test_invalid_repo() -> None:
+    """Tests that repo name is properly split."""
+    repo_name = "incomplete_repo_name"
+    with pytest.raises(ValueError, match=f"Invalid repo name: {repo_name}"):
+        Repo(repo_name)
