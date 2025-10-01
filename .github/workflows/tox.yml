@@ -44,6 +44,11 @@ on:
         description: Additional names for the matrix
         required: false
         type: string
+      platforms:
+        default: linux,macos
+        description: Comma separated list of platforms to test on, supported linux, macos, windows.
+        required: false
+        type: string
       run_pre:
         default: ""
         description: Preparatory command to run before test commands.
@@ -106,7 +111,7 @@ jobs:
             ${{ inputs.other_names }}
             ${{ inputs.other_names_also }}
           skip_explode: ${{ inputs.skip_explode }}
-          platforms: linux,macos
+          platforms: ${{ inputs.platforms }}
 
   test:
     name: ${{ matrix.name }}
