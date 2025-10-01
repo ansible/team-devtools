@@ -61,10 +61,11 @@ repos:
     # special meaning, all other keys will inherit attributes this entry
     group: primary
     # owners: is used to record SMEs, primary, backup, ...
-  ansible-automation-platform/ansible-workspaces-container:
-    section: primary
-  ansible-automation-platform/ansible-devtools-container:
-    section: primary
+  # ansible-community/molecule-plugins:
+  #   section: community
+  ansible/actions:
+    owners: [ssbarnea]
+    section: experimental
   ansible/ansible-backstage-plugins:
     owners: [audgirka]
     section: experimental
@@ -109,8 +110,6 @@ repos:
     owners: [ssbarnea]
     section: experimental
   coactions/dynamic-matrix:
-    section: community
-  pycontribs/enrich:
     section: community
   pycontribs/subprocess-tee:
     section: community
