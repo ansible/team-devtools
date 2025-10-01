@@ -34,7 +34,7 @@ jobs:
 
       - uses: bcoe/conventional-release-labels@v1
         with:
-          type_labels: '{"feat": "feature", "fix": "fix", "breaking": "breaking", "chore": "chore"}'
+          type_labels: '{"feat": "feat", "fix": "fix", "breaking": "breaking", "chore": "chore"}'
           ignored_types: "[]"
 
       - name: Verify PR label action
