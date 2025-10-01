@@ -128,7 +128,7 @@ jobs:
           submodules: true
 
       - name: Set pre-commit cache
-        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         if: ${{ matrix.name == 'lint' }}
         with:
           path: |
@@ -156,7 +156,7 @@ jobs:
 
       - name: Set up Node.js
         if: ${{ inputs.node-version-file != '' }}
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version-file: ${{ inputs.node-version-file }}
 
@@ -217,7 +217,7 @@ jobs:
       - name: Upload coverage data to codecov.io
         id: upload-coverage
         if: ${{ !cancelled() && hashFiles('**/coverage.xml') != '' }}
-        uses: codecov/codecov-action@fdcc8476540edceab3de004e990f80d881c6cc00 # v5.5.0
+        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
         with:
           name: ${{ matrix.name }}
           fail_ci_if_error: true
