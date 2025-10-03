@@ -355,7 +355,7 @@ jobs:
         if: env.SLACK_WEBHOOK_URL != ''
         run: |
           curl -X POST -H 'Content-type: application/json' \
-          --data '{"text":"❌ Python tests failed on main branch for '${{ github.repository }}' (tox.yml). Check logs: '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}' \
+          --data "{\"text\":\"❌ Python tests failed on main branch for '${{ github.repository }}' (tox.yml). Check logs: '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
           ${{ env.SLACK_WEBHOOK_URL }}
       - name: Skip notification (no webhook configured)
         if: env.SLACK_WEBHOOK_URL == ''
