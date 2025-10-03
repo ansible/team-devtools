@@ -348,14 +348,12 @@ jobs:
       - test
       - check
     env:
-      ACTIONS_STEP_DEBUG: true
       SLACK_WEBHOOK_URL: ${{ secrets.DEVTOOLS_CI_SLACK_URL }}
     steps:
       - name: Send CI failure notification
         if: env.SLACK_WEBHOOK_URL != ''
         run: |
           MESSAGE_ID="ci-failure-${GITHUB_RUN_ID}-$(date +%s)"
-          
           # Prepare a summary of which jobs failed
           FAILED_JOBS=""
           if [ "${{ needs.test.result }}" = "failure" ]; then
@@ -373,4 +371,3 @@ jobs:
       - name: Skip notification (no webhook configured)
         if: env.SLACK_WEBHOOK_URL == ''
         run: echo "Skipping Slack notification - DEVTOOLS_CI_SLACK_URL secret not configured"
-
