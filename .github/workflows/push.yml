@@ -8,12 +8,12 @@ on:
   workflow_call: # allows reuse of this workflow from other devtools repos
 
 jobs:
-  # Force this job to fail for testing
   update_release_draft:
     runs-on: ubuntu-24.04
     steps:
-      - name: Force failure for testing
-        run: exit 1
+      - uses: release-drafter/release-drafter@b1476f6e6eb133afa41ed8589daba6dc69b4d3f5 # v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   notify:
     if: always() && needs.update_release_draft.result == 'failure' #&& github.ref == 'refs/heads/main'
@@ -21,6 +21,7 @@ jobs:
     needs:
       - update_release_draft
     env:
+      ACTIONS_STEP_DEBUG: true
       SLACK_WEBHOOK_URL: ${{ secrets.DEVTOOLS_CI_SLACK_URL }}
     steps:
       - name: Send CI failure notification
