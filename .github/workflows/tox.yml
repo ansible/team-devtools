@@ -342,7 +342,7 @@ jobs:
       #   continue-on-error: true
 
   notify:
-    if: always() && (needs.test.result == 'failure' || needs.check.result == 'failure') && !cancelled() #&& github.ref == 'refs/heads/main' 
+    if: always() && (needs.test.result == 'failure' || needs.check.result == 'failure') #&& github.ref == 'refs/heads/main' 
     runs-on: ubuntu-latest
     needs:
       - test
@@ -354,8 +354,6 @@ jobs:
       - name: Send CI failure notification
         if: env.SLACK_WEBHOOK_URL != ''
         run: |
-          # Create unique message ID to prevent duplicates
-          MESSAGE_ID="ci-failure-${{ github.run_id }}-$(date +%s)"
           curl -X POST -H 'Content-type: application/json' \
           --data "{\"text\":\"❌ Python tests failed on main branch for '${{ github.repository }}' (tox.yml). Check logs: '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\", \"ts\":\"$MESSAGE_ID\"}" \
           ${{ env.SLACK_WEBHOOK_URL }}

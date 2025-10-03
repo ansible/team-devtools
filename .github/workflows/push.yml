@@ -16,7 +16,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   notify:
-    if: always() && needs.update_release_draft.result == 'failure' && !cancelled() #&& github.ref == 'refs/heads/main' 
+    if: always() && needs.update_release_draft.result == 'failure' #&& github.ref == 'refs/heads/main' 
     runs-on: ubuntu-latest
     needs:
       - update_release_draft
@@ -28,7 +28,6 @@ jobs:
         if: env.SLACK_WEBHOOK_URL != ''
         run: |
           # Create unique message ID to prevent duplicates
-          MESSAGE_ID="ci-failure-${{ github.run_id }}-$(date +%s)"
           curl -X POST -H 'Content-type: application/json' \
           --data "{\"text\":\"❌ Release/CI workflow failed on main branch for '${{ github.repository }}' (push.yml). Check logs: '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\", \"ts\":\"$MESSAGE_ID\"}" \
           ${{ env.SLACK_WEBHOOK_URL }}
