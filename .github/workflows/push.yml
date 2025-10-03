@@ -21,7 +21,6 @@ jobs:
     needs:
       - update_release_draft
     env:
-      ACTIONS_STEP_DEBUG: true
       SLACK_WEBHOOK_URL: ${{ secrets.DEVTOOLS_CI_SLACK_URL }}
     steps:
       - name: Send CI failure notification
