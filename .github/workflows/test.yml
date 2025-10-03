@@ -17,9 +17,9 @@ jobs:
     # tests reusable tox workflow
     uses: ./.github/workflows/tox.yml
     with:
-      default_python: "3.10"
+      default_python: "3.13"
       max_python: "3.14"
-      min_python: "3.10"
+      min_python: "3.13"
       run_post: echo 'Running post'
       run_pre: echo 'Running pre'
       other_names: |
@@ -27,6 +27,8 @@ jobs:
         lint
         py-mise-macos:tox -e py:runner=macos-15;mise=true
         py-mise-ubuntu:tox -e py:runner=ubuntu-24.04;mise=true
+        py313-py314-macos:tox -e py313,py314:runner=macos-15
+      platforms: linux
       node-version-file: .tool-versions
     secrets: inherit
 
