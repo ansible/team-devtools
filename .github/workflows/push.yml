@@ -16,7 +16,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   notify:
-    if: always() && needs.update_release_draft.result == 'failure' #&& github.ref == 'refs/heads/main' 
+    if: always() && needs.update_release_draft.result == 'failure' #&& github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     needs:
       - update_release_draft
