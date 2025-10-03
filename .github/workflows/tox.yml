@@ -337,18 +337,21 @@ jobs:
       #   continue-on-error: true
 
   notify:
-    # if: always() && (needs.test.result == 'failure' || needs.check.result == 'failure') && github.ref == 'refs/heads/main'
+    if: always() && (needs.test.result == 'failure' || needs.check.result == 'failure') && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     needs:
       - test
       - check
+    env:
+      ACTIONS_STEP_DEBUG: true
+      SLACK_WEBHOOK_URL: ${{ secrets.DEVTOOLS_CI_SLACK_URL }}
     steps:
       - name: Send CI failure notification
-        if: secrets.DEVTOOLS_CI_SLACK_URL != ''
+        if: env.SLACK_WEBHOOK_URL != ''
         run: |
           curl -X POST -H 'Content-type: application/json' \
           --data '{"text":"❌ Python tests failed on main branch for '${{ github.repository }}' (tox.yml). Check logs: '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}' \
-          ${{ secrets.DEVTOOLS_CI_SLACK_URL }}
+          ${{ env.SLACK_WEBHOOK_URL }}
       - name: Skip notification (no webhook configured)
-        if: secrets.DEVTOOLS_CI_SLACK_URL == ''
+        if: env.SLACK_WEBHOOK_URL == ''
         run: echo "Skipping Slack notification - DEVTOOLS_CI_SLACK_URL secret not configured"
