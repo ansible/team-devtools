@@ -66,9 +66,6 @@ repos:
   ansible/actions:
     owners: [ssbarnea]
     section: experimental
-  ansible/ansible-backstage-plugins:
-    owners: [audgirka]
-    section: experimental
   ansible/ansible-compat:
     owners: [qalthos, audgirka]
     section: primary
@@ -91,6 +88,9 @@ repos:
     section: primary
   ansible/ansible-navigator:
     owners: [shatakshiiii]
+    section: primary
+  ansible/ansible-sign:
+    owners: [ssbarnea]
     section: primary
   ansible/mkdocs-ansible:
     section: community
