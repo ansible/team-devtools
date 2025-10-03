@@ -342,7 +342,7 @@ jobs:
       #   continue-on-error: true
 
   notify:
-    if: always() && (needs.test.result == 'failure' || needs.check.result == 'failure') #&& github.ref == 'refs/heads/main' 
+    if: always() && (needs.test.result == 'failure' || needs.check.result == 'failure') && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     needs:
       - test
@@ -354,9 +354,23 @@ jobs:
       - name: Send CI failure notification
         if: env.SLACK_WEBHOOK_URL != ''
         run: |
+          MESSAGE_ID="ci-failure-${GITHUB_RUN_ID}-$(date +%s)"
+          
+          # Prepare a summary of which jobs failed
+          FAILED_JOBS=""
+          if [ "${{ needs.test.result }}" = "failure" ]; then
+            FAILED_JOBS="${FAILED_JOBS}test "
+          fi
+          if [ "${{ needs.check.result }}" = "failure" ]; then
+            FAILED_JOBS="${FAILED_JOBS}check "
+          fi
+
+          # Send Slack notification
           curl -X POST -H 'Content-type: application/json' \
-          --data "{\"text\":\"❌ Python tests failed on main branch for '${{ github.repository }}' (tox.yml). Check logs: '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\", \"ts\":\"$MESSAGE_ID\"}" \
-          ${{ env.SLACK_WEBHOOK_URL }}
+            --data "{\"text\":\"❌ Python tests failed in jobs: ${FAILED_JOBS}for '${GITHUB_REPOSITORY}' (tox.yml). Check logs: '${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}'\", \"ts\":\"$MESSAGE_ID\"}" \
+            $SLACK_WEBHOOK_URL
+
       - name: Skip notification (no webhook configured)
         if: env.SLACK_WEBHOOK_URL == ''
         run: echo "Skipping Slack notification - DEVTOOLS_CI_SLACK_URL secret not configured"
+
