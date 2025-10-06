@@ -324,7 +324,9 @@ jobs:
           SONAR_TOKEN: ${{ secrets.CICD_ORG_SONAR_TOKEN_CICD_BOT || secrets.AAP_ORG_SONAR_TOKEN_ANSIBLE_CICD_BOT }}
         with:
           args: ${{ env.SONAR_ARGS }}
-        # continue-on-error: true
+        # Temporarily ignore errors if the pull request is from a fork due to lack of upload secrets access
+        # See https://issues.redhat.com/browse/AAP-52660
+        continue-on-error: ${{ github.event_name == 'pull_request' && github.repository != github.event.pull_request.head.repo.full_name }}
 
       - name: Decide whether the needed jobs succeeded or failed
         uses: re-actors/alls-green@release/v1
