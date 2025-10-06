@@ -255,11 +255,37 @@ jobs:
             printf '### Failed as git reported modified and/or untracked files\n```\n%s\n```\n' "$(git status -s)" | tee -a "$GITHUB_STEP_SUMMARY"
             exit 99
           fi
-      # https://github.com/actions/toolkit/issues/193
-      # See https://sonarsource.atlassian.net/browse/SONARPY-1203
-      # - name: Fix paths in coverage file
-      #   run: |
-      #     sed -i 's/\/home\/runner\/work\/anonymizer\/anonymizer/\/github\/workspace\//g' coverage.xml
+
+  check:
+    if: always()
+    environment: ${{ inputs.environment }}
+    needs:
+      - test
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Merge logs into a single archive
+        # Should do nothing if job is retried
+        uses: actions/upload-artifact/merge@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: logs.zip
+          pattern: logs-*.zip
+          delete-merged: true
+          include-hidden-files: true
+          separate-directories: true
+
+      - name: Download artifacts
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: logs.zip
+
+      # We want to run sonarclould upload only *once* with all coverage.xml files because
+      # otherwise it will produce false positives about uncovered lines.
       - name: Prepare SonarCloud args
         # Run only for pull requests or push to main
         if: >
@@ -298,35 +324,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.CICD_ORG_SONAR_TOKEN_CICD_BOT || secrets.AAP_ORG_SONAR_TOKEN_ANSIBLE_CICD_BOT }}
         with:
           args: ${{ env.SONAR_ARGS }}
-        continue-on-error: true
-
-  check:
-    if: always()
-    environment: ${{ inputs.environment }}
-    needs:
-      - test
-    runs-on: ubuntu-24.04
-
-    steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
-
-      - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@v6
-
-      - name: Merge logs into a single archive
-        # Should do nothing if job is retried
-        uses: actions/upload-artifact/merge@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: logs.zip
-          pattern: logs-*.zip
-          delete-merged: true
-          include-hidden-files: true
-          separate-directories: true
-
-      - name: Download artifacts
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
-        with:
-          name: logs.zip
+        # continue-on-error: true
 
       - name: Decide whether the needed jobs succeeded or failed
         uses: re-actors/alls-green@release/v1

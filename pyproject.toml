@@ -55,6 +55,7 @@ concurrency = ["multiprocessing", "thread"]
 # avoid failse positive warning, we still fail if coverage level is not met
 disable_warnings = ["no-data-collected"]
 parallel = true
+relative_files = true  # needed by sonarcloud
 source = ["src"]
 
 [tool.pytest.ini_options]
