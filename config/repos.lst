@@ -1,4 +1,4 @@
-ansible-backstage-plugins
+actions
 ansible-compat
 ansible-content-actions
 ansible-creator
@@ -6,6 +6,7 @@ ansible-dev-environment
 ansible-dev-tools
 ansible-lint
 ansible-navigator
+ansible-sign
 mkdocs-ansible
 molecule
 pytest-ansible
