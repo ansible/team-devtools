@@ -342,7 +342,7 @@ jobs:
       #   continue-on-error: true
 
       - name: Send CI failure notification
-        if: always() && needs.test.result == 'failure' #&& github.ref == 'refs/heads/main'
+        if: always() && needs.test.result == 'failure' && github.ref == 'refs/heads/main'
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.DEVTOOLS_CI_SLACK_URL }}
         run: |
