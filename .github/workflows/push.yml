@@ -4,6 +4,10 @@
 # draft release-notes.
 name: push
 
+permissions:
+  contents: write
+  pull-requests: read
+
 on:
   workflow_call: # allows reuse of this workflow from other devtools repos
 
@@ -14,3 +18,15 @@ jobs:
       - uses: release-drafter/release-drafter@b1476f6e6eb133afa41ed8589daba6dc69b4d3f5 # v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Send CI failure notification
+        if: failure() && github.ref == 'refs/heads/main'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.DEVTOOLS_CI_SLACK_URL }}
+        run: |
+          if [ -n "$SLACK_WEBHOOK_URL" ]; then
+            MESSAGE_ID="ci-failure-${{ github.run_id }}-$(date +%s)"
+            curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\" Release/CI workflow failed on main branch for '${{ github.repository }}' (push.yml). Check logs: '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\", \"ts\":\"$MESSAGE_ID\"}" \
+            $SLACK_WEBHOOK_URL
+          fi
