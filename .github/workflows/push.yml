@@ -30,4 +30,3 @@ jobs:
             --data "{\"text\":\" Release/CI workflow failed on main branch for '${{ github.repository }}' (push.yml). Check logs: '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\", \"ts\":\"$MESSAGE_ID\"}" \
             $SLACK_WEBHOOK_URL
           fi
-
