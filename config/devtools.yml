@@ -109,8 +109,6 @@ repos:
   ansible/ansible-contributor-metrics:
     owners: [ssbarnea]
     section: experimental
-  coactions/dynamic-matrix:
-    section: community
   pycontribs/subprocess-tee:
     section: community
 sections:
