@@ -303,3 +303,13 @@ jobs:
               --data "{\"text\":\" Python tests failed in jobs: test for '${GITHUB_REPOSITORY}' (tox.yml). Check logs: '${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}'\"}" \
               $SLACK_WEBHOOK_URL
           fi
+
+  sonarcloud:
+    needs: check
+    if: |
+      !cancelled() &&
+      needs.check.result == 'success' &&
+      (github.event_name == 'pull_request' ||
+       (github.event_name == 'push' && github.ref_name == 'main'))
+    uses: ./.github/workflows/sonar-scan.yml
+    secrets: inherit
