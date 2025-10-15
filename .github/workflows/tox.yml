@@ -269,6 +269,19 @@ jobs:
       - name: Install the latest version of uv
         uses: astral-sh/setup-uv@v6
 
+      - name: Save PR number
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "PR Number: ${{ github.event.pull_request.number }}" > pr_number.txt
+          cat pr_number.txt
+
+      - name: Upload PR number artifact
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: pr_number
+          path: pr_number.txt
+
       - name: Merge logs into a single archive
         # Should do nothing if job is retried
         uses: actions/upload-artifact/merge@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -285,13 +298,13 @@ jobs:
         with:
           jobs: ${{ toJSON(needs) }}
 
-      # See: https://github.com/sourcegraph/codenotify/issues/32
-      # - name: Notify repository owners about changes affecting them
-      #   uses: sourcegraph/codenotify@54e4320f0d93f162a371d8d9dc1fb11018199746 # v0.6.4
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   # https://github.com/sourcegraph/codenotify/issues/19
-      #   continue-on-error: true
+    # See: https://github.com/sourcegraph/codenotify/issues/32
+    # - name: Notify repository owners about changes affecting them
+    #   uses: sourcegraph/codenotify@54e4320f0d93f162a371d8d9dc1fb11018199746 # v0.6.4
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #   # https://github.com/sourcegraph/codenotify/issues/19
+    #   continue-on-error: true
 
       - name: Send CI failure notification
         if: failure() && github.ref == 'refs/heads/main'
@@ -303,13 +316,3 @@ jobs:
               --data "{\"text\":\" Python tests failed in jobs: test for '${GITHUB_REPOSITORY}' (tox.yml). Check logs: '${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}'\"}" \
               $SLACK_WEBHOOK_URL
           fi
-
-  sonarcloud:
-    needs: check
-    if: |
-      !cancelled() &&
-      needs.check.result == 'success' &&
-      (github.event_name == 'pull_request' ||
-       (github.event_name == 'push' && github.ref_name == 'main'))
-    uses: ./.github/workflows/sonar-scan.yml
-    secrets: inherit
