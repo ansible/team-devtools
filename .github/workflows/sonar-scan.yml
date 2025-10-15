@@ -1,5 +1,5 @@
 ---
-name: SonarCloud Analysis
+name: finalize
 on:
   workflow_call:
     inputs:
@@ -35,8 +35,8 @@ on:
 permissions: read-all
 
 jobs:
-  sonar-analysis:
-    name: SonarCloud Analysis
+  finalize:
+    name: finalize
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
