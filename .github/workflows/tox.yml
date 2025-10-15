@@ -298,13 +298,13 @@ jobs:
         with:
           jobs: ${{ toJSON(needs) }}
 
-    # See: https://github.com/sourcegraph/codenotify/issues/32
-    # - name: Notify repository owners about changes affecting them
-    #   uses: sourcegraph/codenotify@54e4320f0d93f162a371d8d9dc1fb11018199746 # v0.6.4
-    #   env:
-    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    #   # https://github.com/sourcegraph/codenotify/issues/19
-    #   continue-on-error: true
+      # See: https://github.com/sourcegraph/codenotify/issues/32
+      # - name: Notify repository owners about changes affecting them
+      #   uses: sourcegraph/codenotify@54e4320f0d93f162a371d8d9dc1fb11018199746 # v0.6.4
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   # https://github.com/sourcegraph/codenotify/issues/19
+      #   continue-on-error: true
 
       - name: Send CI failure notification
         if: failure() && github.ref == 'refs/heads/main'
