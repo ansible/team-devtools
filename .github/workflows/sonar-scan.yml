@@ -67,24 +67,18 @@ jobs:
         if: inputs.workflow-event == 'pull_request'
         run: |
           cat pr_number.txt
-          echo "PR_NUMBER=$(head -n1 pr_number.txt | awk '{print $2}')" >> $GITHUB_ENV
+          PR_NUM=$(head -n1 pr_number.txt | awk '{print $3}')
+          echo "Found PR number: $PR_NUM"
+          echo "PR_NUMBER=$PR_NUM" >> $GITHUB_ENV
 
       - name: Get Additional PR Information
         if: inputs.workflow-event == 'pull_request'
-        uses: octokit/request-action@v2.x
-        id: pr_info
-        with:
-          route: GET /repos/{repo}/pulls/{number}
-          repo: ${{ github.repository }}
-          number: ${{ env.PR_NUMBER }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set Additional PR Information
-        if: inputs.workflow-event == 'pull_request'
         run: |
-          echo "PR_BASE=${{ fromJson(steps.pr_info.outputs.data).base.ref }}" >> $GITHUB_ENV
-          echo "PR_HEAD=${{ fromJson(steps.pr_info.outputs.data).head.ref }}" >> $GITHUB_ENV
+          PR_DATA=$(gh api "repos/${{ github.repository }}/pulls/${{ env.PR_NUMBER }}")
+          echo "PR_BASE=$(echo "$PR_DATA" | jq -r '.base.ref')" >> $GITHUB_ENV
+          echo "PR_HEAD=$(echo "$PR_DATA" | jq -r '.head.ref')" >> $GITHUB_ENV
 
       - name: Checkout PR branch
         if: inputs.workflow-event == 'pull_request'
