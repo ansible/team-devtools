@@ -73,6 +73,11 @@ jobs:
         # Workaround for running this step only if BOT_PAT secret is found
         # also this action would not work on merge_group events.
         if: env.BOT_PAT != null && github.event_name != 'merge_group'
+        # Continuing on errors to avoid failures for duplicate content in the project board.
+        # Occurs when PRs are created from draft on the board, which is standard behavior
+        # from external orgs (e.g. from ansible-automation-platform org).
+        # See https://github.com/actions/add-to-project/issues/389
+        continue-on-error: true
         uses: actions/add-to-project@main
         with:
           project-url: https://github.com/orgs/ansible/projects/86
