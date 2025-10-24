@@ -95,7 +95,6 @@ jobs:
           github.event_name != 'merge_group' && (
           github.event.pull_request.user.login == 'dependabot[bot]' ||
           github.event.pull_request.user.login == 'pre-commit-ci[bot]' ||
-          github.event.pull_request.user.login == 'konflux-internal-p02[bot]' ||
           github.event.pull_request.user.login == 'renovate[bot]'
           )
         run: |
