@@ -27,3 +27,14 @@ is a sequence that must contain `tombi-format` and `tombi-lint` entries at least
 
 Ensure that running `pre-commit run all` is passing. Keep in mind that this
 might need to run more than once in case it does reformat some files.
+
+
+### Commit messages
+
+- Commit messages should conform to [conventional commits][] standards
+- If a github ticket or a JIRA ticket is related or fixed by the commit, a
+  clear line of the commit message should include `Fixes: #123` or
+  `Related: AAP-123` in order to enable auto-linking and auto-closing of those.
+  Keep in mind to not use URLs, these need to be plain text.
+
+[conventional commits]: https://www.conventionalcommits.org
