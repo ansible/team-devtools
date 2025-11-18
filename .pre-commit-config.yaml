@@ -12,7 +12,7 @@ repos:
     hooks:
       - id: check-useless-excludes
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.9.8
+    rev: 0.9.9
     hooks:
       - id: uv-sync
       - id: uv-lock
@@ -21,7 +21,7 @@ repos:
         args: ["--upgrade"]
         stages: [manual]
   - repo: https://github.com/biomejs/pre-commit
-    rev: "v2.3.4"
+    rev: "v2.3.5"
     hooks:
       - id: biome-check
         name: biome
@@ -44,14 +44,14 @@ repos:
       - id: debug-statements
         language_version: python3
   - repo: https://github.com/tombi-toml/tombi-pre-commit
-    rev: v0.6.42
+    rev: v0.6.48
     hooks:
       - id: tombi-format
         alias: toml
       - id: tombi-lint
         alias: toml
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.4
+    rev: v0.14.5
     hooks:
       - id: ruff-format
         alias: ruff
@@ -66,7 +66,7 @@ repos:
         types: [file, yaml]
         entry: yamllint --strict
   - repo: https://github.com/ansible/ansible-lint
-    rev: v25.9.2
+    rev: v25.11.0
     hooks:
       - id: ansible-lint
         args: [--fix]
