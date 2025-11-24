@@ -219,9 +219,20 @@ jobs:
           if-no-files-found: error
           path: ${{ inputs.log_paths }}
 
+      - name: Check for coverage files
+        id: check-coverage
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          if find . -name "coverage.xml" -type f | grep -q .; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Upload coverage data to codecov.io
         id: upload-coverage
-        if: ${{ !cancelled() && hashFiles('**/coverage.xml') != '' }}
+        if: ${{ !cancelled() && steps.check-coverage.outputs.exists == 'true' }}
         uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
         with:
           name: ${{ matrix.name }}
@@ -291,6 +302,66 @@ jobs:
           delete-merged: true
           include-hidden-files: true
           separate-directories: true
+
+      - name: Download artifacts
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: logs.zip
+
+      - name: Check for coverage files
+        id: check-coverage
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          if find . -name "coverage.xml" -type f | grep -q .; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      # We want to run sonarclould upload only *once* with all coverage.xml files because
+      # otherwise it will produce false positives about uncovered lines.
+      - name: Prepare SonarCloud args
+        # Run only for pull requests or push to main
+        if: >
+          ${{ !cancelled() &&
+          steps.check-coverage.outputs.exists == 'true' &&
+          (github.event_name == 'pull_request' ||
+          (github.event_name == 'push' && github.ref_name =='main')
+          )}}
+        shell: bash
+        run: |
+          PR_NUMBER=${{ github.event.number }}
+          PR_HEAD_SHA=${{ github.event.pull_request.head.sha }}
+          # 1. Read the full slug (owner/repo)
+          REPO_SLUG="${GITHUB_REPOSITORY}"
+          # 2. Split into owner and repo
+          IFS="/" read -r REPO_OWNER REPO_NAME <<< "$REPO_SLUG"
+          # 3. Export to the workflow environment
+          echo "REPO_OWNER=$REPO_OWNER" >> $GITHUB_ENV
+          echo "REPO_NAME=$REPO_NAME"   >> $GITHUB_ENV
+          SONAR_ARGS="-Dsonar.projectKey=${REPO_OWNER}_${REPO_NAME} -Dsonar.organization=${REPO_OWNER}"
+          if [[ -n "$PR_NUMBER" ]]; then
+            SONAR_ARGS="${SONAR_ARGS} -Dsonar.pullrequest.key=${PR_NUMBER} -Dsonar.pullrequest.branch=${PR_HEAD_SHA}"
+          fi
+          echo SONAR_ARGS="$SONAR_ARGS" >> $GITHUB_ENV
+
+      - name: SonarCloud scan
+        # Run only for pull requests or push to main
+        if: >
+          ${{ !cancelled() &&
+          steps.check-coverage.outputs.exists == 'true' &&
+          (github.event_name == 'pull_request' ||
+          (github.event_name == 'push' && github.ref_name =='main')
+          )}}
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.CICD_ORG_SONAR_TOKEN_CICD_BOT || secrets.AAP_ORG_SONAR_TOKEN_ANSIBLE_CICD_BOT }}
+        with:
+          args: ${{ env.SONAR_ARGS }}
+        # Temporarily ignore errors if the pull request is from a fork due to lack of upload secrets access
+        # See https://issues.redhat.com/browse/AAP-52660
+        continue-on-error: ${{ github.event_name == 'pull_request' && github.repository != github.event.pull_request.head.repo.full_name }}
 
       - name: Decide whether the needed jobs succeeded or failed
         id: alls-green
