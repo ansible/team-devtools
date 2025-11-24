@@ -47,7 +47,7 @@ jobs:
 
       # Download coverage artifacts from the test job (same workflow run)
       - name: Download artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: logs.zip
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -56,7 +56,7 @@ jobs:
       # For PRs: Extract PR number from artifact file
       - name: Fetch PR Number artifact
         if: inputs.workflow-event == 'pull_request'
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: pr_number
           path: .
