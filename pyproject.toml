@@ -12,7 +12,7 @@ dynamic = ["version"]
 dev = [
   "coverage[toml]>=7.6.9",
   "mkdocs-exclude>=1.0.2",
-  "pytest>=8",
+  "pytest>=9",
   "pytest-instafail>=0.5.0",
   "pytest-plus>=0.8.1",
   "pytest-sugar>=1.1.1",
@@ -60,8 +60,8 @@ parallel = true
 relative_files = true  # needed by sonarcloud
 source = ["src"]
 
-[tool.pytest.ini_options]
-addopts = "-p no:pytest_cov --durations=10 --failed-first"
+[tool.pytest]
+addopts = ["--durations=10", "--failed-first", "-p no:pytest_cov"]
 norecursedirs = [
   "*.egg",
   ".cache",
@@ -71,7 +71,6 @@ norecursedirs = [
   ".github",
   ".mypy_cache",
   ".projects",
-  ".eggs",
   ".tox",
   "__pycache__",
   "build",

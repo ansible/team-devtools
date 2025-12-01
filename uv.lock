@@ -1394,7 +1394,7 @@ pkg = [
 dev = [
     { name = "coverage", extras = ["toml"], specifier = ">=7.6.9" },
     { name = "mkdocs-exclude", specifier = ">=1.0.2" },
-    { name = "pytest", specifier = ">=8" },
+    { name = "pytest", specifier = ">=9" },
     { name = "pytest-instafail", specifier = ">=0.5.0" },
     { name = "pytest-plus", specifier = ">=0.8.1" },
     { name = "pytest-sugar", specifier = ">=1.1.1" },
