@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent / "hooks"))
 from packaging.specifiers import SpecifierSet
 
 from check_platform_constraints import (
@@ -332,7 +332,7 @@ def test_main_no_constraints(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
     import check_platform_constraints
 
     monkeypatch.setattr(
-        check_platform_constraints, "__file__", str(tmp_path / "src" / "check_platform_constraints.py")
+        check_platform_constraints, "__file__", str(tmp_path / "hooks" / "check_platform_constraints.py")
     )
 
     result = check_platform_constraints.main()
@@ -361,7 +361,7 @@ def test_main_with_violations(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, c
     import check_platform_constraints
 
     monkeypatch.setattr(
-        check_platform_constraints, "__file__", str(tmp_path / "src" / "check_platform_constraints.py")
+        check_platform_constraints, "__file__", str(tmp_path / "hooks" / "check_platform_constraints.py")
     )
 
     result = check_platform_constraints.main()
@@ -392,7 +392,7 @@ def test_main_no_violations(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, cap
     import check_platform_constraints
 
     monkeypatch.setattr(
-        check_platform_constraints, "__file__", str(tmp_path / "src" / "check_platform_constraints.py")
+        check_platform_constraints, "__file__", str(tmp_path / "hooks" / "check_platform_constraints.py")
     )
 
     result = check_platform_constraints.main()
@@ -417,7 +417,7 @@ def test_main_no_pyproject(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> N
     import check_platform_constraints
 
     monkeypatch.setattr(
-        check_platform_constraints, "__file__", str(tmp_path / "src" / "check_platform_constraints.py")
+        check_platform_constraints, "__file__", str(tmp_path / "hooks" / "check_platform_constraints.py")
     )
 
     result = check_platform_constraints.main()
@@ -456,7 +456,7 @@ def test_main_renovate_no_changes(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     import check_platform_constraints
 
     monkeypatch.setattr(
-        check_platform_constraints, "__file__", str(tmp_path / "src" / "check_platform_constraints.py")
+        check_platform_constraints, "__file__", str(tmp_path / "hooks" / "check_platform_constraints.py")
     )
 
     result = check_platform_constraints.main()
@@ -480,7 +480,7 @@ def test_main_script_entry_point(tmp_path: Path) -> None:
 
     # Copy the script to temp directory
     import shutil
-    src_script = Path(__file__).parent.parent / "src" / "check_platform_constraints.py"
+    src_script = Path(__file__).parent.parent / "hooks" / "check_platform_constraints.py"
     dest_script = tmp_path / "check_platform_constraints.py"
     shutil.copy(src_script, dest_script)
 
