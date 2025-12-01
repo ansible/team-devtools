@@ -10,13 +10,12 @@ import pytest
 
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "hooks"))
-from packaging.specifiers import SpecifierSet
-
 from check_platform_constraints import (
     check_dependency_compatibility,
     parse_constraints_file,
     update_renovate_config,
 )
+from packaging.specifiers import SpecifierSet
 
 
 # Constants
@@ -249,11 +248,7 @@ def test_parse_constraints_file_with_malformed_lines(tmp_path: Path) -> None:
     """Test parsing constraints file with malformed lines."""
     constraints_file = tmp_path / "constraints.txt"
     constraints_file.write_text(
-        "# Valid constraint\n"
-        "ansible-core<2.17\n"
-        "not-a-valid-line\n"
-        "also bad format!!!\n"
-        "cffi<1.17\n"
+        "# Valid constraint\nansible-core<2.17\nnot-a-valid-line\nalso bad format!!!\ncffi<1.17\n"
     )
 
     result = parse_constraints_file(constraints_file)
@@ -328,19 +323,24 @@ def test_main_no_constraints(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
     constraints_file = config_dir / "platform-constraints.txt"
     constraints_file.write_text("")
 
-    # Mock the root path
+    # Mock the script location and change to tmp_path as working directory
     import check_platform_constraints
 
     monkeypatch.setattr(
-        check_platform_constraints, "__file__", str(tmp_path / "hooks" / "check_platform_constraints.py")
+        check_platform_constraints,
+        "__file__",
+        str(tmp_path / "hooks" / "check_platform_constraints.py"),
     )
+    monkeypatch.chdir(tmp_path)
 
     result = check_platform_constraints.main()
 
     assert result == 0
 
 
-def test_main_with_violations(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+def test_main_with_violations(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     """Test main function when violations are found."""
     # Setup files
     config_dir = tmp_path / ".config"
@@ -349,20 +349,20 @@ def test_main_with_violations(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, c
     constraints_file.write_text("ansible-core<2.17\n")
 
     pyproject_file = tmp_path / "pyproject.toml"
-    pyproject_file.write_text(
-        '[project]\n'
-        'dependencies = ["ansible-core>=2.17.5"]\n'
-    )
+    pyproject_file.write_text('[project]\ndependencies = ["ansible-core>=2.17.5"]\n')
 
     renovate_file = tmp_path / "renovate.json"
     renovate_file.write_text('{"packageRules": []}\n')
 
-    # Mock the root path
+    # Mock the script location and change to tmp_path as working directory
     import check_platform_constraints
 
     monkeypatch.setattr(
-        check_platform_constraints, "__file__", str(tmp_path / "hooks" / "check_platform_constraints.py")
+        check_platform_constraints,
+        "__file__",
+        str(tmp_path / "hooks" / "check_platform_constraints.py"),
     )
+    monkeypatch.chdir(tmp_path)
 
     result = check_platform_constraints.main()
 
@@ -371,7 +371,9 @@ def test_main_with_violations(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, c
     assert "constraint violations" in captured.out.lower()
 
 
-def test_main_no_violations(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+def test_main_no_violations(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     """Test main function when no violations are found."""
     # Setup files
     config_dir = tmp_path / ".config"
@@ -380,20 +382,20 @@ def test_main_no_violations(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, cap
     constraints_file.write_text("ansible-core<2.17\n")
 
     pyproject_file = tmp_path / "pyproject.toml"
-    pyproject_file.write_text(
-        '[project]\n'
-        'dependencies = ["ansible-core>=2.16.0"]\n'
-    )
+    pyproject_file.write_text('[project]\ndependencies = ["ansible-core>=2.16.0"]\n')
 
     renovate_file = tmp_path / "renovate.json"
     renovate_file.write_text('{"packageRules": []}\n')
 
-    # Mock the root path
+    # Mock the script location and change to tmp_path as working directory
     import check_platform_constraints
 
     monkeypatch.setattr(
-        check_platform_constraints, "__file__", str(tmp_path / "hooks" / "check_platform_constraints.py")
+        check_platform_constraints,
+        "__file__",
+        str(tmp_path / "hooks" / "check_platform_constraints.py"),
     )
+    monkeypatch.chdir(tmp_path)
 
     result = check_platform_constraints.main()
 
@@ -413,19 +415,24 @@ def test_main_no_pyproject(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> N
     renovate_file = tmp_path / "renovate.json"
     renovate_file.write_text('{"packageRules": []}\n')
 
-    # Mock the root path
+    # Mock the script location and change to tmp_path as working directory
     import check_platform_constraints
 
     monkeypatch.setattr(
-        check_platform_constraints, "__file__", str(tmp_path / "hooks" / "check_platform_constraints.py")
+        check_platform_constraints,
+        "__file__",
+        str(tmp_path / "hooks" / "check_platform_constraints.py"),
     )
+    monkeypatch.chdir(tmp_path)
 
     result = check_platform_constraints.main()
 
     assert result == 0
 
 
-def test_main_renovate_no_changes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+def test_main_renovate_no_changes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     """Test main function when renovate.json already has correct rules."""
     # Setup files
     config_dir = tmp_path / ".config"
@@ -434,30 +441,32 @@ def test_main_renovate_no_changes(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     constraints_file.write_text("ansible-core<2.17\n")
 
     pyproject_file = tmp_path / "pyproject.toml"
-    pyproject_file.write_text(
-        '[project]\n'
-        'dependencies = ["ansible-core>=2.16.0"]\n'
-    )
+    pyproject_file.write_text('[project]\ndependencies = ["ansible-core>=2.16.0"]\n')
 
     renovate_file = tmp_path / "renovate.json"
     renovate_file.write_text(
-        json.dumps({
-            "packageRules": [
-                {
-                    "matchPackageNames": ["ansible-core"],
-                    "allowedVersions": "<2.17",
-                    "description": "Platform compatibility constraint from .config/platform-constraints.txt",
-                },
-            ],
-        })
+        json.dumps(
+            {
+                "packageRules": [
+                    {
+                        "matchPackageNames": ["ansible-core"],
+                        "allowedVersions": "<2.17",
+                        "description": "Platform compatibility constraint from .config/platform-constraints.txt",
+                    },
+                ],
+            }
+        )
     )
 
-    # Mock the root path
+    # Mock the script location and change to tmp_path as working directory
     import check_platform_constraints
 
     monkeypatch.setattr(
-        check_platform_constraints, "__file__", str(tmp_path / "hooks" / "check_platform_constraints.py")
+        check_platform_constraints,
+        "__file__",
+        str(tmp_path / "hooks" / "check_platform_constraints.py"),
     )
+    monkeypatch.chdir(tmp_path)
 
     result = check_platform_constraints.main()
 
@@ -480,17 +489,20 @@ def test_main_script_entry_point(tmp_path: Path) -> None:
 
     # Copy the script to temp directory
     import shutil
+
     src_script = Path(__file__).parent.parent / "hooks" / "check_platform_constraints.py"
     dest_script = tmp_path / "check_platform_constraints.py"
     shutil.copy(src_script, dest_script)
 
     # Run the script using subprocess
     import subprocess
+
     result = subprocess.run(
         [sys.executable, str(dest_script)],
+        check=False,
         capture_output=True,
         text=True,
-        cwd=str(tmp_path)
+        cwd=str(tmp_path),
     )
 
     assert result.returncode == 0

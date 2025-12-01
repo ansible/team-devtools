@@ -137,10 +137,14 @@ def update_renovate_config(
 
 def main() -> int:
     """Main entry point."""
+    # Use script location to find centralized constraints
     root = Path(__file__).parent.parent
     constraints_file = root / ".config" / "platform-constraints.txt"
-    pyproject_file = root / "pyproject.toml"
-    renovate_file = root / "renovate.json"
+
+    # But check the current working directory's pyproject.toml and renovate.json
+    cwd = Path.cwd()
+    pyproject_file = cwd / "pyproject.toml"
+    renovate_file = cwd / "renovate.json"
 
     # Parse constraints
     constraints = parse_constraints_file(constraints_file)
