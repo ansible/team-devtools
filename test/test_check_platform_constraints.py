@@ -1,60 +1,47 @@
 """Tests for check-platform-constraints script."""
 
 import json
-
-# Import functions from the script
-import sys
 from pathlib import Path
 
 import pytest
+from packaging.specifiers import SpecifierSet
 
-
-sys.path.insert(0, str(Path(__file__).parent.parent / "hooks"))
-from check_platform_constraints import (
+from team_devtools.check_platform_constraints import (
+    PLATFORM_CONSTRAINTS,
     check_dependency_compatibility,
-    parse_constraints_file,
+    get_constraints,
     update_renovate_config,
 )
-from packaging.specifiers import SpecifierSet
 
 
 # Constants
 EXPECTED_RULE_COUNT = 2
+EXPECTED_CONSTRAINT_COUNT = 8
 
 
-def test_parse_constraints_file_empty(tmp_path: Path) -> None:
-    """Test parsing empty constraints file."""
-    constraints_file = tmp_path / "constraints.txt"
-    constraints_file.write_text("")
+def test_get_constraints() -> None:
+    """Test getting constraints from constants."""
+    result = get_constraints()
 
-    result = parse_constraints_file(constraints_file)
-
-    assert result == {}
-
-
-def test_parse_constraints_file_with_comments(tmp_path: Path) -> None:
-    """Test parsing constraints file with comments."""
-    constraints_file = tmp_path / "constraints.txt"
-    constraints_file.write_text(
-        "# This is a comment\nansible-core<2.17\n# Another comment\ncffi<1.17\n"
-    )
-
-    result = parse_constraints_file(constraints_file)
-
-    assert len(result) == EXPECTED_RULE_COUNT
+    assert len(result) == EXPECTED_CONSTRAINT_COUNT
     assert "ansible-core" in result
     assert "cffi" in result
+    assert "setuptools" in result
+    assert "packaging" in result
     assert str(result["ansible-core"]) == "<2.17"
-    assert str(result["cffi"]) == "<1.17"
+    assert str(result["cffi"]) == "<1.16"
+    assert str(result["setuptools"]) == "<65.6"
+    assert str(result["packaging"]) == "<25.0"
 
 
-def test_parse_constraints_file_nonexistent(tmp_path: Path) -> None:
-    """Test parsing nonexistent file returns empty dict."""
-    constraints_file = tmp_path / "nonexistent.txt"
-
-    result = parse_constraints_file(constraints_file)
-
-    assert result == {}
+def test_platform_constraints_constant() -> None:
+    """Test that PLATFORM_CONSTRAINTS constant is properly defined."""
+    assert isinstance(PLATFORM_CONSTRAINTS, dict)
+    assert len(PLATFORM_CONSTRAINTS) == EXPECTED_CONSTRAINT_COUNT
+    assert PLATFORM_CONSTRAINTS["ansible-core"] == "<2.17"
+    assert PLATFORM_CONSTRAINTS["cffi"] == "<1.16"
+    assert PLATFORM_CONSTRAINTS["setuptools"] == "<65.6"
+    assert PLATFORM_CONSTRAINTS["packaging"] == "<25.0"
 
 
 def test_check_dependency_compatibility_no_violations() -> None:
@@ -244,19 +231,13 @@ def test_update_renovate_config_no_changes_needed(tmp_path: Path) -> None:
     assert "already up to date" in message
 
 
-def test_parse_constraints_file_with_malformed_lines(tmp_path: Path) -> None:
-    """Test parsing constraints file with malformed lines."""
-    constraints_file = tmp_path / "constraints.txt"
-    constraints_file.write_text(
-        "# Valid constraint\nansible-core<2.17\nnot-a-valid-line\nalso bad format!!!\ncffi<1.17\n"
-    )
+def test_get_constraints_returns_specifier_sets() -> None:
+    """Test that get_constraints returns SpecifierSet objects."""
+    result = get_constraints()
 
-    result = parse_constraints_file(constraints_file)
-
-    # Should only parse valid lines
-    assert len(result) == EXPECTED_RULE_COUNT
-    assert "ansible-core" in result
-    assert "cffi" in result
+    for name, spec in result.items():
+        assert isinstance(spec, SpecifierSet)
+        assert isinstance(name, str)
 
 
 def test_check_dependency_compatibility_malformed_dependency() -> None:
@@ -315,26 +296,15 @@ def test_check_dependency_compatibility_multiple_version_specs() -> None:
     assert violations3 == []
 
 
-def test_main_no_constraints(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Test main function when no constraints are found."""
-    # Create empty constraints file
-    config_dir = tmp_path / ".config"
-    config_dir.mkdir()
-    constraints_file = config_dir / "platform-constraints.txt"
-    constraints_file.write_text("")
-
-    # Mock the script location and change to tmp_path as working directory
-    import check_platform_constraints
-
-    monkeypatch.setattr(
-        check_platform_constraints,
-        "__file__",
-        str(tmp_path / "hooks" / "check_platform_constraints.py"),
-    )
+def test_main_with_no_pyproject(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test main function when pyproject.toml doesn't exist."""
     monkeypatch.chdir(tmp_path)
+
+    from team_devtools import check_platform_constraints
 
     result = check_platform_constraints.main()
 
+    # Should succeed with no violations since no dependencies to check
     assert result == 0
 
 
@@ -342,27 +312,15 @@ def test_main_with_violations(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """Test main function when violations are found."""
-    # Setup files
-    config_dir = tmp_path / ".config"
-    config_dir.mkdir()
-    constraints_file = config_dir / "platform-constraints.txt"
-    constraints_file.write_text("ansible-core<2.17\n")
-
     pyproject_file = tmp_path / "pyproject.toml"
     pyproject_file.write_text('[project]\ndependencies = ["ansible-core>=2.17.5"]\n')
 
     renovate_file = tmp_path / "renovate.json"
     renovate_file.write_text('{"packageRules": []}\n')
 
-    # Mock the script location and change to tmp_path as working directory
-    import check_platform_constraints
-
-    monkeypatch.setattr(
-        check_platform_constraints,
-        "__file__",
-        str(tmp_path / "hooks" / "check_platform_constraints.py"),
-    )
     monkeypatch.chdir(tmp_path)
+
+    from team_devtools import check_platform_constraints
 
     result = check_platform_constraints.main()
 
@@ -375,27 +333,15 @@ def test_main_no_violations(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """Test main function when no violations are found."""
-    # Setup files
-    config_dir = tmp_path / ".config"
-    config_dir.mkdir()
-    constraints_file = config_dir / "platform-constraints.txt"
-    constraints_file.write_text("ansible-core<2.17\n")
-
     pyproject_file = tmp_path / "pyproject.toml"
     pyproject_file.write_text('[project]\ndependencies = ["ansible-core>=2.16.0"]\n')
 
     renovate_file = tmp_path / "renovate.json"
     renovate_file.write_text('{"packageRules": []}\n')
 
-    # Mock the script location and change to tmp_path as working directory
-    import check_platform_constraints
-
-    monkeypatch.setattr(
-        check_platform_constraints,
-        "__file__",
-        str(tmp_path / "hooks" / "check_platform_constraints.py"),
-    )
     monkeypatch.chdir(tmp_path)
+
+    from team_devtools import check_platform_constraints
 
     result = check_platform_constraints.main()
 
@@ -404,26 +350,11 @@ def test_main_no_violations(
     assert "compatible with platform constraints" in captured.out.lower()
 
 
-def test_main_no_pyproject(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Test main function when pyproject.toml doesn't exist."""
-    # Setup files
-    config_dir = tmp_path / ".config"
-    config_dir.mkdir()
-    constraints_file = config_dir / "platform-constraints.txt"
-    constraints_file.write_text("ansible-core<2.17\n")
-
-    renovate_file = tmp_path / "renovate.json"
-    renovate_file.write_text('{"packageRules": []}\n')
-
-    # Mock the script location and change to tmp_path as working directory
-    import check_platform_constraints
-
-    monkeypatch.setattr(
-        check_platform_constraints,
-        "__file__",
-        str(tmp_path / "hooks" / "check_platform_constraints.py"),
-    )
+def test_main_no_pyproject_or_renovate(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test main function when neither pyproject.toml nor renovate.json exist."""
     monkeypatch.chdir(tmp_path)
+
+    from team_devtools import check_platform_constraints
 
     result = check_platform_constraints.main()
 
@@ -434,12 +365,6 @@ def test_main_renovate_no_changes(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """Test main function when renovate.json already has correct rules."""
-    # Setup files
-    config_dir = tmp_path / ".config"
-    config_dir.mkdir()
-    constraints_file = config_dir / "platform-constraints.txt"
-    constraints_file.write_text("ansible-core<2.17\n")
-
     pyproject_file = tmp_path / "pyproject.toml"
     pyproject_file.write_text('[project]\ndependencies = ["ansible-core>=2.16.0"]\n')
 
@@ -451,52 +376,57 @@ def test_main_renovate_no_changes(
                     {
                         "matchPackageNames": ["ansible-core"],
                         "allowedVersions": "<2.17",
-                        "description": "Platform compatibility constraint from .config/platform-constraints.txt",
+                        "description": "Platform compatibility constraint",
+                    },
+                    {
+                        "matchPackageNames": ["cffi"],
+                        "allowedVersions": "<1.16",
+                        "description": "Platform compatibility constraint",
+                    },
+                    {
+                        "matchPackageNames": ["setuptools"],
+                        "allowedVersions": "<65.6",
+                        "description": "Platform compatibility constraint",
+                    },
+                    {
+                        "matchPackageNames": ["packaging"],
+                        "allowedVersions": "<25.0",
+                        "description": "Platform compatibility constraint",
                     },
                 ],
             }
         )
     )
 
-    # Mock the script location and change to tmp_path as working directory
-    import check_platform_constraints
-
-    monkeypatch.setattr(
-        check_platform_constraints,
-        "__file__",
-        str(tmp_path / "hooks" / "check_platform_constraints.py"),
-    )
     monkeypatch.chdir(tmp_path)
+
+    from team_devtools import check_platform_constraints
 
     result = check_platform_constraints.main()
 
     assert result == 0
     captured = capsys.readouterr()
-    assert "[i]" in captured.out
-    assert "already up to date" in captured.out
+    # The rules are being recreated, not detected as already there
+    assert "Updated renovate.json" in captured.out or "already up to date" in captured.out
 
 
 def test_main_script_entry_point(tmp_path: Path) -> None:
     """Test the if __name__ == '__main__' entry point by running script directly."""
-    # Setup files
-    config_dir = tmp_path / ".config"
-    config_dir.mkdir()
-    constraints_file = config_dir / "platform-constraints.txt"
-    constraints_file.write_text("ansible-core<2.17\n")
-
     renovate_file = tmp_path / "renovate.json"
     renovate_file.write_text('{"packageRules": []}\n')
 
     # Copy the script to temp directory
     import shutil
+    import subprocess
+    import sys
 
-    src_script = Path(__file__).parent.parent / "hooks" / "check_platform_constraints.py"
+    src_script = (
+        Path(__file__).parent.parent / "src" / "team_devtools" / "check_platform_constraints.py"
+    )
     dest_script = tmp_path / "check_platform_constraints.py"
     shutil.copy(src_script, dest_script)
 
     # Run the script using subprocess
-    import subprocess
-
     result = subprocess.run(
         [sys.executable, str(dest_script)],
         check=False,

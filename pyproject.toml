@@ -9,6 +9,9 @@ requires-python = ">=3.13"
 dependencies = ["packaging>=23.2"]
 dynamic = ["version"]
 
+[project.scripts]
+check-platform-constraints = "team_devtools.check_platform_constraints:main"
+
 [dependency-groups]
 dev = [
   "coverage[toml]>=7.6.9",
