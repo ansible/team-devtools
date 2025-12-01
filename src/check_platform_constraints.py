@@ -8,19 +8,21 @@ This script:
 """
 
 import json
-import re
 import sys
 from pathlib import Path
 
 import tomllib
+from packaging.requirements import Requirement
+from packaging.specifiers import SpecifierSet
+from packaging.version import Version
 
 
-def parse_constraints_file(path: Path) -> dict[str, str]:
+def parse_constraints_file(path: Path) -> dict[str, SpecifierSet]:
     """Parse platform constraints file.
 
-    Returns dict like: {"ansible-core": "<2.17", "cffi": "<1.17"}
+    Returns dict like: {"ansible-core": SpecifierSet("<2.17"), "cffi": SpecifierSet("<1.17")}
     """
-    constraints: dict[str, str] = {}
+    constraints: dict[str, SpecifierSet] = {}
     if not path.exists():
         return constraints
 
@@ -30,58 +32,62 @@ def parse_constraints_file(path: Path) -> dict[str, str]:
         if not line or line.startswith("#"):
             continue
 
-        # Parse package constraint (e.g., "ansible-core<2.17")
-        match = re.match(r"^([a-zA-Z0-9_-]+)([<>=!]+.*)$", line)
-        if match:
-            package, constraint = match.groups()
-            constraints[package] = constraint
+        # Parse using packaging.requirements.Requirement for standard PEP 508 syntax
+        try:
+            req = Requirement(line)
+            if req.specifier:
+                constraints[req.name] = req.specifier
+        except Exception:  # noqa: BLE001, S110
+            # Skip malformed lines
+            pass
 
     return constraints
 
 
-def check_dependency_compatibility(dep_str: str, constraints: dict[str, str]) -> list[str]:
+def check_dependency_compatibility(dep_str: str, constraints: dict[str, SpecifierSet]) -> list[str]:
     """Check if a dependency violates platform constraints.
 
     Returns list of violation messages.
     """
     violations = []
 
-    for package, platform_constraint in constraints.items():
-        # Check if this dependency is for the constrained package
-        if not dep_str.startswith(f"{package}>=") and not dep_str.startswith(f"{package}>"):
-            continue
+    try:
+        req = Requirement(dep_str)
+    except Exception:  # noqa: BLE001
+        return violations
 
-        # Extract the minimum version requirement from dependency
-        # Handle formats like: "package>=1.2.3" or "package>=1.2.3,<2.0"
-        min_match = re.search(r">=([0-9.]+)", dep_str)
-        if not min_match:
-            continue
+    # Check if this package has platform constraints
+    if req.name not in constraints:
+        return violations
 
-        min_version = min_match.group(1)
+    platform_specifier = constraints[req.name]
 
-        # Extract the platform's maximum allowed version
-        # e.g., "<2.17" means platform provides up to 2.16.x
-        platform_match = re.search(r"<([0-9.]+)", platform_constraint)
-        if not platform_match:
-            continue
+    # Find the minimum version required by the dependency
+    min_version = None
+    for spec in req.specifier:
+        if spec.operator in (">=", ">"):
+            version = Version(spec.version)
+            if min_version is None or version > min_version:
+                min_version = version
 
-        platform_max = platform_match.group(1)
+    if min_version is None:
+        return violations
 
-        # Check if minimum required version exceeds platform maximum
-        # This is a simple string comparison which works for versions like "2.17" vs "2.16"
-        # For more complex cases, you'd want packaging.version.Version
-        if min_version >= platform_max:
-            violations.append(
-                f"❌ {dep_str}\n"
-                f"   Platform maximum: {package}{platform_constraint}\n"
-                f"   Your minimum ({min_version}) exceeds platform maximum ({platform_max})\n"
-                f"   Lower the minimum version to be compatible"
-            )
+    # Check if minimum version satisfies platform constraints
+    if min_version not in platform_specifier:
+        violations.append(
+            f"❌ {dep_str}\n"
+            f"   Platform constraint: {req.name}{platform_specifier}\n"
+            f"   Your minimum version ({min_version}) violates platform constraint\n"
+            f"   Lower the minimum version to be compatible"
+        )
 
     return violations
 
 
-def update_renovate_config(renovate_path: Path, constraints: dict[str, str]) -> tuple[bool, str]:
+def update_renovate_config(
+    renovate_path: Path, constraints: dict[str, SpecifierSet]
+) -> tuple[bool, str]:
     """Update renovate.json with packageRules for platform constraints.
 
     Returns (changed, message) tuple.
@@ -98,7 +104,7 @@ def update_renovate_config(renovate_path: Path, constraints: dict[str, str]) -> 
         new_rules.append(
             {
                 "matchPackageNames": [package],
-                "allowedVersions": constraint,
+                "allowedVersions": str(constraint),
                 "description": "Platform compatibility constraint from .config/platform-constraints.txt",
             }
         )
@@ -144,7 +150,7 @@ def main() -> int:
 
     print(f"📋 Platform constraints loaded: {len(constraints)}")  # noqa: T201
     for package, constraint in constraints.items():
-        print(f"   • {package}{constraint}")  # noqa: T201
+        print(f"   • {package}{constraint!s}")  # noqa: T201
     print()  # noqa: T201
 
     # Check pyproject.toml dependencies
@@ -180,5 +186,5 @@ def main() -> int:
     return 0
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     sys.exit(main())

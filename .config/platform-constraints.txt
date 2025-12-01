@@ -7,3 +7,9 @@ ansible-core<2.17
 
 # RHEL 8/9 ships cffi 1.15.x
 cffi<1.16
+
+# RHEL 8/9 ships setuptools 65.5.1
+setuptools<65.5.1
+
+# galaxy-importer constraint
+packaging>=23.2,<25.0
