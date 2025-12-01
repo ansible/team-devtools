@@ -1,7 +1,7 @@
 ---
 - id: check-platform-constraints
   name: Check platform constraints and update renovate.json
-  entry: python3 hooks/check_platform_constraints.py
+  entry: hooks/check_platform_constraints.py
   language: python
   additional_dependencies: ["packaging>=23.2"]
   files: ^(pyproject\.toml|\.config/platform-constraints\.txt)$
