@@ -25,7 +25,7 @@ def parse_constraints_file(path: Path) -> dict[str, str]:
         return constraints
 
     for line in path.read_text().splitlines():
-        line = line.strip()
+        line = line.strip()  # noqa: PLW2901
         # Skip comments and empty lines
         if not line or line.startswith("#"):
             continue
