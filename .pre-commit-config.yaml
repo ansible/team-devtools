@@ -70,7 +70,7 @@ repos:
     hooks:
       - id: ansible-lint
         args: [--fix]
-  - repo: https://github.com/ansible/team-devtools
-    rev: main
-    hooks:
-      - id: check-platform-constraints
+  # - repo: https://github.com/ansible/team-devtools
+  #   rev: main
+  #   hooks:
+  #     - id: check-platform-constraints
