@@ -1363,6 +1363,9 @@ wheels = [
 [[package]]
 name = "team-devtools"
 source = { editable = "." }
+dependencies = [
+    { name = "packaging" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -1389,6 +1392,7 @@ pkg = [
 ]
 
 [package.metadata]
+requires-dist = [{ name = "packaging", specifier = ">=23.2" }]
 
 [package.metadata.requires-dev]
 dev = [
