@@ -4,6 +4,6 @@
   entry: check-platform-constraints
   language: python
   additional_dependencies: ["packaging>=23.2"]
-  files: ^(pyproject\.toml|\.config/platform-constraints\.txt)$
+  files: ^pyproject\.toml$
   pass_filenames: false
   description: Validates dependencies against platform constraints and updates renovate.json

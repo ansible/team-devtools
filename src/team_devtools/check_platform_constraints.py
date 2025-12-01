@@ -2,7 +2,7 @@
 """Validate and enforce platform constraints.
 
 This script:
-1. Reads platform constraints from .config/platform-constraints.txt
+1. Defines platform constraints as constants
 2. Validates dependencies in pyproject.toml against these constraints
 3. Updates renovate.json with allowedVersions rules to prevent automated bumps
 """
@@ -17,31 +17,27 @@ from packaging.specifiers import SpecifierSet
 from packaging.version import Version
 
 
-def parse_constraints_file(path: Path) -> dict[str, SpecifierSet]:
-    """Parse platform constraints file.
+# Platform compatibility constraints for AAP and RHEL
+# These represent the MAXIMUM versions we can use to remain compatible
+# with downstream platform packages
+PLATFORM_CONSTRAINTS = {
+    "ansible-core": "<2.17",  # AAP 2.5/2.6 ships ansible-core 2.16.x
+    "cffi": "<1.16",  # RHEL 8/9 ships cffi 1.15.x
+    "django": "<4.3",  # at 4.2
+    "importlib-metadata": "<6.1",  # at 6.0.1
+    "jsonschema": "<4.22",  # at 4.21.1
+    "packaging": "<25.0",  # galaxy-importer constraint
+    "python-gnupg": "<0.5.3",  # at 0.5.2,
+    "setuptools": "<65.6",  # RHEL 8/9 ships setuptools 65.5.1
+}
 
-    Returns dict like: {"ansible-core": SpecifierSet("<2.17"), "cffi": SpecifierSet("<1.17")}
+
+def get_constraints() -> dict[str, SpecifierSet]:
+    """Get platform constraints as SpecifierSet objects.
+
+    Returns dict like: {"ansible-core": SpecifierSet("<2.17"), "cffi": SpecifierSet("<1.16")}
     """
-    constraints: dict[str, SpecifierSet] = {}
-    if not path.exists():
-        return constraints
-
-    for line in path.read_text().splitlines():
-        line = line.strip()  # noqa: PLW2901
-        # Skip comments and empty lines
-        if not line or line.startswith("#"):
-            continue
-
-        # Parse using packaging.requirements.Requirement for standard PEP 508 syntax
-        try:
-            req = Requirement(line)
-            if req.specifier:
-                constraints[req.name] = req.specifier
-        except Exception:  # noqa: BLE001, S110
-            # Skip malformed lines
-            pass
-
-    return constraints
+    return {name: SpecifierSet(spec) for name, spec in PLATFORM_CONSTRAINTS.items()}
 
 
 def check_dependency_compatibility(dep_str: str, constraints: dict[str, SpecifierSet]) -> list[str]:
@@ -137,20 +133,13 @@ def update_renovate_config(
 
 def main() -> int:
     """Main entry point."""
-    # Use script location to find centralized constraints
-    root = Path(__file__).parent.parent
-    constraints_file = root / ".config" / "platform-constraints.txt"
+    # Get constraints from constants
+    constraints = get_constraints()
 
-    # But check the current working directory's pyproject.toml and renovate.json
+    # Check the current working directory's pyproject.toml and renovate.json
     cwd = Path.cwd()
     pyproject_file = cwd / "pyproject.toml"
     renovate_file = cwd / "renovate.json"
-
-    # Parse constraints
-    constraints = parse_constraints_file(constraints_file)
-    if not constraints:
-        print(f"⚠️  No constraints found in {constraints_file}")  # noqa: T201
-        return 0
 
     print(f"📋 Platform constraints loaded: {len(constraints)}")  # noqa: T201
     for package, constraint in constraints.items():
