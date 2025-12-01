@@ -16,7 +16,7 @@ from team_devtools.check_platform_constraints import (
 
 # Constants
 EXPECTED_RULE_COUNT = 2
-EXPECTED_CONSTRAINT_COUNT = 7
+EXPECTED_CONSTRAINT_COUNT = 8
 
 
 def test_get_constraints() -> None:
