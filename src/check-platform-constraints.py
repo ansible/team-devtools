@@ -39,9 +39,7 @@ def parse_constraints_file(path: Path) -> dict[str, str]:
     return constraints
 
 
-def check_dependency_compatibility(
-    dep_str: str, constraints: dict[str, str]
-) -> list[str]:
+def check_dependency_compatibility(dep_str: str, constraints: dict[str, str]) -> list[str]:
     """Check if a dependency violates platform constraints.
 
     Returns list of violation messages.
@@ -50,9 +48,7 @@ def check_dependency_compatibility(
 
     for package, platform_constraint in constraints.items():
         # Check if this dependency is for the constrained package
-        if not dep_str.startswith(f"{package}>=") and not dep_str.startswith(
-            f"{package}>"
-        ):
+        if not dep_str.startswith(f"{package}>=") and not dep_str.startswith(f"{package}>"):
             continue
 
         # Extract the minimum version requirement from dependency
@@ -85,9 +81,7 @@ def check_dependency_compatibility(
     return violations
 
 
-def update_renovate_config(
-    renovate_path: Path, constraints: dict[str, str]
-) -> tuple[bool, str]:
+def update_renovate_config(renovate_path: Path, constraints: dict[str, str]) -> tuple[bool, str]:
     """Update renovate.json with packageRules for platform constraints.
 
     Returns (changed, message) tuple.
@@ -101,11 +95,13 @@ def update_renovate_config(
     # Build packageRules for our constraints
     new_rules = []
     for package, constraint in constraints.items():
-        new_rules.append({
-            "matchPackageNames": [package],
-            "allowedVersions": constraint,
-            "description": "Platform compatibility constraint from .config/platform-constraints.txt",
-        })
+        new_rules.append(
+            {
+                "matchPackageNames": [package],
+                "allowedVersions": constraint,
+                "description": "Platform compatibility constraint from .config/platform-constraints.txt",
+            }
+        )
 
     # Get existing packageRules or create new
     existing_rules = config.get("packageRules", [])
