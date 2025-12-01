@@ -1,0 +1,8 @@
+---
+- id: check-platform-constraints
+  name: Check platform constraints and update renovate.json
+  entry: python3 src/check-platform-constraints.py
+  language: python
+  files: ^(pyproject\.toml|\.config/platform-constraints\.txt)$
+  pass_filenames: false
+  description: Validates dependencies against platform constraints and updates renovate.json
