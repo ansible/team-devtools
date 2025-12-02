@@ -61,6 +61,22 @@ Whenever the upstream `ansible-devspaces` container is released, the image SHA i
 
 Releases should be made on the first Wednesday of the month, but can be made the following Wednesday if necessary. This document should be updated with a pull request after the releases are complete.
 
+### 2025-12
+
+Release manager: @cidrblock
+
+Releases:
+
+- ansible-compat - [v25.12.0](https://github.com/ansible/ansible-compat/releases/tag/v25.12.0)
+- ansible-creator - [v25.12.0](https://github.com/ansible/ansible-creator/releases/tag/v25.12.0)
+- ansible-dev-environment - [v25.12.2](https://github.com/ansible/ansible-dev-environment/releases/tag/v25.12.2)
+- ansible-dev-tools - pending
+- ansible-lint - [v25.12.0](https://github.com/ansible/ansible-lint/releases/tag/v25.12.0)
+- ansible-navigator - pending
+- molecule - [v25.12.0](https://github.com/ansible/molecule/releases/tag/v25.12.0)
+- pytest-ansible - [v25.12.0](https://github.com/ansible/pytest-ansible/releases/tag/v25.12.0)
+- tox-ansible - [v25.12.0](https://github.com/ansible/tox-ansible/releases/tag/v25.12.0)
+
 ### 2025-05
 
 Release manager: @shatakshiiii
