@@ -102,19 +102,20 @@ def update_renovate_config(
             {
                 "matchPackageNames": [package],
                 "allowedVersions": str(constraint),
-                "description": "Platform compatibility constraint from .config/platform-constraints.txt",
+                "description": "Platform compatibility constraint",
             }
         )
 
     # Get existing packageRules or create new
     existing_rules = config.get("packageRules", [])
 
-    # Remove old auto-generated rules (those with our description)
+    # Remove old auto-generated rules (those with our description or old description)
+    old_descriptions = {
+        "Platform compatibility constraint",
+        "Platform compatibility constraint from .config/platform-constraints.txt",
+    }
     filtered_rules = [
-        rule
-        for rule in existing_rules
-        if rule.get("description")
-        != "Platform compatibility constraint from .config/platform-constraints.txt"
+        rule for rule in existing_rules if rule.get("description") not in old_descriptions
     ]
 
     # Add new rules
@@ -130,6 +131,41 @@ def update_renovate_config(
         f.write("\n")
 
     return True, f"Updated renovate.json with {len(new_rules)} constraint rule(s)"
+
+
+def check_all_dependencies(pyproject: dict, constraints: dict[str, SpecifierSet]) -> list[str]:
+    """Check all dependency types in pyproject.toml.
+
+    Args:
+        pyproject: Parsed pyproject.toml data
+        constraints: Platform constraints
+
+    Returns:
+        List of violation messages
+    """
+    violations = []
+
+    # Check project.dependencies
+    dependencies = pyproject.get("project", {}).get("dependencies", [])
+    for dep in dependencies:
+        dep_violations = check_dependency_compatibility(dep, constraints)
+        violations.extend(dep_violations)
+
+    # Check project.optional-dependencies
+    optional_deps = pyproject.get("project", {}).get("optional-dependencies", {})
+    for deps in optional_deps.values():
+        for dep in deps:
+            dep_violations = check_dependency_compatibility(dep, constraints)
+            violations.extend(dep_violations)
+
+    # Check dependency-groups (PEP 735)
+    dep_groups = pyproject.get("dependency-groups", {})
+    for deps in dep_groups.values():
+        for dep in deps:
+            dep_violations = check_dependency_compatibility(dep, constraints)
+            violations.extend(dep_violations)
+
+    return violations
 
 
 def main() -> int:
@@ -152,12 +188,7 @@ def main() -> int:
     if pyproject_file.exists():
         with pyproject_file.open("rb") as f:
             pyproject = tomllib.load(f)
-
-        dependencies = pyproject.get("project", {}).get("dependencies", [])
-
-        for dep in dependencies:
-            dep_violations = check_dependency_compatibility(dep, constraints)
-            violations.extend(dep_violations)
+        violations = check_all_dependencies(pyproject, constraints)
 
     # Update renovate.json
     changed, message = update_renovate_config(renovate_file, constraints)

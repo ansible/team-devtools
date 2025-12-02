@@ -174,7 +174,7 @@ def test_update_renovate_config_replaces_old_platform_rules(tmp_path: Path) -> N
                     {
                         "matchPackageNames": ["ansible-core"],
                         "allowedVersions": "<2.16",
-                        "description": "Platform compatibility constraint from .config/platform-constraints.txt",
+                        "description": "Platform compatibility constraint",
                     },
                 ],
             },
@@ -217,7 +217,7 @@ def test_update_renovate_config_no_changes_needed(tmp_path: Path) -> None:
                     {
                         "matchPackageNames": ["ansible-core"],
                         "allowedVersions": "<2.17",
-                        "description": "Platform compatibility constraint from .config/platform-constraints.txt",
+                        "description": "Platform compatibility constraint",
                     },
                 ],
             },
@@ -408,6 +408,66 @@ def test_main_renovate_no_changes(
     captured = capsys.readouterr()
     # The rules are being recreated, not detected as already there
     assert "Updated renovate.json" in captured.out or "already up to date" in captured.out
+
+
+def test_main_checks_optional_dependencies(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Test main function checks optional-dependencies."""
+    pyproject_file = tmp_path / "pyproject.toml"
+    pyproject_file.write_text(
+        """
+[project]
+dependencies = ["ansible-core>=2.16.0"]
+
+[project.optional-dependencies]
+server = ["django>=5.0"]
+"""
+    )
+
+    renovate_file = tmp_path / "renovate.json"
+    renovate_file.write_text('{"packageRules": []}\n')
+
+    monkeypatch.chdir(tmp_path)
+
+    from team_devtools import check_platform_constraints
+
+    result = check_platform_constraints.main()
+
+    # Should fail because django>=5.0 violates django<4.3 constraint
+    assert result == 1
+    captured = capsys.readouterr()
+    assert "django" in captured.out.lower()
+
+
+def test_main_checks_dependency_groups(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Test main function checks dependency-groups."""
+    pyproject_file = tmp_path / "pyproject.toml"
+    pyproject_file.write_text(
+        """
+[project]
+dependencies = ["ansible-core>=2.16.0"]
+
+[dependency-groups]
+dev = ["setuptools>=70.0"]
+"""
+    )
+
+    renovate_file = tmp_path / "renovate.json"
+    renovate_file.write_text('{"packageRules": []}\n')
+
+    monkeypatch.chdir(tmp_path)
+
+    from team_devtools import check_platform_constraints
+
+    result = check_platform_constraints.main()
+
+    # Should fail because setuptools>=70.0 violates setuptools<65.6 constraint
+    assert result == 1
+    captured = capsys.readouterr()
+    assert "setuptools" in captured.out.lower()
 
 
 def test_main_script_entry_point(tmp_path: Path) -> None:
