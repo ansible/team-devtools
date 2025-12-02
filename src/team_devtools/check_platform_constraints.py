@@ -27,6 +27,7 @@ PLATFORM_CONSTRAINTS = {
     "importlib-metadata": "<6.1",  # at 6.0.1
     "jsonschema": "<4.22",  # at 4.21.1
     "packaging": "<25.0",  # galaxy-importer constraint
+    "pyyaml": "<6.0.2",  # at 6.0.1
     "python-gnupg": "<0.5.3",  # at 0.5.2,
     "setuptools": "<65.6",  # RHEL 8/9 ships setuptools 65.5.1
 }
