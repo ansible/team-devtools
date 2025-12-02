@@ -70,7 +70,7 @@ Releases:
 - ansible-compat - [v25.12.0](https://github.com/ansible/ansible-compat/releases/tag/v25.12.0)
 - ansible-creator - [v25.12.0](https://github.com/ansible/ansible-creator/releases/tag/v25.12.0)
 - ansible-dev-environment - [v25.12.2](https://github.com/ansible/ansible-dev-environment/releases/tag/v25.12.2)
-- ansible-dev-tools - pending
+- ansible-dev-tools - [v25.12.0](https://github.com/ansible/ansible-dev-tools/releases/tag/v25.12.0)
 - ansible-lint - [v25.12.0](https://github.com/ansible/ansible-lint/releases/tag/v25.12.0)
 - ansible-navigator - [v25.12.0](https://github.com/ansible/ansible-navigator/releases/tag/v25.12.0)
 - molecule - [v25.12.0](https://github.com/ansible/molecule/releases/tag/v25.12.0)
