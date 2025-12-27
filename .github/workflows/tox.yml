@@ -133,7 +133,7 @@ jobs:
           submodules: true
 
       - name: Set pre-commit cache
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5
         if: ${{ matrix.name == 'lint' }}
         with:
           path: |
@@ -222,7 +222,7 @@ jobs:
       - name: Upload coverage data to codecov.io
         id: upload-coverage
         if: ${{ !cancelled() && hashFiles('**/coverage.xml') != '' }}
-        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
         with:
           name: ${{ matrix.name }}
           fail_ci_if_error: true
@@ -237,7 +237,7 @@ jobs:
       - name: Upload test results to codecov.io
         id: upload-test-results
         if: ${{ !cancelled() && hashFiles('junit.xml') != '' }}
-        uses: codecov/test-results-action@47f89e9acb64b76debcd5ea40642d25a4adced9f # v1
+        uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3 # v1
         with:
           fail_ci_if_error: true
           name: ${{ matrix.name }}
@@ -277,14 +277,14 @@ jobs:
 
       - name: Upload PR number artifact
         if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: pr_number
           path: pr_number.txt
 
       - name: Merge logs into a single archive
         # Should do nothing if job is retried
-        uses: actions/upload-artifact/merge@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        uses: actions/upload-artifact/merge@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: logs.zip
           pattern: logs-*.zip
