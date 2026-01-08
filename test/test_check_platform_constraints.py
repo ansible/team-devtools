@@ -421,7 +421,7 @@ def test_main_checks_optional_dependencies(
 dependencies = ["ansible-core>=2.16.0"]
 
 [project.optional-dependencies]
-server = ["django>=5.0"]
+server = ["django>=6.0"]
 """
     )
 
@@ -434,7 +434,7 @@ server = ["django>=5.0"]
 
     result = check_platform_constraints.main()
 
-    # Should fail because django>=5.0 violates django<4.3 constraint
+    # Should fail because django>=6.0 violates django<5.2 constraint
     assert result == 1
     captured = capsys.readouterr()
     assert "django" in captured.out.lower()
