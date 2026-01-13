@@ -23,6 +23,7 @@ from packaging.version import Version
 PLATFORM_CONSTRAINTS = {
     "ansible-core": "<2.17",  # AAP 2.5/2.6 ships ansible-core 2.16.x
     "cffi": "<1.16",  # RHEL 8/9 ships cffi 1.15.x
+    "cryptography": "<38",  # downstream at 37
     "django": "<6.0",  # at 5.2
     "importlib-metadata": "<6.1",  # at 6.0.1
     "jsonschema": "<4.22",  # at 4.21.1
