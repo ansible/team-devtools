@@ -63,6 +63,20 @@ Default template for acceptance criteria.
 
 Both files can be overridden per issue using `-d` and `-a` flags (with custom file paths), or via CSV columns.
 
+## Running the Script
+
+Navigate to the script directory before running:
+
+```bash
+cd src/team_devtools/jira/
+```
+
+All examples below assume you're in this directory. Alternatively, you can run from the project root using the full path:
+
+```bash
+python src/team_devtools/jira/create_aap_issue.py [options]
+```
+
 ## Usage Modes
 
 ### 1. Interactive Mode
