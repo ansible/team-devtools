@@ -1,0 +1,5 @@
+# Jira Configuration File
+# This is a YAML file - fill in your actual values below
+
+jira_token: <put-your-token-here>
+jira_server: https://issues.redhat.com
