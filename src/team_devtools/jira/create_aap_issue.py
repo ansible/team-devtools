@@ -2,14 +2,24 @@
 #
 # Simplified BSD License https://opensource.org/licenses/BSD-2-Clause)
 #
+"""Script to create Jira issues in the AAP project with dev-tools component."""
 
 import argparse
 import csv
-import os
+import logging
 import sys
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any
 
 import yaml
 from jira import JIRA
+from jira.resources import Component
+
+
+# Configure logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 
 PRIORITIES = ["Critical", "Major", "Normal", "Minor"]
@@ -17,46 +27,51 @@ ISSUE_TYPES = ["Task", "Story", "Spike", "Bug", "Epic"]
 AFFECTS_VERSIONS = ["2.4", "2.5", "2.6", "aap-devel"]
 
 
-def load_config():
-    """Load Jira configuration from config file"""
-    with open("config") as f:
+def load_config() -> dict[str, Any]:
+    """Load Jira configuration from config file."""
+    config_path = Path("config")
+    with config_path.open() as f:
         """
         config is a file that contains these keys:
         jira_token: personal access token
         jira_server: https://jira.example.com
         """
-        config = yaml.safe_load(f)
-    return config
+        return yaml.safe_load(f)
 
 
-def load_template(filename):
-    """Load text from a template file"""
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    template_path = os.path.join(script_dir, filename)
+def load_template(filename: str) -> str:
+    """Load text from a template file."""
+    script_dir = Path(__file__).parent
+    template_path = script_dir / filename
 
     try:
-        with open(template_path) as f:
-            return f.read().strip()
+        return template_path.read_text().strip()
     except FileNotFoundError:
-        print(f"Warning: Template file '{filename}' not found. Using default value '.'")
+        logger.warning("Template file '%s' not found. Using default value '.'", filename)
         return "."
 
 
-def get_component(jiraconn, project, component_name):
-    """Get component object by name"""
+def get_component(jiraconn: JIRA, project: str, component_name: str) -> Component:
+    """Get component object by name."""
     prj_components = jiraconn.project_components(project=project)
     for comp in prj_components:
         if comp.name == component_name:
             return comp
-    raise ValueError(f"Component '{component_name}' not found in project {project}")
+    msg = f"Component '{component_name}' not found in project {project}"
+    raise ValueError(msg)
 
 
-def select_from_list(prompt, options, default=None, validator=None):
-    """Display numbered options and get user selection (0-based indexing)"""
-    print(f"\n{prompt}")
+def select_from_list(
+    prompt: str,
+    options: list[str],
+    default: str | None = None,
+    validator: Callable[[str], str] | None = None,
+) -> str:
+    """Display numbered options and get user selection (0-based indexing)."""
+    logger.info("\n%s", prompt)
     for i, option in enumerate(options):
         default_marker = " (default)" if default and option == default else ""
-        print(f"  {i}. {option}{default_marker}")
+        logger.info("  %d. %s%s", i, option, default_marker)
 
     default_index = options.index(default) if default else None
     prompt_text = f"Select [0-{len(options) - 1}]"
@@ -71,41 +86,41 @@ def select_from_list(prompt, options, default=None, validator=None):
 
         try:
             return validator(user_input)
-        except argparse.ArgumentTypeError as e:
-            print(f"Error: {e}")
+        except argparse.ArgumentTypeError:
+            logger.exception("Error")  # Exception details already included by exception()
 
 
-def parse_index_or_name(value, options, field_name):
-    """Convert index or name to option name"""
+def parse_index_or_name(value: str, options: list[str], field_name: str) -> str:
+    """Convert index or name to option name."""
     if value.isdigit():
         index = int(value)
         if 0 <= index < len(options):
             return options[index]
-        raise argparse.ArgumentTypeError(f"{field_name} index must be 0-{len(options) - 1}")
+        msg = f"{field_name} index must be 0-{len(options) - 1}"
+        raise argparse.ArgumentTypeError(msg)
     if value in options:
         return value
-    raise argparse.ArgumentTypeError(
-        f"Invalid {field_name}. Use 0-{len(options) - 1} or {', '.join(options)}"
-    )
+    msg = f"Invalid {field_name}. Use 0-{len(options) - 1} or {', '.join(options)}"
+    raise argparse.ArgumentTypeError(msg)
 
 
-def parse_priority(value):
-    """Convert priority index or name to priority name"""
+def parse_priority(value: str) -> str:
+    """Convert priority index or name to priority name."""
     return parse_index_or_name(value, PRIORITIES, "priority")
 
 
-def parse_issue_type(value):
-    """Convert issue type index or name to issue type name"""
+def parse_issue_type(value: str) -> str:
+    """Convert issue type index or name to issue type name."""
     return parse_index_or_name(value, ISSUE_TYPES, "issue type")
 
 
-def parse_affects_version(value):
-    """Convert affects version index or name to version string"""
+def parse_affects_version(value: str) -> str:
+    """Convert affects version index or name to version string."""
     return parse_index_or_name(value, AFFECTS_VERSIONS, "affects version")
 
 
-def create_issues_from_csv(jiraconn, csv_file, config):
-    """Create multiple issues from a CSV file
+def create_issues_from_csv(jiraconn: JIRA, csv_file: str, config: dict[str, Any]) -> None:  # noqa: C901, PLR0912, PLR0915
+    """Create multiple issues from a CSV file.
 
     CSV format:
         summary,priority,issue_type,epic_link,affects_version,description_file,acceptance_criteria_file
@@ -114,12 +129,13 @@ def create_issues_from_csv(jiraconn, csv_file, config):
     Optional columns: priority, issue_type, epic_link, affects_version, description_file, acceptance_criteria_file
     """
     try:
-        with open(csv_file) as f:
+        csv_path = Path(csv_file)
+        with csv_path.open() as f:
             reader = csv.DictReader(f)
 
             # Validate required columns
             if "summary" not in reader.fieldnames:
-                print("Error: CSV must have a 'summary' column")
+                logger.error("Error: CSV must have a 'summary' column")
                 sys.exit(1)
 
             issues_created = []
@@ -128,7 +144,7 @@ def create_issues_from_csv(jiraconn, csv_file, config):
             for row_num, row in enumerate(reader, start=2):  # start=2 because row 1 is header
                 summary = row.get("summary", "").strip()
                 if not summary:
-                    print(f"Row {row_num}: Skipping - no summary")
+                    logger.info("Row %d: Skipping - no summary", row_num)
                     continue
 
                 # Parse and validate priority (use default if not provided or invalid)
@@ -137,8 +153,11 @@ def create_issues_from_csv(jiraconn, csv_file, config):
                     try:
                         priority = parse_priority(priority_str)
                     except argparse.ArgumentTypeError as e:
-                        print(
-                            f"Row {row_num}: Invalid priority '{priority_str}', using default 'Normal'. Error: {e}"
+                        logger.warning(
+                            "Row %d: Invalid priority '%s', using default 'Normal'. Error: %s",
+                            row_num,
+                            priority_str,
+                            e,
                         )
                         priority = "Normal"
                 else:
@@ -150,8 +169,11 @@ def create_issues_from_csv(jiraconn, csv_file, config):
                     try:
                         issue_type = parse_issue_type(issue_type_str)
                     except argparse.ArgumentTypeError as e:
-                        print(
-                            f"Row {row_num}: Invalid issue_type '{issue_type_str}', using default 'Task'. Error: {e}"
+                        logger.warning(
+                            "Row %d: Invalid issue_type '%s', using default 'Task'. Error: %s",
+                            row_num,
+                            issue_type_str,
+                            e,
                         )
                         issue_type = "Task"
                 else:
@@ -165,15 +187,21 @@ def create_issues_from_csv(jiraconn, csv_file, config):
                 affects_version = None
                 if affects_version_str:
                     if issue_type != "Bug":
-                        print(
-                            f"Row {row_num}: Warning - affects_version '{affects_version_str}' ignored (only valid for Bug issue type, not '{issue_type}')"
+                        logger.warning(
+                            "Row %d: Warning - affects_version '%s' ignored (only valid for Bug issue type, not '%s')",
+                            row_num,
+                            affects_version_str,
+                            issue_type,
                         )
                     else:
                         try:
                             affects_version = parse_affects_version(affects_version_str)
                         except argparse.ArgumentTypeError as e:
-                            print(
-                                f"Row {row_num}: Invalid affects_version '{affects_version_str}', skipping. Error: {e}"
+                            logger.warning(
+                                "Row %d: Invalid affects_version '%s', skipping. Error: %s",
+                                row_num,
+                                affects_version_str,
+                                e,
                             )
                             affects_version = None
 
@@ -182,7 +210,7 @@ def create_issues_from_csv(jiraconn, csv_file, config):
                     row.get("acceptance_criteria_file", "").strip() or "acceptance_criteria.txt"
                 )
 
-                print(f"\nRow {row_num}: Creating issue '{summary}'...")
+                logger.info("\nRow %d: Creating issue '%s'...", row_num, summary)
                 try:
                     issue = create_aap_issue(
                         jiraconn=jiraconn,
@@ -197,47 +225,48 @@ def create_issues_from_csv(jiraconn, csv_file, config):
                     issue_url = f"{config['jira_server']}/browse/{issue.key}"
                     issues_created.append((row_num, issue.key, summary, issue_url))
                 except Exception as e:
-                    print(f"Row {row_num}: Failed to create issue - {e}")
+                    logger.exception("Row %d: Failed to create issue", row_num)
                     issues_failed.append((row_num, summary, str(e)))
 
             # Summary
-            print("\n" + "=" * 60)
-            print("Batch creation complete!")
-            print(f"✓ Created: {len(issues_created)} issues")
+            logger.info("\n%s", "=" * 60)
+            logger.info("Batch creation complete!")
+            logger.info("✓ Created: %d issues", len(issues_created))
             if issues_failed:
-                print(f"✗ Failed: {len(issues_failed)} issues")
-            print("=" * 60)
+                logger.info("✗ Failed: %d issues", len(issues_failed))
+            logger.info("%s", "=" * 60)
 
             if issues_created:
-                print("\nSuccessfully created issues:")
+                logger.info("\nSuccessfully created issues:")
                 for row_num, key, summary, url in issues_created:
-                    print(f"  Row {row_num}: {key} - {summary}")
-                    print(f"             {url}")
+                    logger.info("  Row %d: %s - %s", row_num, key, summary)
+                    logger.info("             %s", url)
 
             if issues_failed:
-                print("\nFailed to create issues:")
+                logger.info("\nFailed to create issues:")
                 for row_num, summary, error in issues_failed:
-                    print(f"  Row {row_num}: {summary} - {error}")
+                    logger.info("  Row %d: %s - %s", row_num, summary, error)
 
     except FileNotFoundError:
-        print(f"Error: CSV file '{csv_file}' not found")
+        msg = f"Error: CSV file '{csv_file}' not found"
+        logger.exception(msg)
         sys.exit(1)
-    except Exception as e:
-        print(f"Error reading CSV file: {e}")
+    except Exception:
+        logger.exception("Error reading CSV file")
         sys.exit(1)
 
 
-def create_aap_issue(
-    jiraconn,
-    summary,
-    priority="Normal",
-    issue_type="Task",
-    epic_link=None,
-    affects_version=None,
-    description_file="description.txt",
-    acceptance_criteria_file="acceptance_criteria.txt",
-):
-    """Create an issue in the AAP project
+def create_aap_issue(  # noqa: PLR0913
+    jiraconn: JIRA,
+    summary: str,
+    priority: str = "Normal",
+    issue_type: str = "Task",
+    epic_link: str | None = None,
+    affects_version: str | None = None,
+    description_file: str = "description.txt",
+    acceptance_criteria_file: str = "acceptance_criteria.txt",
+) -> Any:  # noqa: ANN401
+    """Create an issue in the AAP project.
 
     Args:
         jiraconn: JIRA connection object
@@ -248,12 +277,12 @@ def create_aap_issue(
         affects_version: Affects Version (for bugs), optional
         description_file: Path to description template file
         acceptance_criteria_file: Path to acceptance criteria template file
+
     """
     # Validate: affects_version can only be used with Bug issue type
     if affects_version and issue_type != "Bug":
-        raise ValueError(
-            f"affects_version can only be specified for Bug issue types, not '{issue_type}'"
-        )
+        msg = f"affects_version can only be specified for Bug issue types, not '{issue_type}'"
+        raise ValueError(msg)
 
     # Load templates from files
     description = load_template(description_file)
@@ -262,8 +291,8 @@ def create_aap_issue(
     # Get the dev-tools component
     try:
         component = get_component(jiraconn, "AAP", "dev-tools")
-    except ValueError as e:
-        print(f"Error: {e}")
+    except ValueError:
+        logger.exception("Error")
         sys.exit(1)
 
     issue_template = {
@@ -287,15 +316,17 @@ def create_aap_issue(
 
     try:
         issue = jiraconn.create_issue(fields=issue_template)
-        print(f"✓ Issue created successfully: {issue.key}")
-        print(f"  URL: {jiraconn.server_url}/browse/{issue.key}")
-        return issue
-    except Exception as e:
-        print(f"Error creating issue: {e}")
+    except Exception:
+        logger.exception("Error creating issue")
         sys.exit(1)
+    else:
+        logger.info("✓ Issue created successfully: %s", issue.key)
+        logger.info("  URL: %s/browse/%s", jiraconn.server_url, issue.key)
+        return issue
 
 
-def main():
+def main() -> None:  # noqa: C901, PLR0912, PLR0915
+    """Main function to parse arguments and create Jira issues."""
     parser = argparse.ArgumentParser(
         description="Create AAP Jira issues with dev-tools component",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -365,12 +396,12 @@ Note: Description and Acceptance Criteria are loaded from template files.
         config = load_config()
         jiraconn = JIRA(token_auth=config["jira_token"], server=config["jira_server"])
     except FileNotFoundError:
-        print(
+        logger.exception(
             "Error: config file not found. Please create a config file with jira_token and jira_server."
         )
         sys.exit(1)
-    except KeyError as e:
-        print(f"Error: Missing key in config file: {e}")
+    except KeyError:
+        logger.exception("Error: Missing key in config file")
         sys.exit(1)
 
     # Batch mode - create issues from CSV
@@ -380,11 +411,11 @@ Note: Description and Acceptance Criteria are loaded from template files.
 
     # Interactive mode - always prompt unless explicitly provided via CLI
     if args.interactive or not args.summary:
-        print("=== AAP Issue Creation (Interactive Mode) ===\n")
+        logger.info("=== AAP Issue Creation (Interactive Mode) ===\n")
 
         summary = args.summary or input("Issue Summary: ").strip()
         if not summary:
-            print("Error: Summary is required")
+            logger.error("Error: Summary is required")
             sys.exit(1)
 
         # Only prompt if not explicitly provided on command line
@@ -422,25 +453,26 @@ Note: Description and Acceptance Criteria are loaded from template files.
                     affects_version = None
         else:
             if args.affects_version:
-                print(
-                    f"Warning: affects_version ignored (only valid for Bug issue type, not '{issue_type}')"
+                logger.warning(
+                    "Warning: affects_version ignored (only valid for Bug issue type, not '%s')",
+                    issue_type,
                 )
             affects_version = None
 
-        print("\n--- Creating issue with the following details ---")
-        print(f"Summary: {summary}")
-        print(f"Issue Type: {issue_type}")
-        print(f"Priority: {priority}")
-        print(f"Epic Link: {epic_link if epic_link else '(none)'}")
+        logger.info("\n--- Creating issue with the following details ---")
+        logger.info("Summary: %s", summary)
+        logger.info("Issue Type: %s", issue_type)
+        logger.info("Priority: %s", priority)
+        logger.info("Epic Link: %s", epic_link if epic_link else "(none)")
         if issue_type == "Bug":
-            print(f"Affects Version: {affects_version if affects_version else '(none)'}")
-        print(f"Description: {load_template(args.description_file)}")
-        print(f"Acceptance Criteria: {load_template(args.acceptance_criteria_file)}")
-        print()
+            logger.info("Affects Version: %s", affects_version if affects_version else "(none)")
+        logger.info("Description: %s", load_template(args.description_file))
+        logger.info("Acceptance Criteria: %s", load_template(args.acceptance_criteria_file))
+        logger.info("")
 
         confirm = input("Create this issue? [y/N]: ").strip().lower()
         if confirm != "y":
-            print("Cancelled.")
+            logger.info("Cancelled.")
             sys.exit(0)
     else:
         # Non-interactive mode - use parsed arguments directly (with defaults)
