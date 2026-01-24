@@ -27,6 +27,7 @@ docs = [
   "mkdocs-ansible>=24.12.0",
   "mkdocs-exclude>=1.0.2",
 ]
+jira = ["jira>=3.10", "pygithub>=2.8", "pyyaml>=6.0"]
 lint = ["pre-commit>=3.5.0", "pre-commit-uv>=4.1.4"]
 pkg = ["build[virtualenv]", "twine"]
 
@@ -49,7 +50,7 @@ source = ["src", "test", ".tox/*/site-packages"]
 exclude_also = ["if TYPE_CHECKING:", "pragma: no cover"]
 fail_under = 94
 ignore_errors = false
-omit = ["test/*"]
+omit = ["test/*", "src/team_devtools/jira/*"]
 show_missing = true
 skip_covered = true
 skip_empty = true

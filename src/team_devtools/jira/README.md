@@ -12,21 +12,39 @@ Automated script to create Jira issues in the AAP (Ansible Automation Platform) 
 - **Bug Support**: Special handling for affects_version field (bugs only)
 
 ## Prerequisites
-Required packages:
-  - jira
-  - pyyaml
-  - pygithub
 
-Install via `pip install -r requirements.txt`.
+This tool requires the `jira` dependency group. Install it using:
+
+```bash
+uv sync --group jira
+```
+
+Or if working in the repository root:
+
+```bash
+uv pip install jira pyyaml pygithub
+```
 
 ## Configuration
 
-Create a `config` file in the same directory as the script:
+Create a `jira-config` file in the `resources/` directory (or copy and customize the example):
+
+```bash
+cd src/team_devtools/jira/resources
+cp jira-config.example jira-config
+# Edit jira-config with your credentials
+```
+
+The `jira-config` file should contain:
 
 ```yaml
+# Jira Configuration File
+
 jira_token: YOUR_PERSONAL_ACCESS_TOKEN
 jira_server: https://issues.redhat.com
 ```
+
+**Note**: The `jira-config` file is gitignored and should not be committed to version control.
 
 To get a Jira personal access token:
 1. Go to your Jira instance (e.g., https://issues.redhat.com)
@@ -35,15 +53,15 @@ To get a Jira personal access token:
 
 ## Template Files
 
-The script uses two template files for issue content:
+The script uses template files located in the `resources/` directory:
 
-### `description.txt`
+### `resources/description.txt`
 Default template for issue descriptions. Supports Jira Wiki Markup formatting.
 
-### `acceptance_criteria.txt`
+### `resources/acceptance_criteria.txt`
 Default template for acceptance criteria.
 
-Both files can be overridden per issue using `-d` and `-a` flags, or via CSV columns.
+Both files can be overridden per issue using `-d` and `-a` flags (with custom file paths), or via CSV columns.
 
 ## Usage Modes
 
@@ -92,15 +110,18 @@ Create multiple issues from a CSV file.
 
 Required columns: `summary`, `affects_version` (Bug type **only**)
 
-Optional columns: `priority` (default: Normal), `issue_type` (default: Task), `epic_link` (default: _None_), `description_file` (default: description.txt), `acceptance_criteria_file` (default: acceptance_criteria.txt)
+Optional columns: `priority` (default: Normal), `issue_type` (default: Task), `component` (default: dev-tools), `epic_link` (default: _None_), `description_file` (default: description.txt), `acceptance_criteria_file` (default: acceptance_criteria.txt)
 
 **Example CSV:**
+
+See `resources/issues_example.csv` for a complete example.
+
 ```csv
-summary,priority,issue_type,epic_link,affects_version,description_file,acceptance_criteria_file
-"Fix login authentication bug",Critical,Bug,AAP-100,2.5,,
-"Add dark mode support",Normal,Task,AAP-101,,,
-"Refactor auth module",1,Task,AAP-100,,,
-"Setup CI/CD pipeline",0,2,AAP-102,,,
+summary,priority,issue_type,component,epic_link,affects_version,description_file,acceptance_criteria_file
+"Fix login authentication bug",Critical,Bug,dev-tools,AAP-100,2.5,,
+"Add dark mode support",Normal,Task,vscode-plugin,AAP-101,,,
+"Refactor auth module",1,Task,0,AAP-100,,,
+"Setup CI/CD pipeline",0,2,1,AAP-102,,,
 ```
 
 **Batch Features:**
@@ -116,10 +137,11 @@ summary,priority,issue_type,epic_link,affects_version,description_file,acceptanc
 | `-s` | `--summary` | Issue summary/title | (required) |
 | `-p` | `--priority` | Issue priority (0-3 or name) | Normal |
 | `-t` | `--issue-type` | Issue type (0-4 or name) | Task |
+| `-c` | `--component` | Component (0-1 or name) | dev-tools |
 | `-e` | `--epic-link` | Epic Link ID (e.g., AAP-123) | None |
-| `-v` | `--affects-version` | Affects Version (bugs only, 0-4 or name) | None |
-| `-d` | `--description-file` | Path to description template | description.txt |
-| `-a` | `--acceptance-criteria-file` | Path to acceptance criteria template | acceptance_criteria.txt |
+| `-v` | `--affects-version` | Affects Version (bugs only, 0-3 or name) | None |
+| `-d` | `--description-file` | Path to description template | resources/description.txt |
+| `-a` | `--acceptance-criteria-file` | Path to acceptance criteria template | resources/acceptance_criteria.txt |
 | `-b` | `--batch-file` | CSV file for batch creation | None |
 | `-i` | `--interactive` | Force interactive mode | False |
 
@@ -138,7 +160,11 @@ summary,priority,issue_type,epic_link,affects_version,description_file,acceptanc
 - `3` = Bug
 - `4` = Epic
 
-### Affects Version (0-4, **ONLY for bugs**)
+### Component (0-1)
+- `0` = dev-tools (default)
+- `1` = vscode-plugin
+
+### Affects Version (0-3, **ONLY for bugs**)
 - `0` = 2.4
 - `1` = 2.5
 - `2` = 2.6
@@ -250,8 +276,8 @@ Failed to create issues:
 The following fields are automatically set for all issues:
 
 - **Project:** AAP
-- **Component:** dev-tools
-- **Workstream:** Dev Tools
+- **Component:** Selectable (dev-tools or vscode-plugin, default: dev-tools)
+- **Workstream:** Dev Tools (automatically set)
 - **Description:** Loaded from template file
 - **Acceptance Criteria:** Loaded from template file
 
