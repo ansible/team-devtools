@@ -1,0 +1,21 @@
+h2. *Problem Description*
+
+_Add details_
+
+
+
+h2. *Supporting Documentation*
+
+_Add details_
+
+
+
+h2. *Definition of Done*
+* Architecture documents reviewed and accepted if applicable.
+* Code completed to meet acceptance criteria based on architecture documents/requirements.
+* Code reviewed and approved by peers.
+* Tests are written and do not "break the build" (all tests pass upstream CI - for now, later should be verified with Downstream CI when that is implemented). Type of tests dependent on need and type of PR. 
+* Changelog written.
+* Doc content is complete where applicable. If Downstream Doc requires an update, raise a JIRA ticket on it.
+* Demonstration of the work in a Demo meeting or to be self-recorded and shared in the #ansible-demos
+* PM sign off where applicable.
