@@ -10,11 +10,14 @@ import logging
 import sys
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
-from jira import JIRA
-from jira.resources import Component
+
+
+if TYPE_CHECKING:
+    from jira import JIRA
+    from jira.resources import Component
 
 
 # Configure logging
@@ -25,14 +28,22 @@ logging.basicConfig(level=logging.INFO, format="%(message)s")
 PRIORITIES = ["Critical", "Major", "Normal", "Minor"]
 ISSUE_TYPES = ["Task", "Story", "Spike", "Bug", "Epic"]
 AFFECTS_VERSIONS = ["2.4", "2.5", "2.6", "aap-devel"]
+COMPONENTS = ["dev-tools", "vscode-plugin"]
+WORKSTREAM = "Dev Tools"
 
 
 def load_config() -> dict[str, Any]:
     """Load Jira configuration from config file."""
-    config_path = Path("config")
+    # Look for config in resources/ first, then fall back to current directory
+    script_dir = Path(__file__).parent
+    config_path = script_dir / "resources" / "jira-config"
+
+    if not config_path.exists():
+        config_path = Path("jira-config")
+
     with config_path.open() as f:
         """
-        config is a file that contains these keys:
+        jira-config is a file that contains these keys:
         jira_token: personal access token
         jira_server: https://jira.example.com
         """
@@ -42,7 +53,12 @@ def load_config() -> dict[str, Any]:
 def load_template(filename: str) -> str:
     """Load text from a template file."""
     script_dir = Path(__file__).parent
-    template_path = script_dir / filename
+
+    # Try resources directory first
+    template_path = script_dir / "resources" / filename
+    if not template_path.exists():
+        # Fall back to current directory
+        template_path = Path(filename)
 
     try:
         return template_path.read_text().strip()
@@ -51,7 +67,7 @@ def load_template(filename: str) -> str:
         return "."
 
 
-def get_component(jiraconn: JIRA, project: str, component_name: str) -> Component:
+def get_component(jiraconn: "JIRA", project: str, component_name: str) -> "Component":
     """Get component object by name."""
     prj_components = jiraconn.project_components(project=project)
     for comp in prj_components:
@@ -119,14 +135,19 @@ def parse_affects_version(value: str) -> str:
     return parse_index_or_name(value, AFFECTS_VERSIONS, "affects version")
 
 
-def create_issues_from_csv(jiraconn: JIRA, csv_file: str, config: dict[str, Any]) -> None:  # noqa: C901, PLR0912, PLR0915
+def parse_component(value: str) -> str:
+    """Convert component index or name to component name."""
+    return parse_index_or_name(value, COMPONENTS, "component")
+
+
+def create_issues_from_csv(jiraconn: "JIRA", csv_file: str, config: dict[str, Any]) -> None:  # noqa: C901, PLR0912, PLR0915
     """Create multiple issues from a CSV file.
 
     CSV format:
-        summary,priority,issue_type,epic_link,affects_version,description_file,acceptance_criteria_file
+        summary,priority,issue_type,component,epic_link,affects_version,description_file,acceptance_criteria_file
 
     Required columns: summary
-    Optional columns: priority, issue_type, epic_link, affects_version, description_file, acceptance_criteria_file
+    Optional columns: priority, issue_type, component, epic_link, affects_version, description_file, acceptance_criteria_file
     """
     try:
         csv_path = Path(csv_file)
@@ -179,6 +200,22 @@ def create_issues_from_csv(jiraconn: JIRA, csv_file: str, config: dict[str, Any]
                 else:
                     issue_type = "Task"
 
+                # Parse and validate component (use default if not provided or invalid)
+                component_str = row.get("component", "").strip()
+                if component_str:
+                    try:
+                        component = parse_component(component_str)
+                    except argparse.ArgumentTypeError as e:
+                        logger.warning(
+                            "Row %d: Invalid component '%s', using default 'dev-tools'. Error: %s",
+                            row_num,
+                            component_str,
+                            e,
+                        )
+                        component = "dev-tools"
+                else:
+                    component = "dev-tools"
+
                 # Optional fields
                 epic_link = row.get("epic_link", "").strip() or None
                 affects_version_str = row.get("affects_version", "").strip()
@@ -217,6 +254,7 @@ def create_issues_from_csv(jiraconn: JIRA, csv_file: str, config: dict[str, Any]
                         summary=summary,
                         priority=priority,
                         issue_type=issue_type,
+                        component=component,
                         epic_link=epic_link,
                         affects_version=affects_version,
                         description_file=description_file,
@@ -257,10 +295,11 @@ def create_issues_from_csv(jiraconn: JIRA, csv_file: str, config: dict[str, Any]
 
 
 def create_aap_issue(  # noqa: PLR0913
-    jiraconn: JIRA,
+    jiraconn: "JIRA",
     summary: str,
     priority: str = "Normal",
     issue_type: str = "Task",
+    component: str = "dev-tools",
     epic_link: str | None = None,
     affects_version: str | None = None,
     description_file: str = "description.txt",
@@ -273,6 +312,7 @@ def create_aap_issue(  # noqa: PLR0913
         summary: Issue summary/title
         priority: Priority name (e.g., 'Critical', 'Major', 'Normal', 'Minor'), default: 'Normal'
         issue_type: Issue type (e.g., 'Task', 'Story', 'Spike', 'Bug', 'Epic'), default: 'Task'
+        component: Component name (e.g., 'dev-tools', 'vscode-plugin'), default: 'dev-tools'
         epic_link: Epic link ID (e.g., 'AAP-123'), optional
         affects_version: Affects Version (for bugs), optional
         description_file: Path to description template file
@@ -288,9 +328,9 @@ def create_aap_issue(  # noqa: PLR0913
     description = load_template(description_file)
     acceptance_criteria = load_template(acceptance_criteria_file)
 
-    # Get the dev-tools component
+    # Get the component
     try:
-        component = get_component(jiraconn, "AAP", "dev-tools")
+        component_obj = get_component(jiraconn, "AAP", component)
     except ValueError:
         logger.exception("Error")
         sys.exit(1)
@@ -300,9 +340,9 @@ def create_aap_issue(  # noqa: PLR0913
         "summary": summary,
         "description": description,
         "issuetype": {"name": issue_type},
-        "components": [{"name": component.name}],
+        "components": [{"name": component_obj.name}],
         "priority": {"name": priority},
-        "customfield_12319275": [{"value": "Dev Tools"}],  # Workstream (array format)
+        "customfield_12319275": [{"value": WORKSTREAM}],  # Workstream (array format)
         "customfield_12315940": acceptance_criteria,  # Acceptance Criteria
     }
 
@@ -365,6 +405,12 @@ Note: Description and Acceptance Criteria are loaded from template files.
         type=parse_issue_type,
         help="Issue type: 0=Task, 1=Story, 2=Spike, 3=Bug, 4=Epic (default: Task)",
     )
+    parser.add_argument(
+        "-c",
+        "--component",
+        type=parse_component,
+        help="Component: 0=dev-tools, 1=vscode-plugin (default: dev-tools)",
+    )
     parser.add_argument("-e", "--epic-link", help="Epic Link (e.g., AAP-123) - optional")
     parser.add_argument(
         "-v",
@@ -391,17 +437,24 @@ Note: Description and Acceptance Criteria are loaded from template files.
 
     args = parser.parse_args()
 
+    # Import jira only when actually needed (lazy import for optional dependency)
+    try:
+        from jira import JIRA  # noqa: PLC0415
+    except ImportError:
+        logger.exception("The 'jira' package is required. Install with: uv sync --group jira")
+        sys.exit(1)
+
     # Load configuration
     try:
         config = load_config()
         jiraconn = JIRA(token_auth=config["jira_token"], server=config["jira_server"])
     except FileNotFoundError:
         logger.exception(
-            "Error: config file not found. Please create a config file with jira_token and jira_server."
+            "Error: jira-config file not found. Please create a config file with jira_token and jira_server."
         )
         sys.exit(1)
     except KeyError:
-        logger.exception("Error: Missing key in config file")
+        logger.exception("Error: Missing key in jira-config file")
         sys.exit(1)
 
     # Batch mode - create issues from CSV
@@ -433,6 +486,13 @@ Note: Description and Acceptance Criteria are loaded from template files.
                 "Select Issue Type:", ISSUE_TYPES, default="Task", validator=parse_issue_type
             )
 
+        if args.component is not None:
+            component = args.component
+        else:
+            component = select_from_list(
+                "Select Component:", COMPONENTS, default="dev-tools", validator=parse_component
+            )
+
         epic_link = (
             args.epic_link
             or input("Epic Link (e.g., AAP-123) [optional, press Enter to skip]: ").strip()
@@ -462,6 +522,7 @@ Note: Description and Acceptance Criteria are loaded from template files.
         logger.info("\n--- Creating issue with the following details ---")
         logger.info("Summary: %s", summary)
         logger.info("Issue Type: %s", issue_type)
+        logger.info("Component: %s", component)
         logger.info("Priority: %s", priority)
         logger.info("Epic Link: %s", epic_link if epic_link else "(none)")
         if issue_type == "Bug":
@@ -479,6 +540,7 @@ Note: Description and Acceptance Criteria are loaded from template files.
         summary = args.summary
         priority = args.priority if args.priority else "Normal"
         issue_type = args.issue_type if args.issue_type else "Task"
+        component = args.component if args.component else "dev-tools"
         epic_link = args.epic_link
         affects_version = args.affects_version
 
@@ -488,6 +550,7 @@ Note: Description and Acceptance Criteria are loaded from template files.
         summary=summary,
         priority=priority,
         issue_type=issue_type,
+        component=component,
         epic_link=epic_link,
         affects_version=affects_version,
         description_file=args.description_file,

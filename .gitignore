@@ -139,3 +139,4 @@ _readthedocs/
 src/team_devtools/_version.py
 .ansible
 coverage.lcov
+jira-config*
