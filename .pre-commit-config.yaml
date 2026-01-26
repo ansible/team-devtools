@@ -56,7 +56,7 @@ repos:
       - id: ruff-format
         alias: ruff
       - id: ruff-check
-        args: ["--fix"]
+        args: ["--fix", "--unsafe-fixes"]
         alias: ruff
   - repo: https://github.com/adrienverge/yamllint.git
     rev: v1.38.0
@@ -65,12 +65,11 @@ repos:
         files: \.(yaml|yml)$
         types: [file, yaml]
         entry: yamllint --strict
-  - repo: https://github.com/ansible/ansible-lint
-    rev: v26.1.1
+  - repo: local
     hooks:
       - id: ansible-lint
-        args: [--fix]
-  # - repo: https://github.com/ansible/team-devtools
-  #   rev: main
-  #   hooks:
-  #     - id: check-platform-constraints
+        name: ansible-lint
+        language: system
+        pass_filenames: false
+        always_run: true
+        entry: uv run -q --group=lint ansible-lint --fix

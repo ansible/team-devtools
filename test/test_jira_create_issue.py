@@ -1,11 +1,11 @@
-"""Tests for create_aap_issue script."""
+"""Tests for create_issue script."""
 
 import argparse
 from pathlib import Path
 
 import pytest
 
-from team_devtools.jira.create_aap_issue import (
+from team_devtools.jira.create_issue import (
     AFFECTS_VERSIONS,
     COMPONENTS,
     ISSUE_TYPES,
@@ -201,11 +201,11 @@ class TestLoadTemplate:
         template_file.write_text(template_content)
 
         # Mock __file__ to point to our temp directory
-        import team_devtools.jira.create_aap_issue as module
+        import team_devtools.jira.create_issue as module
 
         original_file = module.__file__
         try:
-            module.__file__ = str(jira_dir / "create_aap_issue.py")
+            module.__file__ = str(jira_dir / "create_issue.py")
             result = load_template("test_template.txt")
             assert result == template_content
         finally:
@@ -214,11 +214,11 @@ class TestLoadTemplate:
     def test_load_template_file_not_found(self, tmp_path: Path) -> None:
         """Test loading template when file doesn't exist."""
         # Mock __file__ to point to our temp directory
-        import team_devtools.jira.create_aap_issue as module
+        import team_devtools.jira.create_issue as module
 
         original_file = module.__file__
         try:
-            module.__file__ = str(tmp_path / "create_aap_issue.py")
+            module.__file__ = str(tmp_path / "create_issue.py")
             result = load_template("nonexistent.txt")
             assert result == "."  # Default value
         finally:
@@ -233,11 +233,11 @@ class TestLoadTemplate:
         template_file = resources_dir / "test_template.txt"
         template_file.write_text("  \n  Test content  \n\n  ")
 
-        import team_devtools.jira.create_aap_issue as module
+        import team_devtools.jira.create_issue as module
 
         original_file = module.__file__
         try:
-            module.__file__ = str(jira_dir / "create_aap_issue.py")
+            module.__file__ = str(jira_dir / "create_issue.py")
             result = load_template("test_template.txt")
             assert result == "Test content"
         finally:

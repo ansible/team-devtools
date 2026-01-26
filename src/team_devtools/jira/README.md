@@ -13,40 +13,16 @@ Automated script to create Jira issues in the AAP (Ansible Automation Platform) 
 
 ## Prerequisites
 
-This tool requires the `jira` dependency group. Install it using:
-
 ```bash
-uv sync --group jira
-```
-
-Or if working in the repository root:
-
-```bash
-uv pip install jira pyyaml pygithub
+uv sync
 ```
 
 ## Configuration
 
-Create a `jira-config` file in the `resources/` directory (or copy and customize the example):
-
-```bash
-cd src/team_devtools/jira/resources
-cp jira-config.example jira-config
-# Edit jira-config with your credentials
-```
-
-The `jira-config` file should contain:
-
-```yaml
-# Jira Configuration File
-
-jira_token: YOUR_PERSONAL_ACCESS_TOKEN
-jira_server: https://issues.redhat.com
-```
-
-**Note**: The `jira-config` file is gitignored and should not be committed to version control.
+You must define `JIRA_URL` and `JIRA_PERSONAL_TOKEN` environment variables.
 
 To get a Jira personal access token:
+
 1. Go to your Jira instance (e.g., https://issues.redhat.com)
 2. Navigate to Profile → Personal Access Tokens
 3. Create a new token and copy it
@@ -56,25 +32,27 @@ To get a Jira personal access token:
 The script uses template files located in the `resources/` directory:
 
 ### `resources/description.txt`
+
 Default template for issue descriptions. Supports Jira Wiki Markup formatting.
 
 ### `resources/acceptance_criteria.txt`
+
 Default template for acceptance criteria.
 
 Both files can be overridden per issue using `-d` and `-a` flags (with custom file paths), or via CSV columns.
 
 ## Running the Script
 
-Navigate to the script directory before running:
+Install the script directory before running:
 
 ```bash
-cd src/team_devtools/jira/
+uv pip install -e .
 ```
 
 All examples below assume you're in this directory. Alternatively, you can run from the project root using the full path:
 
 ```bash
-python src/team_devtools/jira/create_aap_issue.py [options]
+jira-create-issue [options]
 ```
 
 ## Usage Modes
@@ -84,13 +62,13 @@ python src/team_devtools/jira/create_aap_issue.py [options]
 Prompts for all required fields with guided selection menus.
 
 ```bash
-./create_aap_issue.py --interactive
+jira-create-issue --interactive
 ```
 
 Or simply run without arguments (enters interactive mode if summary not provided):
 
 ```bash
-./create_aap_issue.py
+jira-create-issue
 ```
 
 **Interactive Features:**
@@ -103,12 +81,13 @@ Or simply run without arguments (enters interactive mode if summary not provided
 Specify all fields as command-line arguments.
 
 ```bash
-./create_aap_issue.py -s "Fix login bug" -p Critical -t Bug -e AAP-100 -v 2.5
+jira-create-issue -s "Fix login bug" -p Critical -t Bug -e AAP-100 -v 2.5
 ```
 
 **Minimal example (uses defaults):**
+
 ```bash
-./create_aap_issue.py -s "Add new feature"
+jira-create-issue -s "Add new feature"
 # Uses: Priority=Normal, Type=Task
 ```
 
@@ -117,7 +96,7 @@ Specify all fields as command-line arguments.
 Create multiple issues from a CSV file.
 
 ```bash
-./create_aap_issue.py -b issues.csv
+jira-create-issue -b issues.csv
 ```
 
 **CSV Format:**
@@ -191,21 +170,24 @@ summary,priority,issue_type,component,epic_link,affects_version,description_file
 ### Interactive Mode Examples
 
 **Basic interactive:**
+
 ```bash
-./create_aap_issue.py --interactive
+jira-create-issue --interactive
 ```
 
 **Interactive with pre-filled values:**
+
 ```bash
-./create_aap_issue.py --interactive -p Critical -t Bug
+jira-create-issue --interactive -p Critical -t Bug
 # Will skip prompts for priority and issue type
 ```
 
 ### CLI Mode Examples
 
 **Create a bug with all fields:**
+
 ```bash
-./create_aap_issue.py \
+jira-create-issue \
   -s "Fix login authentication timeout" \
   -p Critical \
   -t Bug \
@@ -214,14 +196,16 @@ summary,priority,issue_type,component,epic_link,affects_version,description_file
 ```
 
 **Using indices instead of names:**
+
 ```bash
-./create_aap_issue.py -s "Add feature" -p 1 -t 0 -e AAP-100
+jira-create-issue -s "Add feature" -p 1 -t 0 -e AAP-100
 # Priority: 1=Major, Type: 0=Task
 ```
 
 **With custom templates:**
+
 ```bash
-./create_aap_issue.py \
+jira-create-issue \
   -s "Security update" \
   -p Critical \
   -t Task \
@@ -230,19 +214,22 @@ summary,priority,issue_type,component,epic_link,affects_version,description_file
 ```
 
 **Create a task (minimal):**
+
 ```bash
-./create_aap_issue.py -s "Update documentation"
+jira-create-issue -s "Update documentation"
 # Uses defaults: Normal priority, Task type
 ```
 
 ### Batch CSV Mode Examples
 
 **Basic batch creation:**
+
 ```bash
-./create_aap_issue.py -b my_issues.csv
+jira-create-issue -b my_issues.csv
 ```
 
 **Sample CSV content:**
+
 ```csv
 summary,priority,issue_type,epic_link,affects_version
 "Critical security fix",0,3,AAP-100,2.5
@@ -252,6 +239,7 @@ summary,priority,issue_type,epic_link,affects_version
 ```
 
 **Mixed index and name values:**
+
 ```csv
 summary,priority,issue_type,epic_link,affects_version
 "Bug fix",Critical,Bug,AAP-100,2.5
@@ -262,13 +250,15 @@ summary,priority,issue_type,epic_link,affects_version
 ## Output
 
 ### Single Issue Creation
-```
+
+```text
 ✓ Issue created successfully: AAP-12345
   URL: https://issues.redhat.com/browse/AAP-12345
 ```
 
 ### Batch Creation Summary
-```
+
+```text
 ============================================================
 Batch creation complete!
 ✓ Created: 8 issues
