@@ -7,12 +7,11 @@
 import argparse
 import csv
 import logging
+import os
 import sys
 from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
-
-import yaml
 
 
 if TYPE_CHECKING:
@@ -33,21 +32,16 @@ WORKSTREAM = "Dev Tools"
 
 
 def load_config() -> dict[str, Any]:
-    """Load Jira configuration from config file."""
-    # Look for config in resources/ first, then fall back to current directory
-    script_dir = Path(__file__).parent
-    config_path = script_dir / "resources" / "jira-config"
-
-    if not config_path.exists():
-        config_path = Path("jira-config")
-
-    with config_path.open() as f:
-        """
-        jira-config is a file that contains these keys:
-        jira_token: personal access token
-        jira_server: https://jira.example.com
-        """
-        return yaml.safe_load(f)
+    """Load Jira configuration."""
+    # these env var names match the ones used by atlassian-mcp server
+    result = {
+        "jira_token": os.environ.get("JIRA_PERSONAL_TOKEN", ""),
+        "jira_server": os.environ.get("JIRA_URL", ""),
+    }
+    if not result["jira_token"] or not result["jira_server"]:
+        msg = "JIRA_PERSONAL_TOKEN and JIRA_URL must be set to use this tool."
+        raise ValueError(msg)
+    return result
 
 
 def load_template(filename: str) -> str:
@@ -249,7 +243,7 @@ def create_issues_from_csv(jiraconn: "JIRA", csv_file: str, config: dict[str, An
 
                 logger.info("\nRow %d: Creating issue '%s'...", row_num, summary)
                 try:
-                    issue = create_aap_issue(
+                    issue = create_issue(
                         jiraconn=jiraconn,
                         summary=summary,
                         priority=priority,
@@ -294,7 +288,7 @@ def create_issues_from_csv(jiraconn: "JIRA", csv_file: str, config: dict[str, An
         sys.exit(1)
 
 
-def create_aap_issue(  # noqa: PLR0913
+def create_issue(  # noqa: PLR0913
     jiraconn: "JIRA",
     summary: str,
     priority: str = "Normal",
@@ -441,20 +435,15 @@ Note: Description and Acceptance Criteria are loaded from template files.
     try:
         from jira import JIRA  # noqa: PLC0415
     except ImportError:
-        logger.exception("The 'jira' package is required. Install with: uv sync --group jira")
+        logger.exception("The 'jira' package is required. Install with: uv sync")
         sys.exit(1)
 
     # Load configuration
     try:
         config = load_config()
         jiraconn = JIRA(token_auth=config["jira_token"], server=config["jira_server"])
-    except FileNotFoundError:
-        logger.exception(
-            "Error: jira-config file not found. Please create a config file with jira_token and jira_server."
-        )
-        sys.exit(1)
-    except KeyError:
-        logger.exception("Error: Missing key in jira-config file")
+    except ValueError:
+        logger.exception("Error loading Jira configuration")
         sys.exit(1)
 
     # Batch mode - create issues from CSV
@@ -524,9 +513,9 @@ Note: Description and Acceptance Criteria are loaded from template files.
         logger.info("Issue Type: %s", issue_type)
         logger.info("Component: %s", component)
         logger.info("Priority: %s", priority)
-        logger.info("Epic Link: %s", epic_link if epic_link else "(none)")
+        logger.info("Epic Link: %s", epic_link or "(none)")
         if issue_type == "Bug":
-            logger.info("Affects Version: %s", affects_version if affects_version else "(none)")
+            logger.info("Affects Version: %s", affects_version or "(none)")
         logger.info("Description: %s", load_template(args.description_file))
         logger.info("Acceptance Criteria: %s", load_template(args.acceptance_criteria_file))
         logger.info("")
@@ -538,14 +527,14 @@ Note: Description and Acceptance Criteria are loaded from template files.
     else:
         # Non-interactive mode - use parsed arguments directly (with defaults)
         summary = args.summary
-        priority = args.priority if args.priority else "Normal"
-        issue_type = args.issue_type if args.issue_type else "Task"
-        component = args.component if args.component else "dev-tools"
+        priority = args.priority or "Normal"
+        issue_type = args.issue_type or "Task"
+        component = args.component or "dev-tools"
         epic_link = args.epic_link
         affects_version = args.affects_version
 
     # Create the issue
-    create_aap_issue(
+    create_issue(
         jiraconn=jiraconn,
         summary=summary,
         priority=priority,

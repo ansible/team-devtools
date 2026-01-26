@@ -6,11 +6,17 @@ description = "..."
 readme = "README.md"
 # https://peps.python.org/pep-0621/#readme
 requires-python = ">=3.11"
-dependencies = ["packaging>=23.2"]
+dependencies = [
+  "jira>=3.10.5",
+  "packaging>=23.2",
+  "pygithub>=2.8",
+  "pyyaml>=6.0",
+]
 dynamic = ["version"]
 
 [project.scripts]
 check-platform-constraints = "team_devtools.check_platform_constraints:main"
+jira-create-issue = "team_devtools.jira.create_issue:main"
 
 [dependency-groups]
 dev = [
@@ -27,8 +33,11 @@ docs = [
   "mkdocs-ansible>=24.12.0",
   "mkdocs-exclude>=1.0.2",
 ]
-jira = ["jira>=3.10", "pygithub>=2.8", "pyyaml>=6.0"]
-lint = ["pre-commit>=3.5.0", "pre-commit-uv>=4.1.4"]
+lint = [
+  "ansible-lint>=26.1.1",
+  "pre-commit>=3.5.0",
+  "pre-commit-uv>=4.1.4",
+]
 pkg = ["build[virtualenv]", "twine"]
 
 [build-system]
