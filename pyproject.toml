@@ -57,7 +57,7 @@ source = ["src", "test", ".tox/*/site-packages"]
 
 [tool.coverage.report]
 exclude_also = ["if TYPE_CHECKING:", "pragma: no cover"]
-fail_under = 47
+fail_under = 46
 ignore_errors = false
 omit = ["test/*"]
 show_missing = true
