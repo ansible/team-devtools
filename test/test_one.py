@@ -3,6 +3,6 @@
 
 def test_placeholder() -> None:
     """Placeholder test."""
-    from team_devtools import __version__
+    from team_devtools import __version__  # type: ignore[attr-defined]
 
     assert __version__

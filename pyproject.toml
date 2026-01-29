@@ -11,6 +11,7 @@ dependencies = [
   "packaging>=23.2",
   "pygithub>=2.8",
   "pyyaml>=6.0",
+  "questionary>=2.1.1",
 ]
 dynamic = ["version"]
 
@@ -20,13 +21,17 @@ jira-create-issue = "team_devtools.jira.create_issue:main"
 
 [dependency-groups]
 dev = [
+  "biome>=0.1.3",
   "coverage[toml]>=7.6.9",
   "mkdocs-exclude>=1.0.2",
+  "mypy>=1.19.1",
   "pytest>=9",
   "pytest-instafail>=0.5.0",
   "pytest-plus>=0.8.1",
   "pytest-sugar>=1.1.1",
   "pytest-xdist>=3.8.0",
+  "ruff>=0.14.14",
+  "types-pyyaml>=6.0.12.20250915",
 ]
 docs = [
   "argparse-manpage>=4.7",
@@ -35,10 +40,15 @@ docs = [
 ]
 lint = [
   "ansible-lint>=26.1.1",
+  "biome>=0.1.3",
   "pre-commit>=3.5.0",
   "pre-commit-uv>=4.1.4",
+  "tombi>=0.7.25",
 ]
-pkg = ["build[virtualenv]", "twine"]
+pkg = [
+  "build[virtualenv,uv]>=1.4.0",
+  "twine>=6.1.0",
+]
 
 [build-system]
 requires = [
@@ -74,6 +84,19 @@ parallel = true
 relative_files = true  # needed by sonarcloud
 source = ["src"]
 
+[tool.mypy]
+exclude = [
+  "build/",
+  ".tox/",
+  ".cache/",
+  ".pytest_cache/",
+  ".ruff_cache/",
+  ".mypy_cache/",
+  ".venv"
+]
+files = ["src", "test"]
+strict = true
+
 [tool.pytest]
 addopts = ["--durations=10", "--failed-first", "-p no:pytest_cov"]
 norecursedirs = [
@@ -108,9 +131,16 @@ external = [
   "DOC",  # pydoclint
 ]
 ignore = [
+  "D",
+  "RUF045",  #
+  "DOC501",  # missing-type-docstring
+  "DOC201",  # missing-type-docstring
   "COM812",  # conflicts with ISC001 on format
   "E501",  # line-too-long / rely on black
   "ISC001",  # conflicts with COM812 on format
+  "PLR1702",  # use-f-string
+  "PLR0917",  # too-many-arguments
+  "PLR0913",  # too-many-locals
   "S603",  # subprocess
   "S607",  # subprocess
 ]
@@ -208,10 +238,10 @@ commands = [
   ["sh", "-c", "python -m twine check --strict {tox_root}/dist/*"],
 ]
 description = "Build package and check metadata"
-group = "pkg"
+dependency_groups = ["pkg"]
 
 [tool.tox.env_run_base]
-allowlist_externals = ["rm", "sh"]
+allowlist_externals = ["rm", "sh", "git"]
 commands = [
   [
     "python",

@@ -5,6 +5,7 @@ ci:
   autoupdate_schedule: quarterly
   skip:
     - ansible-lint
+    - mypy
     - tombi-format
     - tombi-lint
 repos:
@@ -58,15 +59,14 @@ repos:
       - id: ruff-check
         args: ["--fix", "--unsafe-fixes"]
         alias: ruff
-  - repo: https://github.com/adrienverge/yamllint.git
-    rev: v1.38.0
-    hooks:
-      - id: yamllint
-        files: \.(yaml|yml)$
-        types: [file, yaml]
-        entry: yamllint --strict
   - repo: local
     hooks:
+      - id: mypy
+        name: mypy
+        language: system
+        pass_filenames: false
+        always_run: true
+        entry: uv run -q --group=lint mypy --strict
       - id: ansible-lint
         name: ansible-lint
         language: system

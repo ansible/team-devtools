@@ -149,7 +149,7 @@ def test_update_renovate_config_preserves_existing_rules(tmp_path: Path) -> None
         )
     )
 
-    constraints = {"ansible-core": "<2.17"}
+    constraints = {"ansible-core": SpecifierSet("<2.17")}
 
     changed, _message = update_renovate_config(renovate_file, constraints)
 
