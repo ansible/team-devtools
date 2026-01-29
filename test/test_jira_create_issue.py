@@ -5,11 +5,8 @@ from pathlib import Path
 
 import pytest
 
+from team_devtools.jira.const import JD
 from team_devtools.jira.create_issue import (
-    AFFECTS_VERSIONS,
-    COMPONENTS,
-    ISSUE_TYPES,
-    PRIORITIES,
     load_template,
     parse_affects_version,
     parse_component,
@@ -250,23 +247,23 @@ class TestConstants:
     def test_priorities_constant(self) -> None:
         """Test PRIORITIES constant."""
         expected_priorities = ["Critical", "Major", "Normal", "Minor"]
-        assert expected_priorities == PRIORITIES
-        assert len(PRIORITIES) == len(expected_priorities)
+        assert expected_priorities == JD.PRIORITIES
+        assert len(JD.PRIORITIES) == len(expected_priorities)
 
     def test_issue_types_constant(self) -> None:
         """Test ISSUE_TYPES constant."""
         expected_issue_types = ["Task", "Story", "Spike", "Bug", "Epic"]
-        assert expected_issue_types == ISSUE_TYPES
-        assert len(ISSUE_TYPES) == len(expected_issue_types)
+        assert expected_issue_types == JD.ISSUE_TYPES
+        assert len(JD.ISSUE_TYPES) == len(expected_issue_types)
 
     def test_affects_versions_constant(self) -> None:
         """Test AFFECTS_VERSIONS constant."""
         expected_versions = ["2.4", "2.5", "2.6", "aap-devel"]
-        assert expected_versions == AFFECTS_VERSIONS
-        assert len(AFFECTS_VERSIONS) == len(expected_versions)
+        assert expected_versions == JD.AFFECTS_VERSIONS
+        assert len(JD.AFFECTS_VERSIONS) == len(expected_versions)
 
     def test_components_constant(self) -> None:
         """Test COMPONENTS constant."""
         expected_components = ["dev-tools", "vscode-plugin"]
-        assert expected_components == COMPONENTS
-        assert len(COMPONENTS) == len(expected_components)
+        assert expected_components == JD.COMPONENTS
+        assert len(JD.COMPONENTS) == len(expected_components)

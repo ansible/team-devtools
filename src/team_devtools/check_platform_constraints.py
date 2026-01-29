@@ -10,6 +10,7 @@ This script:
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 import tomllib
 from packaging.requirements import Requirement
@@ -47,7 +48,7 @@ def check_dependency_compatibility(dep_str: str, constraints: dict[str, Specifie
 
     Returns list of violation messages.
     """
-    violations = []
+    violations: list[str] = []
 
     try:
         req = Requirement(dep_str)
@@ -134,7 +135,9 @@ def update_renovate_config(
     return True, f"Updated renovate.json with {len(new_rules)} constraint rule(s)"
 
 
-def check_all_dependencies(pyproject: dict, constraints: dict[str, SpecifierSet]) -> list[str]:
+def check_all_dependencies(
+    pyproject: dict[str, Any], constraints: dict[str, SpecifierSet]
+) -> list[str]:
     """Check all dependency types in pyproject.toml.
 
     Args:

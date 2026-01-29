@@ -9,13 +9,15 @@ import pytest
 
 
 spec = importlib.util.spec_from_file_location("forum_post", ".github/workflows/forum_post.py")
+assert spec is not None
+assert spec.loader is not None
 forum_post = importlib.util.module_from_spec(spec)
 sys.modules["forum_post"] = forum_post
 spec.loader.exec_module(forum_post)
 
 
 @pytest.fixture
-def post_instance() -> forum_post.Post:
+def post_instance() -> forum_post.Post:  # type: ignore[name-defined]
     """A Post instance for testing."""
     post = forum_post.Post(
         project="ansible/molecule",
@@ -32,7 +34,7 @@ def post_instance() -> forum_post.Post:
     return post
 
 
-def test_prepare_post(post_instance: forum_post.Post) -> None:
+def test_prepare_post(post_instance: forum_post.Post) -> None:  # type: ignore[name-defined]
     """Test that discourse post payload is generated correctly."""
     payload = post_instance._prepare_post()  # noqa: SLF001
     release_notes = forum_post.POST_MD.format(
