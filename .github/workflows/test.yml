@@ -1,5 +1,5 @@
 ---
-name: tox
+name: test
 on:
   merge_group:
     branches:
@@ -19,7 +19,48 @@ permissions:
   pull-requests: write
   checks: write
 jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    environment: ack # BOT_PAT
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.BOT_PAT }}
+
+      - uses: astral-sh/setup-uv@v7
+
+      - uses: j178/prek-action@v1
+        id: prek
+        with:
+          extra-args: --config .pre-commit-config.yaml --all-files
+        continue-on-error: true
+
+      - name: Commit & push changes
+        id: commit-and-push
+        if: steps.prek.outcome == 'failure'
+        # git config push.default upstream
+        run: |
+          git config user.email "devtools@ansible.com"
+          git config user.name "Ansible Bot"
+          git add .
+          git status
+          git commit -m "chore[bot]: auto-fix lint errors"
+          git push
+
+      - name: react if linting errors were not fixed
+        if: steps.commit-and-push.outcome  == 'failure'
+        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            @${{ github.actor }} I tried to fix the linting errors, but it didn't work. Please fix them manually.
+            See [CI log](https://github.com/${{ github.repository_owner }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for more details.
+
   test:
+    needs:
+      - lint
     # tests reusable tox workflow
     uses: ./.github/workflows/tox.yml
     with:
