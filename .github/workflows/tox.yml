@@ -138,6 +138,7 @@ jobs:
         with:
           path: |
             ~/.cache/pre-commit
+            ~/.cache/.cache/prek
           key: pre-commit-${{ matrix.name }}-${{ hashFiles('.pre-commit-config.yaml') }}
 
       - name: Install the latest version of uv
@@ -256,6 +257,10 @@ jobs:
             printf '### Failed as git reported modified and/or untracked files\n```\n%s\n```\n' "$(git status -s)" | tee -a "$GITHUB_STEP_SUMMARY"
             exit 99
           fi
+
+      - name: Cache gc clean-ups to prevent build-ups
+        run: |
+          uv run --group=lint prek cache gc --verbose
 
   check:
     if: always()

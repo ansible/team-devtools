@@ -12,19 +12,23 @@ repos:
   - repo: meta
     hooks:
       - id: check-useless-excludes
+        priority: 0
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.9.26
+    rev: 0.9.28
     hooks:
       - id: uv-sync
+        priority: 0
       - id: uv-lock
+        priority: 0
         name: "deps: upgrade via uv sync --upgrade"
         alias: deps
         args: ["--upgrade"]
         stages: [manual]
   - repo: https://github.com/biomejs/pre-commit
-    rev: "v2.3.11"
+    rev: "v2.3.13"
     hooks:
       - id: biome-check
+        priority: 1
         name: biome
         alias: biome
         args: [--unsafe]
@@ -32,33 +36,41 @@ repos:
     rev: v2.4.1
     hooks:
       - id: codespell
+        priority: 0
         additional_dependencies: ["tomli>=2.2.1; python_version<'3.11'"]
-  - repo: https://github.com/pre-commit/pre-commit-hooks.git
-    rev: v6.0.0
+  - repo: builtin
     hooks:
       - id: end-of-file-fixer
+        priority: 0
       - id: trailing-whitespace
+        priority: 0
       - id: mixed-line-ending
+        priority: 0
       - id: fix-byte-order-marker
+        priority: 0
       - id: check-executables-have-shebangs
+        priority: 0
       - id: check-merge-conflict
-      - id: debug-statements
-        language_version: python3
+        priority: 0
   - repo: https://github.com/tombi-toml/tombi-pre-commit
-    rev: v0.7.23
+    rev: v0.7.25
     hooks:
       - id: tombi-format
         alias: toml
+        priority: 0
       - id: tombi-lint
         alias: toml
+        priority: 1
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.14.14
     hooks:
       - id: ruff-format
         alias: ruff
+        priority: 1
       - id: ruff-check
         args: ["--fix", "--unsafe-fixes"]
         alias: ruff
+        priority: 2
   - repo: local
     hooks:
       - id: mypy
@@ -67,9 +79,11 @@ repos:
         pass_filenames: false
         always_run: true
         entry: uv run -q --group=lint mypy --strict
+        priority: 1
       - id: ansible-lint
         name: ansible-lint
         language: system
         pass_filenames: false
         always_run: true
         entry: uv run -q --group=lint ansible-lint --fix
+        priority: 1
