@@ -7,7 +7,7 @@ hide:
 
 This repository is used to share practices, workflows and decisions affecting projects maintained by Ansible DevTools team.
 
-## Python DevTools project dependencies
+## Python DevTools project dependencies    
 
 It should be noted that our vscode extension would either depend on `ansible-dev-tools` python package or directly use our execution environments.
 
