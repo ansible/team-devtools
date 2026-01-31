@@ -3,7 +3,7 @@ hide:
   - toc
 ---
 
-# devtools    
+# devtools
 
 This repository is used to share practices, workflows and decisions affecting projects maintained by Ansible DevTools team.
 
