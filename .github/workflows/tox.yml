@@ -259,13 +259,10 @@ jobs:
           fi
 
       - name: Cache gc clean-ups to prevent build-ups
-        if: ${{ matrix.name == 'lint' }}
         run: |
-          # Only run if prek is available in the lint group
-          if uv run --group=lint prek --version >/dev/null 2>&1; then
-            uv run --group=lint prek cache gc --verbose
-          else
-            echo "prek not installed, skipping cache gc"
+          # Only run if prek cache folder exists
+          if [[ -d ~/.cache/.cache/prek ]]; then
+            uv tool run prek cache gc --verbose
           fi
 
   check:
