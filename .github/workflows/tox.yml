@@ -259,8 +259,9 @@ jobs:
           fi
 
       - name: Cache gc clean-ups to prevent build-ups
+        # we ignore failure as not all repos are using prek installed
         run: |
-          uv run --group=lint prek cache gc --verbose
+          uv run --group=lint prek cache gc --verbose || true
 
   check:
     if: always()
