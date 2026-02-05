@@ -144,6 +144,7 @@ def create_issue(
     description: str | None = None,
     acceptance_criteria: str | None = None,
     acceptance_criteria_file: str = "acceptance_criteria.txt",
+    assignee: str | None = None,
 ) -> Issue:
     """Create an issue in the AAP project.
 
@@ -180,6 +181,7 @@ def create_issue(
         sys.exit(1)
 
     issue_template = {
+        "assignee": assignee,
         "project": "AAP",
         "summary": summary,
         "description": description,
@@ -202,6 +204,10 @@ def create_issue(
     if affects_version:
         issue_template["versions"] = [{"name": affects_version}]
 
+    if sprint and not assignee:
+        # Auto-assign issue to current user if added to a sprint
+        issue_template["assignee"] = jira_conn.myself()["key"]
+
     try:
         issue = jira_conn.create_issue(fields=issue_template)
     except Exception as e:  # noqa: BLE001
@@ -210,12 +216,12 @@ def create_issue(
     else:
         username = jira_conn.myself()["key"]
         info(
-            f"{username} successfully created issue: {issue.key} :{jira_conn.server_url}/browse/{issue.key}"
+            f"{username} successfully created issue {issue.key} > {jira_conn.server_url}/browse/{issue.key}"
         )
         return issue
 
 
-def main() -> None:  # noqa: C901, PLR0912, PLR0915
+def main() -> None:  # noqa: PLR0912, PLR0915
     """Main function to parse arguments and create Jira issues."""
     parser = argparse.ArgumentParser(
         description="Create AAP Jira issues with dev-tools component",

@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from jira import JIRA
 
 
-def create_issues_from_csv(jira_conn: JIRA, csv_file: str, config: dict[str, Any]) -> None:  # noqa: C901, PLR0912, PLR0915
+def create_issues_from_csv(jira_conn: JIRA, csv_file: str, config: dict[str, Any]) -> None:  # noqa: PLR0912, PLR0915
     """Create multiple issues from a CSV file.
 
     CSV format:
