@@ -8,7 +8,9 @@ import sys
 import pytest
 
 
-spec = importlib.util.spec_from_file_location("forum_post", ".github/workflows/forum_post.py")
+spec = importlib.util.spec_from_file_location(
+    "forum_post", ".github/workflows/forum_post.py"
+)
 assert spec is not None
 assert spec.loader is not None
 forum_post = importlib.util.module_from_spec(spec)
@@ -28,9 +30,7 @@ def post_instance() -> forum_post.Post:  # type: ignore[name-defined]
     # prefill values that need network access.
     post.category_id = "18"
     post.created = "2025-02-19T12:53:51Z"
-    post.release_notes = (
-        "## Bugfixes\r\n\r\n- Fix molecule matrix with no scenario name. (#4400) @Qalthos\r\n"
-    )
+    post.release_notes = "## Bugfixes\r\n\r\n- Fix molecule matrix with no scenario name. (#4400) @Qalthos\r\n"
     return post
 
 

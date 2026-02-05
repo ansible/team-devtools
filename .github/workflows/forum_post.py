@@ -61,7 +61,9 @@ Release notes for all versions can be found in the [changelog](https://github.co
 class Post:
     """A class to post a release on the Ansible forum."""
 
-    def __init__(self, project: str, release: str, forum_api_key: str, forum_user: str) -> None:
+    def __init__(
+        self, project: str, release: str, forum_api_key: str, forum_user: str
+    ) -> None:
         """Initialize the Post class.
 
         Args:
@@ -81,7 +83,9 @@ class Post:
 
     def _get_release_notes(self) -> tuple[str, str]:
         """Get the release notes for the project."""
-        release_url = f"https://api.github.com/repos/{self.project}/releases/tags/{self.release}"
+        release_url = (
+            f"https://api.github.com/repos/{self.project}/releases/tags/{self.release}"
+        )
         with urllib.request.urlopen(release_url) as url:  # noqa: S310
             data = json.load(url)
 
@@ -91,18 +95,22 @@ class Post:
 
     def _get_category_id(self) -> str:
         """Get the category ID for the project."""
-        categories_url = "https://forum.ansible.com/categories.json?include_subcategories=true"
+        categories_url = (
+            "https://forum.ansible.com/categories.json?include_subcategories=true"
+        )
         categories_request = Request(categories_url)  # noqa: S310
         categories_request.add_header("Api-Key", self.forum_api_key)
         categories_request.add_header("Api-Username", self.forum_user)
         with urllib.request.urlopen(url=categories_request) as url:  # noqa: S310
             data = json.load(url)
         category = next(
-            c for c in data["category_list"]["categories"] if c["name"] == "News & Announcements"
+            c
+            for c in data["category_list"]["categories"]
+            if c["name"] == "News & Announcements"
         )
-        return next(c for c in category["subcategory_list"] if c["name"] == "Ecosystem Releases")[
-            "id"
-        ]
+        return next(
+            c for c in category["subcategory_list"] if c["name"] == "Ecosystem Releases"
+        )["id"]
 
     def _prepare_post(self) -> dict[str, str | list[str]]:
         post_md = POST_MD.format(

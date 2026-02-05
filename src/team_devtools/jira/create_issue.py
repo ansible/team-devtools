@@ -94,7 +94,9 @@ def select_from_list(
             try:
                 return validator(user_input)
             except argparse.ArgumentTypeError as e:
-                error(f"Error: {e}")  # Exception details already included by exception()
+                error(
+                    f"Error: {e}"
+                )  # Exception details already included by exception()
 
 
 def parse_index_or_name(value: str, options: list[str], field_name: str) -> str:
@@ -145,6 +147,7 @@ def create_issue(
     description: str | None = None,
     acceptance_criteria: str | None = None,
     acceptance_criteria_file: str = "acceptance_criteria.txt",
+    assignee: str | None = None,
 ) -> Issue:
     """Create an issue in the AAP project.
 
@@ -180,7 +183,8 @@ def create_issue(
         error(f"Error: {e}")
         sys.exit(1)
 
-    issue_template = {
+    issue_fields = {
+        "assignee": {"name": assignee},
         "project": "AAP",
         "summary": summary,
         "description": description,
@@ -191,32 +195,36 @@ def create_issue(
         JD.ACCEPTANCE_CRITERIA_FIELD: acceptance_criteria,  # Acceptance Criteria
     }
     if story_points:
-        issue_template[JD.STORY_POINTS_FIELD] = int(story_points)  # type: ignore[assignment]
+        issue_fields[JD.STORY_POINTS_FIELD] = int(story_points)  # type: ignore[assignment]
     if sprint:
-        issue_template[JD.SPRINT_FIELD] = sprint  # type: ignore[assignment]
+        issue_fields[JD.SPRINT_FIELD] = sprint  # type: ignore[assignment]
 
     # Add Epic Link only if provided
     if epic_link:
-        issue_template[JD.EPIC_LINK_FIELD] = epic_link
+        issue_fields[JD.EPIC_LINK_FIELD] = epic_link
 
     # Add Affects Version only if provided (typically for bugs)
     if affects_version:
-        issue_template["versions"] = [{"name": affects_version}]
+        issue_fields["versions"] = [{"name": affects_version}]
+
+    if sprint and not assignee:
+        # Auto-assign issue to current user if added to a sprint
+        issue_fields["assignee"] = jira_conn.myself()["key"]
 
     try:
-        issue = jira_conn.create_issue(fields=issue_template)
+        issue = jira_conn.create_issue(fields=issue_fields)
     except Exception as e:  # noqa: BLE001
         error(f"Error creating issue: {e}")
         sys.exit(1)
     else:
         username = jira_conn.myself()["key"]
         info(
-            f"{username} successfully created issue: {issue.key} :{jira_conn.server_url}/browse/{issue.key}"
+            f"{username} successfully created issue {issue.key} > {jira_conn.server_url}/browse/{issue.key}"
         )
         return issue
 
 
-def main() -> None:  # noqa: C901, PLR0912, PLR0915
+def main() -> None:  # noqa: PLR0912, PLR0915
     """Main function to parse arguments and create Jira issues."""
     parser = argparse.ArgumentParser(
         description="Create AAP Jira issues with dev-tools component",
@@ -263,7 +271,9 @@ Note: Description and Acceptance Criteria are loaded from template files.
         type=parse_component,
         help="Component: 0=dev-tools, 1=vscode-plugin (default: dev-tools)",
     )
-    parser.add_argument("-e", "--epic-link", help="Epic Link (e.g., AAP-123) - optional")
+    parser.add_argument(
+        "-e", "--epic-link", help="Epic Link (e.g., AAP-123) - optional"
+    )
     parser.add_argument(
         "-v",
         "--affects-version",
@@ -287,7 +297,9 @@ Note: Description and Acceptance Criteria are loaded from template files.
         "--batch-file",
         help="CSV file with multiple issues to create (batch mode)",
     )
-    parser.add_argument("-i", "--interactive", action="store_true", help="Run in interactive mode")
+    parser.add_argument(
+        "-i", "--interactive", action="store_true", help="Run in interactive mode"
+    )
 
     args = parser.parse_args()
 
@@ -399,7 +411,9 @@ Note: Description and Acceptance Criteria are loaded from template files.
                 affects_version = None
 
             if issue_type != "Epic":
-                sprints = jira_conn.sprints(board_id=JD.SPRINT_BOARD_ID, state="active,future")
+                sprints = jira_conn.sprints(
+                    board_id=JD.SPRINT_BOARD_ID, state="active,future"
+                )
                 info(f"Sprints: {sprints}")
 
                 sprint_choices = []
@@ -430,13 +444,16 @@ Note: Description and Acceptance Criteria are loaded from template files.
                         )
                     )
                 sprint_choices.append(questionary.Choice("None", None))
-                sprint_res = questionary.select("Sprint", choices=sprint_choices).unsafe_ask()
+                sprint_res = questionary.select(
+                    "Sprint", choices=sprint_choices
+                ).unsafe_ask()
 
                 story_points = questionary.select(
                     "Story Points", choices=JD.STORY_POINTS, default=None
                 ).unsafe_ask()
 
             create_data = {
+                "assignee": jira_conn.myself()["key"],
                 "summary": summary,
                 "priority": priority,
                 "issue_type": issue_type,
@@ -450,7 +467,9 @@ Note: Description and Acceptance Criteria are loaded from template files.
             }
             info(f"Creating issue with the following details\n {create_data}")
 
-            confirm = questionary.confirm("Create this issue?", default=True).unsafe_ask()
+            confirm = questionary.confirm(
+                "Create this issue?", default=True
+            ).unsafe_ask()
             if not confirm:
                 info(f"Cancelled. {confirm}")
                 sys.exit(0)

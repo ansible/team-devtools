@@ -61,16 +61,6 @@ repos:
       - id: tombi-lint
         alias: toml
         priority: 1
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.0
-    hooks:
-      - id: ruff-format
-        alias: ruff
-        priority: 1
-      - id: ruff-check
-        args: ["--fix", "--unsafe-fixes"]
-        alias: ruff
-        priority: 2
   - repo: local
     hooks:
       - id: mypy
@@ -87,3 +77,7 @@ repos:
         always_run: true
         entry: uv run -q --group=lint ansible-lint --fix
         priority: 1
+  - repo: https://github.com/ansible/actions
+    rev: v0.4.0
+    hooks:
+      - id: ruff

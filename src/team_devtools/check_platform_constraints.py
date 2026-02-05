@@ -43,7 +43,9 @@ def get_constraints() -> dict[str, SpecifierSet]:
     return {name: SpecifierSet(spec) for name, spec in PLATFORM_CONSTRAINTS.items()}
 
 
-def check_dependency_compatibility(dep_str: str, constraints: dict[str, SpecifierSet]) -> list[str]:
+def check_dependency_compatibility(
+    dep_str: str, constraints: dict[str, SpecifierSet]
+) -> list[str]:
     """Check if a dependency violates platform constraints.
 
     Returns list of violation messages.
@@ -117,7 +119,9 @@ def update_renovate_config(
         "Platform compatibility constraint from .config/platform-constraints.txt",
     }
     filtered_rules = [
-        rule for rule in existing_rules if rule.get("description") not in old_descriptions
+        rule
+        for rule in existing_rules
+        if rule.get("description") not in old_descriptions
     ]
 
     # Add new rules

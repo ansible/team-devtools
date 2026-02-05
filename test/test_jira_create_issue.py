@@ -35,7 +35,9 @@ class TestParsePriority:
 
     def test_parse_priority_invalid_index(self) -> None:
         """Test parsing priority with invalid index."""
-        with pytest.raises(argparse.ArgumentTypeError, match="priority index must be 0-3"):
+        with pytest.raises(
+            argparse.ArgumentTypeError, match="priority index must be 0-3"
+        ):
             parse_priority("4")
         # Negative numbers fail isdigit() and fall through to name validation
         with pytest.raises(argparse.ArgumentTypeError, match="Invalid priority"):
@@ -71,7 +73,9 @@ class TestParseIssueType:
 
     def test_parse_issue_type_invalid_index(self) -> None:
         """Test parsing issue type with invalid index."""
-        with pytest.raises(argparse.ArgumentTypeError, match="issue type index must be 0-4"):
+        with pytest.raises(
+            argparse.ArgumentTypeError, match="issue type index must be 0-4"
+        ):
             parse_issue_type("5")
         # Negative numbers fail isdigit() and fall through to name validation
         with pytest.raises(argparse.ArgumentTypeError, match="Invalid issue type"):
@@ -135,7 +139,9 @@ class TestParseComponent:
 
     def test_parse_component_invalid_index(self) -> None:
         """Test parsing component with invalid index."""
-        with pytest.raises(argparse.ArgumentTypeError, match="component index must be 0-1"):
+        with pytest.raises(
+            argparse.ArgumentTypeError, match="component index must be 0-1"
+        ):
             parse_component("2")
         # Negative numbers fail isdigit() and fall through to name validation
         with pytest.raises(argparse.ArgumentTypeError, match="Invalid component"):

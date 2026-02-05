@@ -1,0 +1,9 @@
+[env]
+_.python.venv = { path = ".venv", create = true }
+
+[tools]
+python = "latest"
+uv = "latest"
+
+[settings]
+python.uv_venv_auto = true
