@@ -296,7 +296,9 @@ def test_check_dependency_compatibility_multiple_version_specs() -> None:
     assert violations3 == []
 
 
-def test_main_with_no_pyproject(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_main_with_no_pyproject(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Test main function when pyproject.toml doesn't exist."""
     monkeypatch.chdir(tmp_path)
 
@@ -350,7 +352,9 @@ def test_main_no_violations(
     assert "compatible with platform constraints" in captured.out.lower()
 
 
-def test_main_no_pyproject_or_renovate(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_main_no_pyproject_or_renovate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Test main function when neither pyproject.toml nor renovate.json exist."""
     monkeypatch.chdir(tmp_path)
 
@@ -407,7 +411,9 @@ def test_main_renovate_no_changes(
     assert result == 0
     captured = capsys.readouterr()
     # The rules are being recreated, not detected as already there
-    assert "Updated renovate.json" in captured.out or "already up to date" in captured.out
+    assert (
+        "Updated renovate.json" in captured.out or "already up to date" in captured.out
+    )
 
 
 def test_main_checks_optional_dependencies(
@@ -481,7 +487,10 @@ def test_main_script_entry_point(tmp_path: Path) -> None:
     import sys
 
     src_script = (
-        Path(__file__).parent.parent / "src" / "team_devtools" / "check_platform_constraints.py"
+        Path(__file__).parent.parent
+        / "src"
+        / "team_devtools"
+        / "check_platform_constraints.py"
     )
     dest_script = tmp_path / "check_platform_constraints.py"
     shutil.copy(src_script, dest_script)

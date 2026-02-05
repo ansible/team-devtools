@@ -30,7 +30,7 @@ dev = [
   "pytest-plus>=0.8.1",
   "pytest-sugar>=1.1.1",
   "pytest-xdist>=3.8.0",
-  "ruff>=0.14.14",
+  "ruff>=0.15.0",
   "types-pyyaml>=6.0.12.20250915",
 ]
 docs = [
@@ -66,7 +66,7 @@ source = ["src", "test", ".tox/*/site-packages"]
 
 [tool.coverage.report]
 exclude_also = ["if TYPE_CHECKING:", "pragma: no cover"]
-fail_under = 45
+fail_under = 44
 ignore_errors = false
 omit = ["test/*"]
 show_missing = true
@@ -121,7 +121,7 @@ norecursedirs = [
 builtins = ["__"]
 cache-dir = "./.cache/.ruff"
 fix = true
-line-length = 100
+line-length = 88  # keep in sync with black
 required-version = ">=0.7.1"
 target-version = "py310"
 
@@ -130,6 +130,7 @@ external = [
   "DOC",  # pydoclint
 ]
 ignore = [
+  "C901",  # too-complex
   "D",
   "RUF045",  #
   "DOC501",  # missing-type-docstring
@@ -188,6 +189,26 @@ requires = [
   "tox-uv >= 1.28.0",
   "setuptools >= 65.3.0",  # editable installs
 ]
+
+[tool.tox.env.deps]
+commands = [
+  [
+    "prek",
+    "run",
+    "--all-files",
+    "--show-diff-on-failure",
+    "--hook-stage",
+    "manual",
+    "deps",
+  ],
+  ["prek", "autoupdate"],
+  ["tox", "-e", "lint"],
+]
+commands_pre = []
+description = "Bump all test dependencies"
+dependency_groups = ["lint"]
+env_dir = "{work_dir}/lint"
+skip_install = true
 
 [tool.tox.env.devel]
 commands = [

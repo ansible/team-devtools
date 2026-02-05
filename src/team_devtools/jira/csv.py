@@ -22,7 +22,9 @@ if TYPE_CHECKING:
     from jira import JIRA
 
 
-def create_issues_from_csv(jira_conn: JIRA, csv_file: str, config: dict[str, Any]) -> None:  # noqa: C901, PLR0912, PLR0915
+def create_issues_from_csv(  # noqa: PLR0912, PLR0915
+    jira_conn: JIRA, csv_file: str, config: dict[str, Any]
+) -> None:
     """Create multiple issues from a CSV file.
 
     CSV format:
@@ -44,7 +46,9 @@ def create_issues_from_csv(jira_conn: JIRA, csv_file: str, config: dict[str, Any
             issues_created = []
             issues_failed = []
 
-            for row_num, row in enumerate(reader, start=2):  # start=2 because row 1 is header
+            for row_num, row in enumerate(
+                reader, start=2
+            ):  # start=2 because row 1 is header
                 summary = row.get("summary", "").strip()
                 if not summary:
                     info(f"Row {row_num}: Skipping - no summary")
@@ -109,9 +113,12 @@ def create_issues_from_csv(jira_conn: JIRA, csv_file: str, config: dict[str, Any
                             )
                             affects_version = None
 
-                description_file = row.get("description_file", "").strip() or "description.txt"
+                description_file = (
+                    row.get("description_file", "").strip() or "description.txt"
+                )
                 acceptance_criteria_file = (
-                    row.get("acceptance_criteria_file", "").strip() or "acceptance_criteria.txt"
+                    row.get("acceptance_criteria_file", "").strip()
+                    or "acceptance_criteria.txt"
                 )
 
                 info(f"Row {row_num}: Creating issue '{summary}'...")
