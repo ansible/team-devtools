@@ -130,6 +130,7 @@ external = [
   "DOC",  # pydoclint
 ]
 ignore = [
+  "C901",  # too-complex
   "D",
   "RUF045",  #
   "DOC501",  # missing-type-docstring
