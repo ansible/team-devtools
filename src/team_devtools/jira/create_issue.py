@@ -13,6 +13,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import jira.resources
 import questionary
 
 from .const import JD
@@ -282,7 +283,9 @@ Note: Description and Acceptance Criteria are loaded from template files.
         help="Path to acceptance criteria template file (default: acceptance_criteria.txt)",
     )
     parser.add_argument(
-        "-b", "--batch-file", help="CSV file with multiple issues to create (batch mode)"
+        "-b",
+        "--batch-file",
+        help="CSV file with multiple issues to create (batch mode)",
     )
     parser.add_argument("-i", "--interactive", action="store_true", help="Run in interactive mode")
 
@@ -321,7 +324,7 @@ Note: Description and Acceptance Criteria are loaded from template files.
         try:
             info("=== AAP Issue Creation (Interactive Mode) ===\n")
             summary = args.summary
-            sprint: int | None = None
+            sprint_res: int | None = None
 
             while not summary:
                 summary = questionary.text(
@@ -399,15 +402,35 @@ Note: Description and Acceptance Criteria are loaded from template files.
                 sprints = jira_conn.sprints(board_id=JD.SPRINT_BOARD_ID, state="active,future")
                 info(f"Sprints: {sprints}")
 
-                sprint_choices = [
-                    questionary.Choice(
-                        f"{sprint.name} ({sprint.state} {datetime.fromisoformat(sprint.startDate).strftime('%b %-d')} - {datetime.fromisoformat(sprint.endDate).strftime('%b %-d')})",
-                        sprint.id,
+                sprint_choices = []
+                for sprint_res in sprints:
+                    if not isinstance(sprint_res, jira.resources.Sprint):
+                        msg = f"Invalid sprint resource: {sprint_res}"
+                        raise TypeError(msg)
+                    date_start = (
+                        datetime.fromisoformat(sprint_res.startDate).strftime("%b %-d")
+                        if hasattr(sprint_res, "startDate")
+                        else ""
                     )
-                    for sprint in sprints
-                ]
+                    date_end = (
+                        datetime.fromisoformat(sprint_res.endDate).strftime("%b %-d")
+                        if hasattr(sprint_res, "endDate")
+                        else ""
+                    )
+                    sprint_name = f"{sprint_res.name} ({sprint_res.state}"
+                    if date_start:
+                        sprint_name += f" {date_start}"
+                    if date_end:
+                        sprint_name += f" - {date_end}"
+                    sprint_name += ")"
+                    sprint_choices.append(
+                        questionary.Choice(
+                            sprint_name,
+                            sprint_res.id,
+                        )
+                    )
                 sprint_choices.append(questionary.Choice("None", None))
-                sprint = questionary.select("Sprint", choices=sprint_choices).unsafe_ask()
+                sprint_res = questionary.select("Sprint", choices=sprint_choices).unsafe_ask()
 
                 story_points = questionary.select(
                     "Story Points", choices=JD.STORY_POINTS, default=None
@@ -423,7 +446,7 @@ Note: Description and Acceptance Criteria are loaded from template files.
                 "epic_link": epic_link,
                 "affects_version": affects_version,
                 "story_points": story_points,
-                "sprint": sprint,
+                "sprint": sprint_res,
             }
             info(f"Creating issue with the following details\n {create_data}")
 
