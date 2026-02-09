@@ -75,7 +75,7 @@ class Post:
         self.forum_api_key = forum_api_key
         self.forum_user = forum_user
         self.project = project
-        self.project_short = project.split("/")[-1]
+        self.project_short = project.rsplit("/", maxsplit=1)[-1]
         self.release = release
         self.release_notes: str
 
