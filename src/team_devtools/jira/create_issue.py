@@ -214,7 +214,7 @@ def create_issue(
     try:
         issue = jira_conn.create_issue(fields=issue_fields)
     except Exception as e:  # noqa: BLE001
-        error(f"Error creating issue: {e}")
+        error(f"Error creating issue: {e}\nFields: {issue_fields}")
         sys.exit(1)
     else:
         username = jira_conn.myself()["key"]
@@ -367,6 +367,9 @@ Note: Description and Acceptance Criteria are loaded from template files.
             )
 
             epic_link = args.epic_link or select_epic(jira_conn)
+            # apparently questionary returns "None" instead of None
+            if epic_link == "None":
+                epic_link = None
             # Only prompt for affects_version if issue type is Bug
 
             # Only prompt if not explicitly provided on command line
@@ -460,11 +463,13 @@ Note: Description and Acceptance Criteria are loaded from template files.
                 "component": component,
                 "description": description,
                 "acceptance_criteria": acceptance_criteria,
-                "epic_link": epic_link,
                 "affects_version": affects_version,
                 "story_points": story_points,
-                "sprint": sprint_res,
             }
+            if sprint_res:
+                create_data["sprint"] = sprint_res
+            if epic_link:
+                create_data["epic_link"] = epic_link
             info(f"Creating issue with the following details\n {create_data}")
 
             confirm = questionary.confirm(
