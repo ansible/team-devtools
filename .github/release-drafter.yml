@@ -61,13 +61,13 @@ autolabeler:
       - "/^BREAKING CHANGE: /i"
   - label: feat
     title:
-      - /^(feat)/i
+      - /^(feat):/i
   - label: fix
     title:
-      - /^(fix)/i
+      - /^(fix):/i
   - label: chore
     title:
       - /pre-commit autoupdate/
-      - /^(chore|build|ci|test|style)/i
+      - /^(chore|build|ci|test|style):/i
 template: |
   $CHANGES
