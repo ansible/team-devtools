@@ -53,16 +53,9 @@ jobs:
           # see conventional commits prefixes: https://www.conventionalcommits.org
           labels: |
             breaking
-            build
             chore
-            ci
-            docs
             feat
             fix
-            perf
-            refactor
-            style
-            test
 
       - name: Update release notes if this is already merged
         if: github.event.pull_request.merged == true
