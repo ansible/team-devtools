@@ -87,10 +87,11 @@ permissions:
   packages: write # some tox environments might produce containers
   pull-requests: write # allow codenotify to comment on pull-request
 env:
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # might be needed by tox commands
+  FORCE_COLOR: "1" # tox, pytest, ansible-lint
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  FORCE_COLOR: 1 # tox, pytest, ansible-lint
-  PY_COLORS: 1
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # might be needed by tox commands
+  PYTHONUNBUFFERED: "1" # more responsive pytest output
+  PY_COLORS: "1"
 
 jobs:
   prepare:
