@@ -132,14 +132,12 @@ jobs:
           fetch-depth: 0 # needed by setuptools-scm
           submodules: true
 
-      - name: Set pre-commit cache
+      - name: Set prek cache
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5
         if: ${{ matrix.name == 'lint' }}
         with:
-          path: |
-            ~/.cache/pre-commit
-            ~/.cache/.cache/prek
-          key: pre-commit-${{ matrix.name }}-${{ hashFiles('.pre-commit-config.yaml') }}
+          path: ~/.cache/prek
+          key: prek-${{ matrix.name }}-${{ hashFiles('.pre-commit-config.yaml') }}
 
       - name: Install the latest version of uv
         uses: astral-sh/setup-uv@v7
