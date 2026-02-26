@@ -320,7 +320,9 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.DEVTOOLS_CI_SLACK_URL }}
         run: |
           if [ -n "$SLACK_WEBHOOK_URL" ]; then
-            curl -X POST -H 'Content-type: application/json' \
-              --data "{\"text\":\" Python tests failed in jobs: test for '${GITHUB_REPOSITORY}' (tox.yml). Check logs: '${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}'\"}" \
-              $SLACK_WEBHOOK_URL
+          curl -X POST -H 'Content-type: application/json' \
+          --data "{\"text\":\"`$GITHUB_EVENT_NAME` *$GITHUB_WORKFLOW* \
+          failed on [${GITHUB_REPOSITORY}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}). \
+          Check [logs](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})\"}" \
+          $SLACK_WEBHOOK_URL
           fi
