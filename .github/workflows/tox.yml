@@ -160,7 +160,7 @@ jobs:
 
       - name: Set up Node.js
         if: ${{ inputs.node-version-file != '' }}
-        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version-file: ${{ inputs.node-version-file }}
 
@@ -285,14 +285,14 @@ jobs:
 
       - name: Upload PR number artifact
         if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
         with:
           name: pr_number
           path: pr_number.txt
 
       - name: Merge logs into a single archive
         # Should do nothing if job is retried
-        uses: actions/upload-artifact/merge@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact/merge@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
         with:
           name: logs.zip
           pattern: logs-*.zip
