@@ -10,6 +10,14 @@ on:
   pull_request:
     branches:
       - main
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish a pre-release"
+        required: false
+        default: "false"
   schedule:
     - cron: "0 0 * * *"
 permissions:
@@ -23,6 +31,15 @@ jobs:
     runs-on: ubuntu-24.04
     environment: ack # BOT_PAT
     steps:
+      - name: Dump event information
+        run: |
+          echo "github.event_name: ${{ github.event_name }}"
+          echo "github.ref: ${{ github.ref }}"
+          echo "github.ref_name: ${{ github.ref_name }}"
+          echo "github.ref_type: ${{ github.ref_type }}"
+          echo "github.event.action: ${{ github.event.action }}"
+          echo "github.event.inputs: ${{ github.event.inputs }}"
+
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
