@@ -100,6 +100,14 @@ jobs:
     outputs:
       matrix: ${{ steps.generate_matrix.outputs.matrix }}
     steps:
+      - name: Check signed commits in PR
+        uses: 1Password/check-signed-commits-action@v1
+        with:
+          comment: >
+            All commits must have verified signatures.
+
+            Please see [this Ansible Forum post](https://forum.ansible.com/t/important-github-com-ansible-now-requires-signed-commits/) for more information.
+
       - name: Determine matrix
         id: generate_matrix
         uses: ansible/actions/matrix@main
