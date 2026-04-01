@@ -40,7 +40,7 @@ jobs:
 
       - name: Verify PR label action
         if: github.event_name != 'merge_group'
-        uses: mheap/github-action-required-labels@8afbe8ae6ab7647d0c9f0cfa7c2f939650d22509 # v5
+        uses: mheap/github-action-required-labels@0ac283b4e65c1fb28ce6079dea5546ceca98ccbe # v5
         with:
           mode: exactly
           count: 1
@@ -59,7 +59,7 @@ jobs:
 
       - name: Update release notes if this is already merged
         if: github.event.pull_request.merged == true
-        uses: release-drafter/release-drafter@6a93d829887aa2e0748befe2e808c66c0ec6e4c7 # v6
+        uses: release-drafter/release-drafter@139054aeaa9adc52ab36ddf67437541f039b88e2 # v7
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
