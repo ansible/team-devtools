@@ -107,12 +107,18 @@ jobs:
 
       - name: Check signed commits (PRs only)
         if: github.event_name == 'pull_request'
-        uses: 1Password/check-signed-commits-action@v1
-        with:
-          comment: >
-            All commits must have verified signatures.
-
-            Please see [this Ansible Forum post](https://forum.ansible.com/t/important-github-com-ansible-now-requires-signed-commits/) for more information.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/commits \
+            --paginate \
+            --jq '[.[].commit.verification.verified] | all' \
+            | grep -q true || {
+              gh pr ready --undo
+              gh issue comment ${{ github.event.pull_request.number }} --create-if-none --edit-last --body \
+             "@${{ github.event.pull_request.user.login }} All commits must have verified signatures.\n\nPlease see [this Ansible Forum post](https://forum.ansible.com/t/important-github-com-ansible-now-requires-signed-commits/) for more information."
+             exit 1
+            }
 
       - name: Determine matrix
         id: generate_matrix
