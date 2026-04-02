@@ -117,7 +117,7 @@ jobs:
             | grep -q true || {
               gh issue comment ${{ github.event.pull_request.number }} --create-if-none --edit-last --body \
                 "@${{ github.event.pull_request.user.login }} All commits must have verified signatures.\n\nPlease see [this Ansible Forum post](https://forum.ansible.com/t/important-github-com-ansible-now-requires-signed-commits/) for more information."
-              gh pr ready --undo ${{ github.event.pull_request.number }}
+              gh pr ready --undo ${{ github.event.pull_request.number }} || echo "::error::Failed to move PR to draft due to lack of signed commits."
              exit 1
             }
 
@@ -320,6 +320,8 @@ jobs:
           delete-merged: true
           include-hidden-files: true
           separate-directories: true
+        # Don't fail the job if there aren't any artifacts to merge.
+        continue-on-error: true
 
       - name: Decide whether the needed jobs succeeded or failed
         id: alls-green
