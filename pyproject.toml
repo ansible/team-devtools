@@ -213,6 +213,8 @@ skip_install = true
 [tool.tox.env.devel]
 commands = [
   ["sh", "-c", "uv pip list -q --format=freeze | tr '\\n' ','"],
+  # tox 4 command-ref table; pyproject schema only allows arrays of argv (tox-dev/tox#3823)
+  # tombi: lint.rules.type-mismatch.disabled = true
   { extend = true, of = ["tool", "tox", "env_run_base", "commands"], replace = "ref" },
   ["git", "restore", "uv.lock"],
 ]

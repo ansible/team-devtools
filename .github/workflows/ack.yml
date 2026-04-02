@@ -42,7 +42,8 @@ jobs:
         if: github.event_name != 'merge_group'
         uses: mheap/github-action-required-labels@8afbe8ae6ab7647d0c9f0cfa7c2f939650d22509 # v5
         with:
-          mode: exactly
+          # minimum (not exactly): Renovate/Dependabot add labels like `dependencies` alongside chore
+          mode: minimum
           count: 1
           add_comment: true
           message: >
