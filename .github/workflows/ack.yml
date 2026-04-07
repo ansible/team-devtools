@@ -92,6 +92,8 @@ jobs:
           github.event.pull_request.user.login == 'pre-commit-ci[bot]' ||
           github.event.pull_request.user.login == 'renovate[bot]'
           )
+        continue-on-error: true
+        # Expired or mis-scoped BOT_PAT would otherwise fail the whole ack job (401 from gh).
         run: |
           set -e
           gh pr merge --auto --squash "$PR_URL"

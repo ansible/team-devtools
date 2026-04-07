@@ -57,6 +57,7 @@ jobs:
       - name: Commit & push changes
         id: commit-and-push
         if: steps.prek.outcome == 'failure'
+        continue-on-error: true
         # git config push.default upstream
         run: |
           git config user.email "devtools@ansible.com"
@@ -66,14 +67,27 @@ jobs:
           git commit -m "chore[bot]: auto-fix lint errors"
           git push
 
+      - name: Fail if lint fixes could not be published
+        if: >
+          github.event_name == 'pull_request' &&
+          steps.prek.outcome == 'failure' &&
+          steps.commit-and-push.outcome != 'success'
+        run: |
+          echo "::error::Pre-commit reported issues and the auto-fix could not be pushed." \
+            "Common causes: repository rules require signed commits (configure GPG signing for the bot PAT)," \
+            "or the push token lacks permission. Check the 'Commit & push changes' step log."
+          exit 1
+
       - name: react if linting errors were not fixed
-        if: steps.commit-and-push.outcome  == 'failure'
+        if: >
+          github.event_name == 'pull_request' &&
+          steps.commit-and-push.outcome == 'failure'
         uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5
         with:
-          issue-number: ${{ github.event.issue.number }}
+          issue-number: ${{ github.event.pull_request.number }}
           body: |
             @${{ github.actor }} I tried to fix the linting errors, but it didn't work. Please fix them manually.
-            See [CI log](https://github.com/${{ github.repository_owner }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for more details.
+            See [CI log](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for more details.
 
   test:
     needs:
