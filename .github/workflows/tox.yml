@@ -189,7 +189,7 @@ jobs:
         if: ${{ inputs.node-version-file == '' }}
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
-          version: "22"
+          node-version: "24"
 
       - name: Run pre
         if: ${{ inputs.run_pre }}
