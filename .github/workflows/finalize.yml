@@ -83,7 +83,7 @@ jobs:
       - name: Checkout PR branch
         if: inputs.workflow-event == 'pull_request'
         run: |
-          gh pr checkout ${{ env.PR_NUMBER }}
+          gh pr checkout ${{ env.PR_NUMBER }} || echo "::warning::Failed to checkout PR branch ${{ env.PR_NUMBER }}, this can happen if it was already merged and deleted."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
