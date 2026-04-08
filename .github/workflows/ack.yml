@@ -33,10 +33,7 @@ jobs:
           ${{ toJson(github) }}
           EOF_GITHUB_CONTEXT
 
-      - uses: bcoe/conventional-release-labels@v1
-        with:
-          type_labels: '{"feat": "feat", "fix": "fix", "breaking": "breaking", "chore": "chore"}'
-          ignored_types: "[]"
+      - uses: release-drafter/release-drafter/autolabeler@v7
 
       - name: Verify PR label action
         if: github.event_name != 'merge_group'
