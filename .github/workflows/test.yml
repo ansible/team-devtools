@@ -48,7 +48,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@v7
 
-      - uses: j178/prek-action@v1
+      - uses: j178/prek-action@v2
         id: prek
         with:
           extra-args: --config .pre-commit-config.yaml --all-files
