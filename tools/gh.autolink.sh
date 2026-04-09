@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Configure autolink references for all GitHub repos listed in repos.lst.
+# Each line is org/repo (see config/repos.lst). Blank lines and # comments are ignored.
 # Idempotent: skips entries that already match, updates ones with a changed URL.
-# Usage: ./setup.autolink.sh [org]  (default org: ansible)
+# Usage: ./gh.autolink.sh
 set -euo pipefail
 
-ORG="${1:-ansible}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPOS_FILE="$SCRIPT_DIR/../config/repos.lst"
 
@@ -15,8 +15,18 @@ DESIRED=(
   "ANSTRAT-|https://redhat.atlassian.net/browse/ANSTRAT-<num>"
 )
 
-while IFS= read -r repo || [[ -n "$repo" ]]; do
-  [[ -z "$repo" ]] && continue
+while IFS= read -r line || [[ -n "$line" ]]; do
+  # strip comments and trim whitespace
+  line="${line%%#*}"
+  line="${line#"${line%%[![:space:]]*}"}"
+  line="${line%"${line##*[![:space:]]}"}"
+  [[ -z "$line" ]] && continue
+  if [[ "$line" != */* ]]; then
+    echo "gh.autolink.sh: expected org/repo, got: $line" >&2
+    exit 1
+  fi
+  ORG="${line%%/*}"
+  repo="${line#*/}"
 
   current=$(gh api "repos/$ORG/$repo/autolinks" 2>/dev/null || echo "[]")
 
