@@ -55,19 +55,20 @@ exclude-contributors:
   - renovate[bot]
 autolabeler:
   - label: breaking
-    title: # "!" determines a breaking change
-      - "^[a-z]+(\\([^)]+\\))?!:"
+    title: # "!" determines a breaking change; optional [tag] prefixes (e.g. backport titles)
+      - "^(?:\\[[^\\]]+\\]\\s*)*[a-z]+(\\([^)]+\\))?!:"
     body:
       - "/^BREAKING CHANGE: /i"
   - label: feat
     title:
-      - /^(feat):/i
+      # e.g. "[PR #1008/abc backport][stream] feat: ..."
+      - /^(?:\[[^\]]+\]\s*)*(feat):/i
   - label: fix
     title:
-      - /^(fix):/i
+      - /^(?:\[[^\]]+\]\s*)*(fix):/i
   - label: chore
     title:
-      - /pre-commit autoupdate/
-      - /^(chore|build|ci|test|style):/i
+      - /(?:\[[^\]]+\]\s*)*pre-commit autoupdate/i
+      - /^(?:\[[^\]]+\]\s*)*(chore|build|ci|test|style):/i
 template: |
   $CHANGES

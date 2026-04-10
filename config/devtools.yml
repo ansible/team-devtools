@@ -44,6 +44,17 @@ labels:
   # other labels, no special meaning
   new:
     color: "#0E8A16"
+  backport-2.5:
+    color: "#d4c5f9"
+  backport-2.5-next:
+    color: "#d4c5f9"
+  backport-2.6:
+    color: "#d4c5f9"
+  backport-2.6-next:
+    color: "#d4c5f9"
+  backport-2.7:
+    color: "#d4c5f9"
+
 # upstream:
 #   color: "#C239D6"
 # stale:
@@ -63,6 +74,10 @@ repos:
     # owners: is used to record SMEs, primary, backup, ...
   # ansible-community/molecule-plugins:
   #   section: community
+  ansible-automation-platform/ansible-devtools-container:
+    group: aap
+  ansible-automation-platform/ansible-devspaces-container:
+    group: aap
   ansible/actions:
     owners: [ssbarnea]
     section: experimental
@@ -116,6 +131,7 @@ sections:
   deprecated:
   experimental:
   primary:
+  aap:
 # unmaintained, obsoleted or archived:
 # ansible-community/protogen
 # ansible-community/role2collection
