@@ -1,0 +1,64 @@
+---
+name: sync-skills
+
+on:
+  schedule:
+    - cron: "7 8 * * 1" # Weekly Monday 08:07 UTC
+  push:
+    branches: [main]
+    paths: [".agents/skills/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    environment: ack
+    strategy:
+      fail-fast: false
+      matrix:
+        repo:
+          - ansible/ansible-compat
+          - ansible/ansible-creator
+          - ansible/ansible-dev-environment
+          - ansible/ansible-dev-tools
+          - ansible/ansible-lint
+          - ansible/ansible-navigator
+          - ansible/molecule
+          - ansible/pytest-ansible
+          - ansible/tox-ansible
+          - ansible/vscode-ansible
+    steps:
+      - name: Checkout team-devtools (source)
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          path: source
+          sparse-checkout: .agents/skills
+
+      - name: Checkout target repo
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          repository: ${{ matrix.repo }}
+          token: ${{ secrets.BOT_PAT }}
+          path: target
+
+      - name: Sync skills to target repo
+        run: |
+          mkdir -p target/.agents/skills
+          rsync -a --delete source/.agents/skills/ target/.agents/skills/
+
+      - name: Commit and push if changed
+        working-directory: target
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          git diff --quiet && git diff --cached --quiet && exit 0
+          git config user.name "Ansible Bot"
+          git config user.email "devtools@ansible.com"
+          git add .agents/skills/
+          git commit -m "chore: sync agent skills from team-devtools
+
+          Source: ansible/team-devtools@${SOURCE_SHA}"
+          git push
