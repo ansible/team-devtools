@@ -52,7 +52,7 @@ Untracked follow-ups are invisible debt. If it is worth mentioning, it is
 worth an issue.
 
 ```bash
-gh issue create --repo ansible/team-devtools \
+gh issue create --repo <upstream-owner>/<repo> \
   --title "<type>(scope): <brief description>" \
   --body "$(cat <<'EOF'
 ## Context
@@ -178,11 +178,11 @@ Post a reply using the REST API. Each reply must state **how** the issue was
 resolved and include the commit hash (not only the SHA):
 
 ```bash
-gh api -X POST "repos/ansible/team-devtools/pulls/PR/comments/COMMENT_ID/replies" \
+gh api -X POST "repos/<upstream-owner>/<repo>/pulls/PR/comments/COMMENT_ID/replies" \
   -f body="Removed the unused imports so Ruff F401 passes. Fixed in COMMIT_SHA."
 ```
 
-To get comment IDs: `gh api repos/ansible/team-devtools/pulls/PR/comments` and
+To get comment IDs: `gh api repos/<upstream-owner>/<repo>/pulls/PR/comments` and
 use each comment's `id`. Alternatively, reply in the GitHub PR UI, then resolve
 threads via GraphQL below.
 
@@ -197,9 +197,9 @@ Replace `N` with the PR number and `THREAD_ID` with the `id` from
 `isResolved` is false if you only want to resolve open threads.
 
 ```bash
-# List unresolved threads (get thread id for each)
+# List unresolved threads (replace OWNER/REPO with actual values)
 gh api graphql -f query='{
-  repository(owner: "ansible", name: "team-devtools") {
+  repository(owner: "<upstream-owner>", name: "<repo>") {
     pullRequest(number: N) {
       reviewThreads(first: 50) {
         nodes { id isResolved comments(first:1) { nodes { body } } }
@@ -232,10 +232,10 @@ line comments so you can reply and resolve any new threads.
 
 ```bash
 # New Copilot review (replace N with PR number, ISO8601 with last push time)
-gh api repos/ansible/team-devtools/pulls/N/reviews --jq '.[] | select(.user.login == "copilot-pull-request-reviewer[bot]" and .submitted_at > "ISO8601") | {submitted_at, state, body: .body[0:200]}'
+gh api repos/<upstream-owner>/<repo>/pulls/N/reviews --jq '.[] | select(.user.login == "copilot-pull-request-reviewer[bot]" and .submitted_at > "ISO8601") | {submitted_at, state, body: .body[0:200]}'
 
 # New Copilot line comments (replace N and ISO8601)
-gh api repos/ansible/team-devtools/pulls/N/comments --jq '.[] | select(.user.login == "Copilot" and .created_at > "ISO8601") | {id, created_at, path, body: .body[0:150]}'
+gh api repos/<upstream-owner>/<repo>/pulls/N/comments --jq '.[] | select(.user.login == "Copilot" and .created_at > "ISO8601") | {id, created_at, path, body: .body[0:150]}'
 ```
 
 If both return nothing, no new Copilot activity. Otherwise, address new

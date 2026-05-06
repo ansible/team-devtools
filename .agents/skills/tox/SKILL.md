@@ -32,7 +32,7 @@ directly. Every task maps to a `tox -e <env>` command.
 
 1. **Never run `pytest` directly.** Use `tox -e py`.
 2. **Never run `ruff`, `mypy`, or `prek` directly.** Use `tox -e lint`.
-3. **Pass extra arguments after `--`.** Example: `tox -e py -- -k test_repos`.
+3. **Pass extra arguments after `--`.** Example: `tox -e py -- -k test_example`.
 4. **In CI, use `uvx --with tox-uv tox -e <env>`** instead of installing tox.
 
 ## Environment Reference
@@ -47,7 +47,7 @@ directly. Every task maps to a `tox -e <env>` command.
 
 | Environment | What it runs | When to use |
 |-------------|-------------|-------------|
-| `tox -e py` | `pytest` with coverage (`--fail-under=43`) | After any code change. |
+| `tox -e py` | `pytest` with coverage (threshold varies per repo) | After any code change. |
 | `tox -e py -- -k <pattern>` | Single test or test pattern | Debugging a specific test. |
 | `tox -e py -- --no-cov` | Tests without coverage overhead | Quick iteration. |
 | `tox -e devel` | Tests with newest deps (no lock, prereleases allowed) | Verifying forward compatibility. |
@@ -72,8 +72,11 @@ directly. Every task maps to a `tox -e <env>` command.
 
 ### Default set
 
-Running `tox` with no `-e` flag executes: `pkg`, `lint`, `docs`, `py`, `devel`.
-This is the full quality gate.
+Running `tox` with no `-e` flag executes the default environment list defined
+in the repo's `pyproject.toml` or `tox.ini`. This is the full quality gate.
+
+**Note:** Not all environments listed above are available in every repo. Run
+`tox l` to discover the environments available in the current repository.
 
 ## Common Agent Workflows
 
@@ -93,8 +96,8 @@ tox -e docs              # build and verify docs
 ### "I need to run one specific test"
 
 ```bash
-tox -e py -- -k test_repos
-tox -e py -- test/test_jira_create_issue.py::test_specific_function
+tox -e py -- -k test_example
+tox -e py -- test/test_example.py::test_specific_function
 ```
 
 ### "I want to verify everything before a PR"
@@ -118,7 +121,7 @@ uv tool install tox --with tox-uv
 
 ## Configuration
 
-All tox configuration lives in `pyproject.toml` under `[tool.tox]`. Environment
-definitions, extras, pass-through env vars, and commands are all there.
-Do not scatter test/lint invocations across Makefiles, scripts, or
-workflow YAML.
+Tox configuration typically lives in `pyproject.toml` under `[tool.tox]` or in
+a standalone `tox.ini`. Environment definitions, extras, pass-through env vars,
+and commands are all there. Do not scatter test/lint invocations across
+Makefiles, scripts, or workflow YAML.

@@ -49,9 +49,10 @@ Check whether your changes affect areas covered by existing docs. Update any tha
 
 | Doc | When to update |
 |-----|----------------|
-| `README.md` | Project overview, dependency diagrams, setup changes |
-| `docs/guides/` | New dev workflows, guide additions |
-| `docs/stats/` | Statistics or metrics changes |
+| `README.md` | Project overview, setup changes, dependency updates |
+| `docs/` | Guides, references, or user-facing documentation |
+| `CONTRIBUTING.md` | Contribution workflow or policy changes |
+| `AGENTS.md` | Agent behavior, skill references, static check config |
 
 ### Step 4: Commit with conventional commits
 
@@ -97,12 +98,17 @@ Include ticket references in the commit footer:
 ```bash
 git push -u origin HEAD
 
-gh pr create --repo ansible/team-devtools --title "conventional commit style title" --body "$(cat <<'EOF'
+gh pr create --repo <upstream-owner>/<repo> --title "conventional commit style title" --body "$(cat <<'EOF'
 ## Summary
 - Concise description of what changed and why
 
 ## Changes
 - List of notable changes
+
+## Quality of life
+- List any non-functional improvements bundled in this PR: skill updates,
+  workflow fixes, documentation for contributor experience, etc.
+- Omit this section entirely if there are none.
 
 ## Test plan
 - [ ] `tox -e lint` passes
@@ -113,6 +119,21 @@ EOF
 ```
 
 The PR targets upstream's `main` branch from the fork. Return the PR URL to the user.
+
+### Including non-code changes (Quality of life)
+
+PRs often include changes that are not directly part of the feature or fix but
+improve the development workflow: skill updates, CI/CD tweaks, pre-commit
+config changes, documentation for contributor experience, or process fixes.
+
+These changes belong in the **Quality of life** section of the PR body. Use
+this section whenever the PR touches files like `.agents/skills/`, `AGENTS.md`,
+`CLAUDE.md`, `.github/workflows/`, `.pre-commit-config.yaml`, `CONTRIBUTING.md`,
+or similar workflow artifacts. This makes it easy for reviewers to separate
+functional changes from process improvements.
+
+If a PR contains **only** quality-of-life changes (no production code), use
+`chore` or `docs` as the commit type.
 
 ### Maintaining the PR
 

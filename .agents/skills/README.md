@@ -1,6 +1,6 @@
 # Agent Skills
 
-Agent skills for development workflow automation in team-devtools.
+Agent skills for development and maintenance workflow automation in Ansible Devtools.
 
 ## Available Skills
 

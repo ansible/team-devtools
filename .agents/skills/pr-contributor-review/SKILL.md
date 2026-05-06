@@ -80,7 +80,7 @@ and then push so CI stays green.
   text for the maintainer/contributor to paste:
 
   ```bash
-  gh pr edit <N> --repo ansible/team-devtools --body-file path/to/body.md
+  gh pr edit <N> --repo <upstream-owner>/<repo> --body-file path/to/body.md
   ```
 
 - Keep the description accurate: list what changed and how to verify (tests,
@@ -116,7 +116,7 @@ be captured as a GitHub issue immediately. Do not leave "TODO for later" or
 follow-ups are invisible debt.
 
 ```bash
-gh issue create --repo ansible/team-devtools \
+gh issue create --repo <upstream-owner>/<repo> \
   --title "<type>(scope): <description from review>" \
   --body "$(cat <<'EOF'
 ## Context
