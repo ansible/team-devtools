@@ -53,10 +53,10 @@ jobs:
         env:
           SOURCE_SHA: ${{ github.sha }}
         run: |
-          git diff --quiet && git diff --cached --quiet && exit 0
+          git add .agents/skills/
+          git diff --quiet --cached && exit 0
           git config user.name "Ansible Bot"
           git config user.email "devtools@ansible.com"
-          git add .agents/skills/
           git commit -m "chore: sync agent skills from team-devtools
 
           Source: ansible/team-devtools@${SOURCE_SHA}"
