@@ -46,7 +46,7 @@ jobs:
           ref: ${{ github.head_ref }}
           token: ${{ secrets.BOT_PAT }}
 
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@v8.1.0
 
       - uses: j178/prek-action@v2
         id: prek
