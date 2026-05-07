@@ -14,7 +14,7 @@ repos:
       - id: check-useless-excludes
         priority: 0
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.11.3
+    rev: 0.11.9
     hooks:
       - id: uv-sync
         priority: 0
@@ -25,7 +25,7 @@ repos:
         args: ["--upgrade"]
         stages: [manual]
   - repo: https://github.com/biomejs/pre-commit
-    rev: "v2.4.10"
+    rev: "v2.4.14"
     hooks:
       - id: biome-check
         priority: 1
@@ -53,7 +53,7 @@ repos:
       - id: check-merge-conflict
         priority: 0
   - repo: https://github.com/tombi-toml/tombi-pre-commit
-    rev: v0.9.15
+    rev: v0.10.4
     hooks:
       - id: tombi-format
         alias: toml
@@ -78,6 +78,6 @@ repos:
         entry: uv run -q --group=lint ansible-lint --fix
         priority: 1
   - repo: https://github.com/ansible/actions
-    rev: v1.1.1
+    rev: v1.1.2
     hooks:
       - id: ruff
