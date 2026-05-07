@@ -15,7 +15,7 @@ jobs:
   update_release_draft:
     runs-on: ubuntu-24.04
     steps:
-      - uses: release-drafter/release-drafter@139054aeaa9adc52ab36ddf67437541f039b88e2 # v7
+      - uses: release-drafter/release-drafter@ec0763817cb51182ef86848b090642f2a47902aa # v7.2.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
