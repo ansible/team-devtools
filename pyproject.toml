@@ -213,33 +213,9 @@ skip_install = true
 [tool.tox.env.devel]
 commands = [
   ["sh", "-c", "uv pip list -q --format=freeze | tr '\\n' ','"],
-  # Inlined from [tool.tox.env_run_base] commands so tombi-lint accepts the file (the
-  # tox 4 command-ref `{ extend, of, replace = "ref" }` form matches two JSON-schema branches).
-  # NOTE: If env_run_base commands change, update this section accordingly.
-  [
-    "python",
-    "-c",
-    "import pathlib; pathlib.Path(\"{env_site_packages_dir}/cov.pth\").write_text(\"import coverage; coverage.process_startup()\")",
-  ],
-  [
-    "coverage",
-    "run",
-    "-m",
-    "pytest",
-    { default = [
-      "-ra",
-      "-n",
-      "auto",
-      "--showlocals",
-      "--doctest-modules",
-      "--durations=10",
-      "--junitxml=./junit.xml",
-    ], extend = true, replace = "posargs" },
-  ],
-  ["coverage", "combine", "-q"],
-  ["coverage", "xml", "-o", "{env_dir}/coverage.xml", "--fail-under=0"],
-  ["coverage", "lcov", "-q", "--fail-under=0"],
-  ["coverage", "report"],
+  # tox 4 command-ref table; pyproject schema only allows arrays of argv (tox-dev/tox#3823)
+  # tombi: lint.rules.one-of-multiple-match.disabled = true
+  { extend = true, of = ["tool", "tox", "env_run_base", "commands"], replace = "ref" },
   ["git", "restore", "uv.lock"],
 ]
 description = "Run the tests with newest dependencies (no lock and allowing prereleases)"
