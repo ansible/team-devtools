@@ -1,5 +1,16 @@
 ## Static checks
 
+## Agent Skills
+
+Agent skills are available in `.agents/skills/` and can be invoked by name:
+
+| Skill | Purpose | Invocation |
+|-------|---------|------------|
+| `pr-new` | Prepare and submit a pull request | `/pr-new` |
+| `pr-review` | Handle PR review feedback (Copilot and human) | `/pr-review <PR#>` |
+| `pr-contributor-review` | Review and prepare a contributor's PR | `/pr-contributor-review <PR#>` |
+| `tox` | Tox environment reference (lint, test, docs) | `/tox [env]` |
+
 ## Agents
 
 - `.vscode/extensions.json` file must:
