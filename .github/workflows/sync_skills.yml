@@ -48,16 +48,37 @@ jobs:
           mkdir -p target/.agents/skills
           rsync -a --delete source/.agents/skills/ target/.agents/skills/
 
-      - name: Commit and push if changed
+      - name: Create PR if changed
         working-directory: target
         env:
           SOURCE_SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ secrets.BOT_PAT }}
         run: |
           git add .agents/skills/
           git diff --quiet --cached && exit 0
+
+          REPO_NAME="${{ matrix.repo }}"
+          BRANCH="chore/sync-agent-skills"
+
           git config user.name "Ansible Bot"
           git config user.email "devtools@ansible.com"
+
+          # reuse existing branch or create a new one
+          git checkout -B "${BRANCH}"
           git commit -m "chore: sync agent skills from team-devtools
 
           Source: ansible/team-devtools@${SOURCE_SHA}"
-          git push
+          git push --force origin "${BRANCH}"
+
+          # update existing PR or open a new one
+          if gh pr view "${BRANCH}" --repo "${REPO_NAME}" > /dev/null 2>&1; then
+            echo "PR already exists for ${BRANCH}, force-pushed update."
+          else
+            gh pr create \
+              --repo "${REPO_NAME}" \
+              --head "${BRANCH}" \
+              --title "chore: sync agent skills from team-devtools" \
+              --body "Automated sync of \`.agents/skills/\` from \`ansible/team-devtools\`.
+
+          Source: ansible/team-devtools@${SOURCE_SHA}"
+          fi
