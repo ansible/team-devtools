@@ -16,7 +16,9 @@ on:
 jobs:
   ack:
     runs-on: ubuntu-24.04
-    environment: ack
+    environment:
+      name: ack
+      deployment: false
     env:
       BOT_PAT: ${{ secrets.BOT_PAT || secrets.ANSIBUDDY_BOT_PAT }}
     permissions:
