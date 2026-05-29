@@ -29,7 +29,9 @@ permissions:
 jobs:
   lint:
     runs-on: ubuntu-24.04
-    environment: ack # BOT_PAT
+    environment:
+      name: ack # BOT_PAT
+      deployment: false
     steps:
       - name: Dump event information
         run: |
