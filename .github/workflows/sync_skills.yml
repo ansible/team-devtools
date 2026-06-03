@@ -74,6 +74,7 @@ jobs:
           git config user.email "devtools@ansible.com"
           git checkout -B "${BRANCH}"
           git commit -S -m "chore: sync agent skills from team-devtools
+
           Source: ansible/team-devtools@${SOURCE_SHA}"
           git push --force origin "${BRANCH}"
 
