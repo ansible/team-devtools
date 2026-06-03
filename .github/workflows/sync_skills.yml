@@ -42,7 +42,7 @@ jobs:
           repository: ${{ matrix.repo }}
           token: ${{ secrets.BOT_PAT }}
           path: target
-      
+
       - name: Import GPG Key
         uses: crazy-max/ghaction-import-gpg@v6
         with:
