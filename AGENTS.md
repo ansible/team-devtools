@@ -10,6 +10,9 @@ Agent skills are available in `.agents/skills/` and can be invoked by name:
 | `pr-review` | Handle PR review feedback (Copilot and human) | `/pr-review <PR#>` |
 | `pr-contributor-review` | Review and prepare a contributor's PR | `/pr-contributor-review <PR#>` |
 | `tox` | Tox environment reference (lint, test, docs) | `/tox [env]` |
+| `ansible-creator` | Scaffold Ansible content (collections, playbooks, EEs, plugins) | `/ansible-creator [subcommand]` |
+| `ansible-lint` | Ansible linting reference (profiles, suppression, config) | `/ansible-lint [options]` |
+| `ade` | Development environment setup (ansible-dev-environment) | `/ade [subcommand]` |
 
 ## Agents
 
