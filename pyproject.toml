@@ -155,6 +155,10 @@ lines-after-imports = 2  # Ensures consistency for cases when there's variable v
 
 [tool.ruff.lint.per-file-ignores]
 "test/*" = ["S101", "PLC0415"]
+".agents/skills/*/scripts/*" = [
+  "INP001",  # implicit namespace package (standalone scripts, not a library)
+  "T201",    # print statements (CLI progress output)
+]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

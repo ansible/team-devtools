@@ -3,7 +3,6 @@
 Reads cached audit data and findings, produces a standalone HTML file
 with embedded CSS, JS, and SVG visualizations.
 """
-# ruff: noqa: T201
 
 from __future__ import annotations
 
@@ -20,13 +19,14 @@ from cache_utils import (
     get_all_cached_commits,
     get_all_cached_deps,
     get_all_cached_pr_audits,
-    get_all_cached_prs,
     get_all_cached_protection,
+    get_all_cached_prs,
     get_all_cached_renovate,
     read_findings,
     read_manifest,
     read_package_focus,
 )
+
 
 TEMPLATE_PATH = Path(__file__).parent / "html_templates" / "dashboard.html"
 
@@ -58,8 +58,13 @@ CATEGORY_LABELS = {
 
 def load_template() -> str:
     """Load the HTML template."""
-    with open(TEMPLATE_PATH, encoding="utf-8") as f:
+    with TEMPLATE_PATH.open(encoding="utf-8") as f:
         return f.read()
+
+
+def _parse_date_yyyy_mm_dd(date_str: str) -> datetime:
+    """Parse a YYYY-MM-DD date string as UTC-aware datetime."""
+    return datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
 
 
 def esc(text: str | None) -> str:
@@ -70,6 +75,14 @@ def esc(text: str | None) -> str:
 
 
 _ADVISORY_PATTERN = _re.compile(r"(GHSA-[\w-]+|PYSEC-[\d-]+|CVE-[\d-]+)")
+_SAFE_HTML_TAGS = _re.compile(r"<(?!/?(?:code|strong|em|a\s|/a))[^>]+>")
+
+EM_DASH = "\u2014"
+RAPID_ADOPTION_DAYS = 7
+MAX_FINDINGS_PER_CATEGORY = 50
+MAX_RECOMMENDATIONS = 10
+
+RISK_PRIORITY = ["critical", "high", "medium", "low", "info"]
 
 
 def _linkify_advisory_ids(text: str) -> str:
@@ -114,6 +127,63 @@ def generate_verdict(findings: list[dict], total_commits: int, total_prs: int) -
     )
 
 
+def _count_signature_stats(repo_commits: list[dict]) -> tuple[int, int, int]:
+    """Return (signed_github, signed_personal, unsigned) counts for a repo."""
+    signed_github = 0
+    signed_personal = 0
+    unsigned = 0
+    for c in repo_commits:
+        v = c.get("verification", {})
+        if v.get("verified"):
+            committer = c.get("committer_login", "")
+            if committer == "web-flow" or "github" in c.get("committer_email", "").lower():
+                signed_github += 1
+            else:
+                signed_personal += 1
+        else:
+            unsigned += 1
+    return signed_github, signed_personal, unsigned
+
+
+def _format_protection_checks(repo_prot: dict) -> str:
+    """Format branch protection required checks for display."""
+    required_checks = repo_prot.get("required_checks", [])
+    prot_source = repo_prot.get("source", "none")
+    if required_checks:
+        return f"{len(required_checks)} ({prot_source})"
+    return '<span class="badge badge-medium">none</span>'
+
+
+def _build_repo_summary_row(
+    repo: str,
+    num_commits: int,
+    num_prs: int,
+    signed_github: int,
+    signed_personal: int,
+    unsigned: int,
+    num_deps: int,
+    checks_str: str,
+    num_findings: int,
+) -> str:
+    """Build a single per-repo summary table row."""
+    findings_str = str(num_findings) if num_findings == 0 else (
+        f'<span class="badge badge-high">{num_findings}</span>'
+    )
+    return (
+        f'<tr>'
+        f'<td><a href="https://github.com/ansible/{repo}" target="_blank" rel="noopener noreferrer">{esc(repo)}</a></td>'
+        f'<td>{num_commits}</td>'
+        f'<td>{num_prs}</td>'
+        f'<td>{signed_github}</td>'
+        f'<td>{signed_personal}</td>'
+        f'<td>{unsigned}</td>'
+        f'<td>{num_deps}</td>'
+        f'<td>{checks_str}</td>'
+        f'<td>{findings_str}</td>'
+        f'</tr>'
+    )
+
+
 def generate_repo_summary_rows(
     commits: list[dict],
     prs: list[dict],
@@ -129,19 +199,19 @@ def generate_repo_summary_rows(
         if repo in commits_by_repo:
             commits_by_repo[repo].append(c)
 
-    prs_by_repo: dict[str, int] = {r: 0 for r in repos}
+    prs_by_repo: dict[str, int] = dict.fromkeys(repos, 0)
     for p in prs:
         repo = p.get("repo", "")
         if repo in prs_by_repo and p.get("merged"):
             prs_by_repo[repo] += 1
 
-    deps_by_repo: dict[str, int] = {r: 0 for r in repos}
+    deps_by_repo: dict[str, int] = dict.fromkeys(repos, 0)
     for d in deps:
         repo = d.get("repo", "")
         if repo in deps_by_repo:
             deps_by_repo[repo] += 1
 
-    findings_by_repo: dict[str, int] = {r: 0 for r in repos}
+    findings_by_repo: dict[str, int] = dict.fromkeys(repos, 0)
     for f in findings:
         repo = f.get("repo", "")
         if repo in findings_by_repo:
@@ -150,51 +220,22 @@ def generate_repo_summary_rows(
     rows = []
     for repo in sorted(repos):
         repo_commits = commits_by_repo[repo]
-        num_commits = len(repo_commits)
-        num_prs = prs_by_repo[repo]
-        num_deps = deps_by_repo[repo]
-        num_findings = findings_by_repo[repo]
-
-        signed_github = 0
-        signed_personal = 0
-        unsigned = 0
-        for c in repo_commits:
-            v = c.get("verification", {})
-            if v.get("verified"):
-                committer = c.get("committer_login", "")
-                if committer == "web-flow" or "github" in c.get("committer_email", "").lower():
-                    signed_github += 1
-                else:
-                    signed_personal += 1
-            else:
-                unsigned += 1
-
+        signed_github, signed_personal, unsigned = _count_signature_stats(repo_commits)
         repo_prot = protection.get(repo, {}).get("rules", {})
-        required_checks = repo_prot.get("required_checks", [])
-        prot_source = repo_prot.get("source", "none")
-        if required_checks:
-            checks_str = f'{len(required_checks)} ({prot_source})'
-        else:
-            checks_str = '<span class="badge badge-medium">none</span>'
-
-        findings_str = str(num_findings) if num_findings == 0 else (
-            f'<span class="badge badge-high">{num_findings}</span>'
+        checks_str = _format_protection_checks(repo_prot)
+        rows.append(
+            _build_repo_summary_row(
+                repo,
+                len(repo_commits),
+                prs_by_repo[repo],
+                signed_github,
+                signed_personal,
+                unsigned,
+                deps_by_repo[repo],
+                checks_str,
+                findings_by_repo[repo],
+            )
         )
-
-        row = (
-            f'<tr>'
-            f'<td><a href="https://github.com/ansible/{repo}" target="_blank" rel="noopener noreferrer">{esc(repo)}</a></td>'
-            f'<td>{num_commits}</td>'
-            f'<td>{num_prs}</td>'
-            f'<td>{signed_github}</td>'
-            f'<td>{signed_personal}</td>'
-            f'<td>{unsigned}</td>'
-            f'<td>{num_deps}</td>'
-            f'<td>{checks_str}</td>'
-            f'<td>{findings_str}</td>'
-            f'</tr>'
-        )
-        rows.append(row)
 
     return "\n".join(rows)
 
@@ -249,7 +290,7 @@ def generate_repo_cards(findings: list[dict], repos: list[str]) -> str:
             light_class = "light-green"
 
         count = len(rf)
-        count_str = f'{count} issues' if count else "clean"
+        count_str = f"{count} issues" if count else "clean"
         cards.append(
             f'<div class="repo-card">'
             f'<div class="light {light_class}"></div>'
@@ -260,43 +301,27 @@ def generate_repo_cards(findings: list[dict], repos: list[str]) -> str:
     return "\n".join(cards)
 
 
-def generate_timeline_svg(commits: list[dict], findings: list[dict], start_date: str, end_date: str) -> str:
-    """Generate an SVG timeline visualization."""
-    width = 900
-    height = 200
-    margin_left = 60
-    margin_right = 30
-    margin_top = 30
-    margin_bottom = 40
-    plot_width = width - margin_left - margin_right
-    plot_height = height - margin_top - margin_bottom
-
-    start_dt = datetime.strptime(start_date, "%Y-%m-%d")
-    end_dt = datetime.strptime(end_date, "%Y-%m-%d")
-    total_days = (end_dt - start_dt).days or 1
-
-    finding_shas = {}
+def _collect_finding_shas(findings: list[dict]) -> dict[str, str]:
+    """Map commit SHAs to their highest-priority risk level."""
+    finding_shas: dict[str, str] = {}
     for f in findings:
         sha = f.get("commit_sha", "")
         if sha:
             existing = finding_shas.get(sha, "info")
             risk = f.get("risk_level", "info")
-            priority = ["critical", "high", "medium", "low", "info"]
-            if priority.index(risk) < priority.index(existing):
+            if RISK_PRIORITY.index(risk) < RISK_PRIORITY.index(existing):
                 finding_shas[sha] = risk
+    return finding_shas
 
-    repos = sorted(set(c.get("repo", "") for c in commits))
-    if not repos:
-        return '<p class="no-data">No commits to visualize</p>'
 
-    repo_y = {repo: margin_top + (i * plot_height // max(len(repos) - 1, 1))
-              for i, repo in enumerate(repos)}
-
-    svg_parts = [
-        f'<svg class="timeline-svg" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">',
-        f'<rect width="{width}" height="{height}" fill="transparent"/>',
-    ]
-
+def _append_timeline_repo_labels(
+    svg_parts: list[str],
+    repo_y: dict[str, int],
+    margin_left: int,
+    width: int,
+    margin_right: int,
+) -> None:
+    """Append repo label rows to the timeline SVG."""
     for repo, y in repo_y.items():
         short_name = repo[:14]
         svg_parts.append(
@@ -309,6 +334,18 @@ def generate_timeline_svg(commits: list[dict], findings: list[dict], start_date:
             f'stroke="#30363d" stroke-width="0.5"/>'
         )
 
+
+def _append_timeline_ticks(
+    svg_parts: list[str],
+    start_dt: datetime,
+    total_days: int,
+    margin_left: int,
+    plot_width: int,
+    margin_top: int,
+    height: int,
+    margin_bottom: int,
+) -> None:
+    """Append date tick marks to the timeline SVG."""
     num_ticks = min(total_days, 10)
     for i in range(num_ticks + 1):
         x = margin_left + (i * plot_width // num_ticks)
@@ -325,6 +362,18 @@ def generate_timeline_svg(commits: list[dict], findings: list[dict], start_date:
             f'{label}</text>'
         )
 
+
+def _append_timeline_commits(
+    svg_parts: list[str],
+    commits: list[dict],
+    repo_y: dict[str, int],
+    finding_shas: dict[str, str],
+    start_dt: datetime,
+    total_days: int,
+    margin_left: int,
+    plot_width: int,
+) -> None:
+    """Append commit dots to the timeline SVG."""
     for commit in commits:
         date_str = commit.get("date", "")[:10]
         repo = commit.get("repo", "")
@@ -334,7 +383,7 @@ def generate_timeline_svg(commits: list[dict], findings: list[dict], start_date:
             continue
 
         try:
-            commit_dt = datetime.strptime(date_str, "%Y-%m-%d")
+            commit_dt = _parse_date_yyyy_mm_dd(date_str)
         except ValueError:
             continue
 
@@ -356,7 +405,45 @@ def generate_timeline_svg(commits: list[dict], findings: list[dict], start_date:
             f'</circle>'
         )
 
-    svg_parts.append('</svg>')
+
+def generate_timeline_svg(commits: list[dict], findings: list[dict], start_date: str, end_date: str) -> str:
+    """Generate an SVG timeline visualization."""
+    width = 900
+    height = 200
+    margin_left = 60
+    margin_right = 30
+    margin_top = 30
+    margin_bottom = 40
+    plot_width = width - margin_left - margin_right
+    plot_height = height - margin_top - margin_bottom
+
+    start_dt = _parse_date_yyyy_mm_dd(start_date)
+    end_dt = _parse_date_yyyy_mm_dd(end_date)
+    total_days = (end_dt - start_dt).days or 1
+
+    finding_shas = _collect_finding_shas(findings)
+
+    repos = sorted({c.get("repo", "") for c in commits})
+    if not repos:
+        return '<p class="no-data">No commits to visualize</p>'
+
+    repo_y = {repo: margin_top + (i * plot_height // max(len(repos) - 1, 1))
+              for i, repo in enumerate(repos)}
+
+    svg_parts = [
+        f'<svg class="timeline-svg" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">',
+        f'<rect width="{width}" height="{height}" fill="transparent"/>',
+    ]
+
+    _append_timeline_repo_labels(svg_parts, repo_y, margin_left, width, margin_right)
+    _append_timeline_ticks(
+        svg_parts, start_dt, total_days, margin_left, plot_width, margin_top, height, margin_bottom,
+    )
+    _append_timeline_commits(
+        svg_parts, commits, repo_y, finding_shas, start_dt, total_days, margin_left, plot_width,
+    )
+
+    svg_parts.append("</svg>")
     return "\n".join(svg_parts)
 
 
@@ -397,7 +484,7 @@ def generate_commit_integrity_section(commits: list[dict], findings: list[dict])
             f'<a href="https://github.com/ansible/{repo_name}/pull/{p}" '
             f'target="_blank" rel="noopener noreferrer">#{p}</a>'
             for p in prs
-        ) if prs else "\u2014"
+        ) if prs else EM_DASH
 
         flags = []
         for f in cf:
@@ -462,13 +549,13 @@ def generate_dep_section(deps: list[dict], prs: list[dict]) -> str:
     for dep in deps:
         flags = []
         days = dep.get("days_since_release")
-        if days is not None and days < 7:
+        if days is not None and days < RAPID_ADOPTION_DAYS:
             flags.append('<span class="badge badge-high">rapid adoption</span>')
         if dep.get("yanked"):
             flags.append('<span class="badge badge-critical">yanked</span>')
 
-        days_str = str(days) if days is not None else "\u2014"
-        commit_date = esc(dep.get("commit_date") or "\u2014")
+        days_str = str(days) if days is not None else EM_DASH
+        commit_date = esc(dep.get("commit_date") or EM_DASH)
 
         # Find associated PR
         commit_sha = dep.get("commit_sha", "")
@@ -480,20 +567,25 @@ def generate_dep_section(deps: list[dict], prs: list[dict]) -> str:
                 f'target="_blank" rel="noopener noreferrer">#{pr_num}</a>'
             )
         else:
-            pr_cell = "\u2014"
+            pr_cell = EM_DASH
+
+        old_version = esc(dep.get("old_version") or EM_DASH)
+        new_version = esc(dep.get("new_version") or EM_DASH)
+        release_date = esc(dep.get("release_date") or EM_DASH)
+        flags_cell = " ".join(flags) if flags else EM_DASH
 
         row = (
             f'<tr>'
             f'<td>{esc(dep.get("repo", ""))}</td>'
             f'<td><code>{esc(dep.get("package_name", ""))}</code></td>'
             f'<td>{esc(dep.get("change_type", ""))}</td>'
-            f'<td>{esc(dep.get("old_version") or "\u2014")}</td>'
-            f'<td>{esc(dep.get("new_version") or "\u2014")}</td>'
-            f'<td>{esc(dep.get("release_date") or "\u2014")}</td>'
+            f'<td>{old_version}</td>'
+            f'<td>{new_version}</td>'
+            f'<td>{release_date}</td>'
             f'<td>{commit_date}</td>'
             f'<td>{days_str}</td>'
             f'<td>{pr_cell}</td>'
-            f'<td>{" ".join(flags) if flags else "\u2014"}</td>'
+            f'<td>{flags_cell}</td>'
             f'</tr>'
         )
         rows.append(row)
@@ -532,14 +624,11 @@ def generate_renovate_config_table(renovate_configs: dict[str, dict], repos: lis
 
         if source == "none":
             source_display = '<span class="badge badge-high">none</span>'
-            default_str = "\u2014"
-            major_str = "\u2014"
+            default_str = EM_DASH
+            major_str = EM_DASH
         else:
-            if "shared:" in source:
-                source_display = "shared preset"
-            else:
-                source_display = "local"
-            default_str = f"{default_cd} days" if default_cd else "\u2014"
+            source_display = "shared preset" if "shared:" in source else "local"
+            default_str = f"{default_cd} days" if default_cd else EM_DASH
             major_str = f"{major_cd} days" if major_cd else "(inherits default)"
 
         rows.append(
@@ -589,7 +678,7 @@ def generate_findings_details(findings: list[dict]) -> str:
         max_risk = cat_findings[0].get("risk_level", "info") if cat_findings else "info"
 
         items_html = []
-        for f in cat_findings[:50]:
+        for f in cat_findings[:MAX_FINDINGS_PER_CATEGORY]:
             pr_num = f.get("pr_number")
             repo = f.get("repo", "")
             pr_link = ""
@@ -608,8 +697,10 @@ def generate_findings_details(findings: list[dict]) -> str:
                 f'{details_html}</div>'
                 f'</div>'
             )
-        if count > 50:
-            items_html.append(f'<div class="no-data">... and {count - 50} more</div>')
+        if count > MAX_FINDINGS_PER_CATEGORY:
+            items_html.append(
+                f'<div class="no-data">... and {count - MAX_FINDINGS_PER_CATEGORY} more</div>'
+            )
 
         section = (
             f'<div class="collapsible">'
@@ -626,8 +717,8 @@ def generate_findings_details(findings: list[dict]) -> str:
         sections.append(section)
 
     return (
-        '<h2>Anomaly Details</h2>'
-        '<p>Expand each category to see individual findings.</p>'
+        "<h2>Anomaly Details</h2>"
+        "<p>Expand each category to see individual findings.</p>"
         + "\n".join(sections)
     )
 
@@ -641,12 +732,10 @@ def render_recommendations_html(recommendations: list[dict[str, str]]) -> str:
     if not recommendations:
         return ""
 
-    _SAFE_TAGS = _re.compile(r"<(?!/?(?:code|strong|em|a\s|/a))[^>]+>")
-
     items = []
-    for i, rec in enumerate(recommendations[:10], 1):
+    for i, rec in enumerate(recommendations[:MAX_RECOMMENDATIONS], 1):
         title = esc(rec.get("title", ""))
-        detail = _SAFE_TAGS.sub("", rec.get("detail", ""))
+        detail = _SAFE_HTML_TAGS.sub("", rec.get("detail", ""))
         items.append(
             f'<div style="padding: 0.75rem 0; border-bottom: 1px solid var(--border);">'
             f'<strong>{i}. {title}</strong>'
@@ -656,8 +745,8 @@ def render_recommendations_html(recommendations: list[dict[str, str]]) -> str:
         )
 
     return (
-        '<h2>Security Recommendations</h2>'
-        '<p>Prioritized actions based on this audit\'s findings, ordered by impact.</p>'
+        "<h2>Security Recommendations</h2>"
+        "<p>Prioritized actions based on this audit's findings, ordered by impact.</p>"
         + "".join(items)
     )
 
@@ -718,9 +807,8 @@ def generate_package_focus_section(package_data: dict | None) -> str:
     )
 
 
-def generate_report(cache_dir: Path, output_path: Path) -> None:
-    """Generate the complete HTML report."""
-    print("Loading data...")
+def _load_report_data(cache_dir: Path) -> dict:
+    """Load all cached audit data needed for report generation."""
     manifest = read_manifest(cache_dir)
     if not manifest:
         print("ERROR: No manifest found", file=sys.stderr)
@@ -736,76 +824,106 @@ def generate_report(cache_dir: Path, output_path: Path) -> None:
     findings = read_findings(cache_dir)
     package_data = read_package_focus(cache_dir)
 
-    start_date = manifest["start_date"]
-    end_date = manifest["end_date"]
-    repos = manifest.get("repos", [])
-    gh_version = manifest.get("gh_version", "unknown")
-
     total_check_suites = sum(len(v) for v in checks.values())
     total_prs = len([p for p in prs if p.get("merged")])
     total_pr_branch_commits = sum(a.get("commit_count", 0) for a in pr_audits)
 
-    print("Generating components...")
-    template = load_template()
+    return {
+        "manifest": manifest,
+        "commits": commits,
+        "prs": prs,
+        "checks": checks,
+        "deps": deps,
+        "protection": protection,
+        "pr_audits": pr_audits,
+        "renovate_configs": renovate_configs,
+        "findings": findings,
+        "package_data": package_data,
+        "total_check_suites": total_check_suites,
+        "total_prs": total_prs,
+        "total_pr_branch_commits": total_pr_branch_commits,
+    }
 
-    verdict_section = generate_verdict(findings, len(commits), total_prs)
-    repo_summary_rows = generate_repo_summary_rows(commits, prs, deps, findings, protection, repos)
-    findings_summary = generate_findings_summary(findings)
-    repo_cards = generate_repo_cards(findings, repos)
-    timeline_svg = generate_timeline_svg(commits, findings, start_date, end_date)
-    commit_integrity = generate_commit_integrity_section(commits, findings)
-    dep_section = generate_dep_section(deps, prs)
-    renovate_section = generate_renovate_config_table(renovate_configs, repos)
-    findings_details = generate_findings_details(findings)
 
+def _load_recommendations_section(cache_dir: Path) -> str:
+    """Load agent-authored recommendations or return a placeholder."""
     recommendations_path = cache_dir / "recommendations.json"
     if recommendations_path.exists():
-        with open(recommendations_path, encoding="utf-8") as fh:
+        with recommendations_path.open(encoding="utf-8") as fh:
             recs = json.load(fh)
-        recommendations_section = render_recommendations_html(recs)
-    else:
-        recommendations_section = (
-            '<h2>Security Recommendations</h2>'
-            '<p><em>Recommendations will be generated by the agent after analysis. '
-            'Re-run report.py after writing recommendations.json.</em></p>'
-        )
+        return render_recommendations_html(recs)
+    return (
+        "<h2>Security Recommendations</h2>"
+        "<p><em>Recommendations will be generated by the agent after analysis. "
+        "Re-run report.py after writing recommendations.json.</em></p>"
+    )
 
-    package_focus_section = generate_package_focus_section(package_data)
 
-    print("Rendering HTML...")
-    output = template
-    replacements = {
-        "{{start_date}}": start_date,
-        "{{end_date}}": end_date,
+def _generate_report_sections(data: dict) -> dict[str, str]:
+    """Generate all HTML sections for the report."""
+    manifest = data["manifest"]
+    commits = data["commits"]
+    prs = data["prs"]
+    deps = data["deps"]
+    findings = data["findings"]
+    protection = data["protection"]
+    renovate_configs = data["renovate_configs"]
+    package_data = data["package_data"]
+    total_prs = data["total_prs"]
+
+    start_date = manifest["start_date"]
+    end_date = manifest["end_date"]
+    repos = manifest.get("repos", [])
+
+    return {
+        "verdict_section": generate_verdict(findings, len(commits), total_prs),
+        "repo_summary_rows": generate_repo_summary_rows(commits, prs, deps, findings, protection, repos),
+        "findings_summary_section": generate_findings_summary(findings),
+        "repo_cards": generate_repo_cards(findings, repos),
+        "timeline_svg": generate_timeline_svg(commits, findings, start_date, end_date),
+        "commit_integrity_section": generate_commit_integrity_section(commits, findings),
+        "dep_section": generate_dep_section(deps, prs),
+        "renovate_section": generate_renovate_config_table(renovate_configs, repos),
+        "findings_details_section": generate_findings_details(findings),
+        "package_focus_section": generate_package_focus_section(package_data),
+    }
+
+
+def _build_replacements(data: dict, sections: dict[str, str], recommendations_section: str) -> dict[str, str]:
+    """Build template placeholder replacements for the report."""
+    manifest = data["manifest"]
+    commits = data["commits"]
+    deps = data["deps"]
+    findings = data["findings"]
+    repos = manifest.get("repos", [])
+    gh_version = manifest.get("gh_version", "unknown")
+
+    return {
+        "{{start_date}}": manifest["start_date"],
+        "{{end_date}}": manifest["end_date"],
         "{{generated_at}}": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
         "{{repo_count}}": str(len(repos)),
         "{{gh_version}}": esc(gh_version),
         "{{total_commits}}": str(len(commits)),
-        "{{total_prs}}": str(total_prs),
-        "{{total_pr_branch_commits}}": str(total_pr_branch_commits),
-        "{{total_check_suites}}": str(total_check_suites),
+        "{{total_prs}}": str(data["total_prs"]),
+        "{{total_pr_branch_commits}}": str(data["total_pr_branch_commits"]),
+        "{{total_check_suites}}": str(data["total_check_suites"]),
         "{{total_dep_changes}}": str(len(deps)),
         "{{total_findings}}": str(len(findings)),
-        "{{verdict_section}}": verdict_section,
-        "{{repo_summary_rows}}": repo_summary_rows,
-        "{{findings_summary_section}}": findings_summary,
-        "{{repo_cards}}": repo_cards,
-        "{{timeline_svg}}": timeline_svg,
-        "{{commit_integrity_section}}": commit_integrity,
-        "{{dep_section}}": dep_section,
-        "{{renovate_section}}": renovate_section,
-        "{{findings_details_section}}": findings_details,
         "{{recommendations_section}}": recommendations_section,
-        "{{package_focus_section}}": package_focus_section,
+        **sections,
     }
 
-    for placeholder, value in replacements.items():
-        output = output.replace(placeholder, value)
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write(output)
-
+def _print_report_summary(
+    output_path: Path,
+    findings: list[dict],
+    commits: list[dict],
+    total_prs: int,
+    total_check_suites: int,
+    deps: list[dict],
+) -> None:
+    """Print summary statistics after report generation."""
     print(f"\nReport generated: {output_path}")
     print(f"  Size: {output_path.stat().st_size / 1024:.1f} KB")
     print(f"  Findings: {len(findings)} total")
@@ -813,6 +931,36 @@ def generate_report(cache_dir: Path, output_path: Path) -> None:
     print(f"  PRs: {total_prs}")
     print(f"  Check suites: {total_check_suites}")
     print(f"  Dep changes: {len(deps)}")
+
+
+def generate_report(cache_dir: Path, output_path: Path) -> None:
+    """Generate the complete HTML report."""
+    print("Loading data...")
+    data = _load_report_data(cache_dir)
+
+    print("Generating components...")
+    sections = _generate_report_sections(data)
+    recommendations_section = _load_recommendations_section(cache_dir)
+
+    print("Rendering HTML...")
+    template = load_template()
+    replacements = _build_replacements(data, sections, recommendations_section)
+    output = template
+    for placeholder, value in replacements.items():
+        output = output.replace(placeholder, value)
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", encoding="utf-8") as f:
+        f.write(output)
+
+    _print_report_summary(
+        output_path,
+        data["findings"],
+        data["commits"],
+        data["total_prs"],
+        data["total_check_suites"],
+        data["deps"],
+    )
 
 
 def main() -> None:

@@ -10,7 +10,7 @@ import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+
 
 TARGET_REPOS = [
     "ansible-builder",
@@ -51,20 +51,22 @@ def ensure_cache_structure(cache_dir: Path) -> None:
         (cache_dir / sub).mkdir(parents=True, exist_ok=True)
 
 
-def read_cache_file(cache_dir: Path, subdir: str, filename: str) -> Any | None:
+def read_cache_file(cache_dir: Path, subdir: str, filename: str) -> dict[str, object] | list[object] | None:
     """Read a JSON file from cache. Returns None if not found."""
     path = cache_dir / subdir / filename
     if not path.exists():
         return None
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
+    with path.open(encoding="utf-8") as f:
+        return json.load(f)  # type: ignore[no-any-return]
 
 
-def write_cache_file(cache_dir: Path, subdir: str, filename: str, data: Any) -> Path:
+def write_cache_file(
+    cache_dir: Path, subdir: str, filename: str, data: dict[str, object] | list[object]
+) -> Path:
     """Write data as JSON to cache. Returns the file path."""
     (cache_dir / subdir).mkdir(parents=True, exist_ok=True)
     path = cache_dir / subdir / filename
-    with open(path, "w", encoding="utf-8") as f:
+    with path.open("w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
     return path
 
@@ -75,13 +77,13 @@ def has_cached_data(cache_dir: Path, repo: str, subdir: str) -> bool:
     return path.exists()
 
 
-def read_manifest(cache_dir: Path) -> dict[str, Any] | None:
+def read_manifest(cache_dir: Path) -> dict[str, object] | None:
     """Read the audit manifest from cache."""
     manifest_path = cache_dir / "manifest.json"
     if not manifest_path.exists():
         return None
-    with open(manifest_path, encoding="utf-8") as f:
-        return json.load(f)
+    with manifest_path.open(encoding="utf-8") as f:
+        return json.load(f)  # type: ignore[no-any-return]
 
 
 def write_manifest(
@@ -106,39 +108,39 @@ def write_manifest(
         "total_prs": total_prs,
     }
     manifest_path = cache_dir / "manifest.json"
-    with open(manifest_path, "w", encoding="utf-8") as f:
+    with manifest_path.open("w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2)
 
 
-def read_findings(cache_dir: Path) -> list[dict[str, Any]]:
+def read_findings(cache_dir: Path) -> list[dict[str, object]]:
     """Read findings from cache."""
     path = cache_dir / "findings.json"
     if not path.exists():
         return []
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
+    with path.open(encoding="utf-8") as f:
+        return json.load(f)  # type: ignore[no-any-return]
 
 
-def write_findings(cache_dir: Path, findings: list[dict[str, Any]]) -> None:
+def write_findings(cache_dir: Path, findings: list[dict[str, object]]) -> None:
     """Write findings to cache."""
     path = cache_dir / "findings.json"
-    with open(path, "w", encoding="utf-8") as f:
+    with path.open("w", encoding="utf-8") as f:
         json.dump(findings, f, indent=2, ensure_ascii=False)
 
 
-def read_package_focus(cache_dir: Path) -> dict[str, Any] | None:
+def read_package_focus(cache_dir: Path) -> dict[str, object] | None:
     """Read package focus results from cache."""
     path = cache_dir / "package_focus.json"
     if not path.exists():
         return None
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
+    with path.open(encoding="utf-8") as f:
+        return json.load(f)  # type: ignore[no-any-return]
 
 
-def write_package_focus(cache_dir: Path, data: dict[str, Any]) -> None:
+def write_package_focus(cache_dir: Path, data: dict[str, object]) -> None:
     """Write package focus results to cache."""
     path = cache_dir / "package_focus.json"
-    with open(path, "w", encoding="utf-8") as f:
+    with path.open("w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
@@ -149,51 +151,48 @@ def is_cache_complete(cache_dir: Path, repos: list[str] | None = None) -> bool:
     manifest = read_manifest(cache_dir)
     if manifest is None:
         return False
-    for repo in repos:
-        if not has_cached_data(cache_dir, repo, "commits"):
-            return False
-    return True
+    return all(has_cached_data(cache_dir, repo, "commits") for repo in repos)
 
 
-def get_all_cached_commits(cache_dir: Path) -> list[dict[str, Any]]:
+def get_all_cached_commits(cache_dir: Path) -> list[dict[str, object]]:
     """Load all cached commits across all repos."""
-    all_commits = []
+    all_commits: list[dict[str, object]] = []
     commits_dir = cache_dir / "commits"
     if not commits_dir.exists():
         return []
     for f in sorted(commits_dir.iterdir()):
         if f.suffix == ".json":
-            with open(f, encoding="utf-8") as fh:
+            with f.open(encoding="utf-8") as fh:
                 data = json.load(fh)
                 if isinstance(data, list):
                     all_commits.extend(data)
     return all_commits
 
 
-def get_all_cached_prs(cache_dir: Path) -> list[dict[str, Any]]:
+def get_all_cached_prs(cache_dir: Path) -> list[dict[str, object]]:
     """Load all cached PRs across all repos."""
-    all_prs = []
+    all_prs: list[dict[str, object]] = []
     prs_dir = cache_dir / "prs"
     if not prs_dir.exists():
         return []
     for f in sorted(prs_dir.iterdir()):
         if f.suffix == ".json":
-            with open(f, encoding="utf-8") as fh:
+            with f.open(encoding="utf-8") as fh:
                 data = json.load(fh)
                 if isinstance(data, list):
                     all_prs.extend(data)
     return all_prs
 
 
-def get_all_cached_checks(cache_dir: Path) -> dict[str, list[dict[str, Any]]]:
+def get_all_cached_checks(cache_dir: Path) -> dict[str, list[dict[str, object]]]:
     """Load all cached check suites, keyed by commit SHA."""
-    checks_by_sha: dict[str, list[dict[str, Any]]] = {}
+    checks_by_sha: dict[str, list[dict[str, object]]] = {}
     checks_dir = cache_dir / "checks"
     if not checks_dir.exists():
         return {}
     for f in sorted(checks_dir.iterdir()):
         if f.suffix == ".json":
-            with open(f, encoding="utf-8") as fh:
+            with f.open(encoding="utf-8") as fh:
                 data = json.load(fh)
                 if isinstance(data, dict):
                     for sha, suites in data.items():
@@ -201,74 +200,74 @@ def get_all_cached_checks(cache_dir: Path) -> dict[str, list[dict[str, Any]]]:
     return checks_by_sha
 
 
-def get_all_cached_deps(cache_dir: Path) -> list[dict[str, Any]]:
+def get_all_cached_deps(cache_dir: Path) -> list[dict[str, object]]:
     """Load all cached dependency changes."""
-    all_deps = []
+    all_deps: list[dict[str, object]] = []
     deps_dir = cache_dir / "deps"
     if not deps_dir.exists():
         return []
     for f in sorted(deps_dir.iterdir()):
         if f.suffix == ".json":
-            with open(f, encoding="utf-8") as fh:
+            with f.open(encoding="utf-8") as fh:
                 data = json.load(fh)
                 if isinstance(data, list):
                     all_deps.extend(data)
     return all_deps
 
 
-def get_all_cached_protection(cache_dir: Path) -> dict[str, dict[str, Any]]:
+def get_all_cached_protection(cache_dir: Path) -> dict[str, dict[str, object]]:
     """Load all cached branch protection data, keyed by repo name."""
-    protection: dict[str, dict[str, Any]] = {}
+    protection: dict[str, dict[str, object]] = {}
     prot_dir = cache_dir / "protection"
     if not prot_dir.exists():
         return {}
     for f in sorted(prot_dir.iterdir()):
         if f.suffix == ".json":
             repo_name = f.stem
-            with open(f, encoding="utf-8") as fh:
+            with f.open(encoding="utf-8") as fh:
                 protection[repo_name] = json.load(fh)
     return protection
 
 
-def get_all_cached_vulns(cache_dir: Path) -> dict[str, list[dict[str, Any]]]:
+def get_all_cached_vulns(cache_dir: Path) -> dict[str, list[dict[str, object]]]:
     """Load all cached vulnerability scan results, keyed by repo name."""
-    vulns: dict[str, list[dict[str, Any]]] = {}
+    vulns: dict[str, list[dict[str, object]]] = {}
     vulns_dir = cache_dir / "vulns"
     if not vulns_dir.exists():
         return {}
     for f in sorted(vulns_dir.iterdir()):
         if f.suffix == ".json":
             repo_name = f.stem
-            with open(f, encoding="utf-8") as fh:
+            with f.open(encoding="utf-8") as fh:
                 data = json.load(fh)
                 if isinstance(data, list) and data:
                     vulns[repo_name] = data
     return vulns
 
 
-def get_all_cached_renovate(cache_dir: Path) -> dict[str, dict[str, Any]]:
+def get_all_cached_renovate(cache_dir: Path) -> dict[str, dict[str, object]]:
     """Load all cached renovate configs, keyed by repo name."""
-    configs: dict[str, dict[str, Any]] = {}
+    configs: dict[str, dict[str, object]] = {}
     reno_dir = cache_dir / "renovate"
     if not reno_dir.exists():
         return {}
     for f in sorted(reno_dir.iterdir()):
         if f.suffix == ".json":
             repo_name = f.stem
-            with open(f, encoding="utf-8") as fh:
+            with f.open(encoding="utf-8") as fh:
                 configs[repo_name] = json.load(fh)
     return configs
 
 
-def get_all_cached_pr_audits(cache_dir: Path) -> list[dict[str, Any]]:
+def get_all_cached_pr_audits(cache_dir: Path) -> list[dict[str, object]]:
     """Load all cached PR audit data (commits + reviews per PR)."""
-    all_audits = []
+    all_audits: list[dict[str, object]] = []
     audits_dir = cache_dir / "pr_audits"
     if not audits_dir.exists():
         return []
     for f in sorted(audits_dir.iterdir()):
         if f.suffix == ".json":
-            with open(f, encoding="utf-8") as fh:
+            with f.open(encoding="utf-8") as fh:
                 data = json.load(fh)
                 if isinstance(data, list):
                     all_audits.extend(data)

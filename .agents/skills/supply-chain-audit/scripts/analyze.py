@@ -4,7 +4,6 @@ Processes cached data to detect 13 categories of supply chain anomalies
 including commit integrity, CI integrity, dependency provenance, review
 integrity, and known vulnerabilities.
 """
-# ruff: noqa: T201
 
 from __future__ import annotations
 
@@ -13,14 +12,19 @@ import json
 import sys
 from collections import Counter
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 from cache_utils import (
     get_all_cached_checks,
     get_all_cached_commits,
     get_all_cached_deps,
     get_all_cached_pr_audits,
-    get_all_cached_prs,
     get_all_cached_protection,
+    get_all_cached_prs,
     get_all_cached_renovate,
     get_all_cached_vulns,
     read_manifest,
@@ -28,8 +32,12 @@ from cache_utils import (
 )
 from models import Finding, FindingCategory, RiskLevel
 
+
 GITHUB_NOREPLY_EMAILS = {"noreply@github.com", "github@users.noreply.github.com"}
 JACCARD_THRESHOLD = 0.95
+MIN_COMMIT_MESSAGE_LENGTH = 20
+REPLICATED_MESSAGE_LOOKBACK = 50
+FALLBACK_COOLDOWN_DAYS = 3
 
 
 def tokenize(text: str) -> set[str]:
@@ -171,7 +179,7 @@ def detect_orphan_commits(commits: list[dict], prs: list[dict]) -> list[Finding]
 
 
 def detect_bypassed_ci(
-    commits: list[dict],
+    _commits: list[dict],
     prs: list[dict],
     checks: dict[str, list[dict]],
     protection: dict[str, dict],
@@ -257,8 +265,8 @@ def detect_protection_changes(protection: dict[str, dict]) -> list[Finding]:
     findings = []
     for repo, data in protection.items():
         changes = data.get("changes", [])
-        for change in changes:
-            findings.append(Finding(
+        findings.extend(
+            Finding(
                 category=FindingCategory.PROTECTION_CHANGED,
                 risk_level=RiskLevel.CRITICAL,
                 repo=repo,
@@ -279,7 +287,9 @@ def detect_protection_changes(protection: dict[str, dict]) -> list[Finding]:
                     "ref": change.get("ref"),
                     "timestamp": change.get("timestamp"),
                 },
-            ))
+            )
+            for change in changes
+        )
 
         rules = data.get("rules", {})
         if rules.get("error") == "not_found":
@@ -380,13 +390,13 @@ def detect_replicated_messages(commits: list[dict]) -> list[Finding]:
 
         for i, commit in enumerate(sorted_commits):
             msg = commit.get("message", "")
-            if len(msg) < 20:
+            if len(msg) < MIN_COMMIT_MESSAGE_LENGTH:
                 continue
 
-            for j in range(max(0, i - 50), i):
+            for j in range(max(0, i - REPLICATED_MESSAGE_LOOKBACK), i):
                 earlier = sorted_commits[j]
                 earlier_msg = earlier.get("message", "")
-                if len(earlier_msg) < 20:
+                if len(earlier_msg) < MIN_COMMIT_MESSAGE_LENGTH:
                     continue
 
                 if commit["sha"] == earlier["sha"]:
@@ -446,7 +456,6 @@ def detect_suspicious_dep_timing(
         major_cooldown = config.get("major_cooldown_days")
 
         # Determine which cooldown applies
-        change_type = dep.get("change_type", "")
         old_ver = dep.get("old_version", "")
         new_ver = dep.get("new_version", "")
 
@@ -488,7 +497,7 @@ def detect_suspicious_dep_timing(
                     "config_source": config.get("source"),
                 },
             ))
-        elif effective_cooldown is None and days < 3:
+        elif effective_cooldown is None and days < FALLBACK_COOLDOWN_DAYS:
             # No cooldown configured — fallback heuristic for very rapid adoption
             findings.append(Finding(
                 category=FindingCategory.SUSPICIOUS_DEP_TIMING,
@@ -519,31 +528,31 @@ def detect_suspicious_dep_timing(
 
 def detect_yanked_versions(deps: list[dict]) -> list[Finding]:
     """Detect dependencies using yanked or deleted versions."""
-    findings = []
-    for dep in deps:
-        if dep.get("yanked"):
-            findings.append(Finding(
-                category=FindingCategory.YANKED_VERSION,
-                risk_level=RiskLevel.CRITICAL,
-                repo=dep["repo"],
-                summary=f"Yanked version: {dep['package_name']} {dep.get('new_version')}",
-                details=(
-                    f"Package '{dep['package_name']}' version {dep.get('new_version')} "
-                    f"has been yanked/deprecated from the registry. This version may have "
-                    f"been compromised or contained critical bugs. "
-                    f"File: {dep.get('file_path', 'unknown')}, "
-                    f"Change type: {dep.get('change_type', 'unknown')}"
-                ),
-                commit_sha=dep.get("commit_sha"),
-                date=dep.get("commit_date"),
-                evidence={
-                    "package": dep["package_name"],
-                    "version": dep.get("new_version"),
-                    "file": dep.get("file_path"),
-                    "ecosystem": dep.get("ecosystem"),
-                },
-            ))
-    return findings
+    return [
+        Finding(
+            category=FindingCategory.YANKED_VERSION,
+            risk_level=RiskLevel.CRITICAL,
+            repo=dep["repo"],
+            summary=f"Yanked version: {dep['package_name']} {dep.get('new_version')}",
+            details=(
+                f"Package '{dep['package_name']}' version {dep.get('new_version')} "
+                f"has been yanked/deprecated from the registry. This version may have "
+                f"been compromised or contained critical bugs. "
+                f"File: {dep.get('file_path', 'unknown')}, "
+                f"Change type: {dep.get('change_type', 'unknown')}"
+            ),
+            commit_sha=dep.get("commit_sha"),
+            date=dep.get("commit_date"),
+            evidence={
+                "package": dep["package_name"],
+                "version": dep.get("new_version"),
+                "file": dep.get("file_path"),
+                "ecosystem": dep.get("ecosystem"),
+            },
+        )
+        for dep in deps
+        if dep.get("yanked")
+    ]
 
 
 def detect_post_approval_commits(pr_audits: list[dict]) -> list[Finding]:
@@ -711,11 +720,7 @@ BOT_ACCOUNTS = {
 
 def _is_bot_account(login: str) -> bool:
     """Check if a login is a known bot account."""
-    if login in BOT_ACCOUNTS:
-        return True
-    if login.endswith("[bot]"):
-        return True
-    return False
+    return login in BOT_ACCOUNTS or login.endswith("[bot]")
 
 
 def detect_bot_only_approval(pr_audits: list[dict], prs: list[dict]) -> list[Finding]:
@@ -875,6 +880,164 @@ def detect_self_approval(pr_audits: list[dict]) -> list[Finding]:
     return findings
 
 
+def _print_cache_stats(
+    commits: list[dict],
+    prs: list[dict],
+    checks: dict[str, list[dict]],
+    deps: list[dict],
+    protection: dict[str, dict],
+    pr_audits: list[dict],
+    renovate_configs: dict[str, dict],
+    vulns: dict[str, list[dict]],
+) -> None:
+    """Print summary statistics for loaded cache data."""
+    print(f"  Commits on main: {len(commits)}")
+    print(f"  PRs: {len(prs)}")
+    print(f"  PR branch commits: {sum(a.get('commit_count', 0) for a in pr_audits)}")
+    print(f"  Check suites: {sum(len(v) for v in checks.values())}")
+    print(f"  Dep changes: {len(deps)}")
+    print(f"  Repos with protection data: {len(protection)}")
+    print(
+        f"  Repos with renovate config: "
+        f"{sum(1 for c in renovate_configs.values() if c.get('source') != 'none')}"
+    )
+    print(
+        f"  Repos with vulnerability data: {len(vulns)} "
+        f"({sum(len(v) for v in vulns.values())} affected packages)"
+    )
+
+
+def _run_detection_pass(
+    step: str,
+    description: str,
+    detector: Callable[[], list[Finding]],
+    result_message: Callable[[list[Finding]], str],
+) -> list[Finding]:
+    """Run a single detection pass and print its progress."""
+    print(f"  {step} {description}...")
+    findings = detector()
+    print(f"          {result_message(findings)}")
+    return findings
+
+
+def _run_detection_passes(
+    commits: list[dict],
+    prs: list[dict],
+    checks: dict[str, list[dict]],
+    deps: list[dict],
+    protection: dict[str, dict],
+    pr_audits: list[dict],
+    renovate_configs: dict[str, dict],
+    vulns: dict[str, list[dict]],
+) -> list[Finding]:
+    """Execute all detection passes and return combined findings."""
+    print("\nRunning detection passes...")
+
+    pass_specs: list[tuple[str, str, Callable[[], list[Finding]], Callable[[list[Finding]], str]]] = [
+        (
+            "[1/12]",
+            "Unsigned commits",
+            lambda: detect_unsigned_commits(commits),
+            lambda findings: f"Found {len(findings)} unsigned commits",
+        ),
+        (
+            "[2/12]",
+            "GitHub-web-signed commits (excluding PR merges)",
+            lambda: detect_github_web_signed(commits, prs),
+            lambda findings: f"Found {len(findings)} GitHub-web-signed commits (non-merge)",
+        ),
+        (
+            "[3/12]",
+            "Orphan commits (no PR)",
+            lambda: detect_orphan_commits(commits, prs),
+            lambda findings: f"Found {len(findings)} orphan commits",
+        ),
+        (
+            "[4/12]",
+            "Bypassed CI (required checks only)",
+            lambda: detect_bypassed_ci(commits, prs, checks, protection),
+            lambda findings: f"Found {len(findings)} bypassed CI instances",
+        ),
+        (
+            "[5/12]",
+            "Post-merge pushes",
+            lambda: detect_post_merge_pushes(commits, prs),
+            lambda findings: f"Found {len(findings)} post-merge pushes",
+        ),
+        (
+            "[6/12]",
+            "Replicated commit messages",
+            lambda: detect_replicated_messages(commits),
+            lambda findings: f"Found {len(findings)} replicated messages",
+        ),
+        (
+            "[7/12]",
+            "Dependency cooldown policy check",
+            lambda: detect_suspicious_dep_timing(deps, renovate_configs),
+            lambda findings: (
+                f"Found {sum(1 for f in findings if f.category == FindingCategory.COOLDOWN_VIOLATED)} "
+                f"cooldown violations, "
+                f"{len(findings) - sum(1 for f in findings if f.category == FindingCategory.COOLDOWN_VIOLATED)} "
+                f"heuristic flags"
+            ),
+        ),
+        (
+            "[8/12]",
+            "Yanked/deleted versions",
+            lambda: detect_yanked_versions(deps),
+            lambda findings: f"Found {len(findings)} yanked versions",
+        ),
+        (
+            "[9/12]",
+            "Branch protection changes",
+            lambda: detect_protection_changes(protection),
+            lambda findings: f"Found {len(findings)} protection findings",
+        ),
+        (
+            "[10/12]",
+            "Post-approval commits in PRs",
+            lambda: detect_post_approval_commits(pr_audits),
+            lambda findings: f"Found {len(findings)} PRs with post-approval commits",
+        ),
+        (
+            "[11/13]",
+            "Bot-only approvals (no human review)",
+            lambda: detect_bot_only_approval(pr_audits, prs),
+            lambda findings: f"Found {len(findings)} PRs with bot-only approval",
+        ),
+        (
+            "[12/13]",
+            "Self-approved PRs",
+            lambda: detect_self_approval(pr_audits),
+            lambda findings: f"Found {len(findings)} self-approved PRs",
+        ),
+        (
+            "[13/13]",
+            "Known vulnerabilities (OSV.dev)",
+            lambda: detect_known_vulnerabilities(vulns),
+            lambda findings: f"Found {len(findings)} known vulnerabilities",
+        ),
+    ]
+
+    all_findings: list[Finding] = []
+    for step, description, detector, result_message in pass_specs:
+        all_findings.extend(_run_detection_pass(step, description, detector, result_message))
+
+    return all_findings
+
+
+def _print_risk_summary(all_findings: list[Finding]) -> None:
+    """Print finding counts grouped by risk level."""
+    print(f"\nTotal findings: {len(all_findings)}")
+
+    by_risk: dict[str, int] = {}
+    for finding in all_findings:
+        by_risk.setdefault(finding.risk_level.value, 0)
+        by_risk[finding.risk_level.value] += 1
+    for risk, count in sorted(by_risk.items()):
+        print(f"  {risk}: {count}")
+
+
 def run_analysis(cache_dir: Path) -> list[Finding]:
     """Run all detection passes and return combined findings."""
     print("Loading cached data...")
@@ -887,93 +1050,12 @@ def run_analysis(cache_dir: Path) -> list[Finding]:
     renovate_configs = get_all_cached_renovate(cache_dir)
     vulns = get_all_cached_vulns(cache_dir)
 
-    print(f"  Commits on main: {len(commits)}")
-    print(f"  PRs: {len(prs)}")
-    print(f"  PR branch commits: {sum(a.get('commit_count', 0) for a in pr_audits)}")
-    print(f"  Check suites: {sum(len(v) for v in checks.values())}")
-    print(f"  Dep changes: {len(deps)}")
-    print(f"  Repos with protection data: {len(protection)}")
-    print(f"  Repos with renovate config: {sum(1 for c in renovate_configs.values() if c.get('source') != 'none')}")
-    print(f"  Repos with vulnerability data: {len(vulns)} ({sum(len(v) for v in vulns.values())} affected packages)")
+    _print_cache_stats(commits, prs, checks, deps, protection, pr_audits, renovate_configs, vulns)
 
-    all_findings: list[Finding] = []
-
-    print("\nRunning detection passes...")
-
-    print("  [1/12] Unsigned commits...")
-    findings = detect_unsigned_commits(commits)
-    print(f"          Found {len(findings)} unsigned commits")
-    all_findings.extend(findings)
-
-    print("  [2/12] GitHub-web-signed commits (excluding PR merges)...")
-    findings = detect_github_web_signed(commits, prs)
-    print(f"          Found {len(findings)} GitHub-web-signed commits (non-merge)")
-    all_findings.extend(findings)
-
-    print("  [3/12] Orphan commits (no PR)...")
-    findings = detect_orphan_commits(commits, prs)
-    print(f"          Found {len(findings)} orphan commits")
-    all_findings.extend(findings)
-
-    print("  [4/12] Bypassed CI (required checks only)...")
-    findings = detect_bypassed_ci(commits, prs, checks, protection)
-    print(f"          Found {len(findings)} bypassed CI instances")
-    all_findings.extend(findings)
-
-    print("  [5/12] Post-merge pushes...")
-    findings = detect_post_merge_pushes(commits, prs)
-    print(f"          Found {len(findings)} post-merge pushes")
-    all_findings.extend(findings)
-
-    print("  [6/12] Replicated commit messages...")
-    findings = detect_replicated_messages(commits)
-    print(f"          Found {len(findings)} replicated messages")
-    all_findings.extend(findings)
-
-    print("  [7/12] Dependency cooldown policy check...")
-    findings = detect_suspicious_dep_timing(deps, renovate_configs)
-    cooldown_violations = sum(1 for f in findings if f.category == FindingCategory.COOLDOWN_VIOLATED)
-    print(f"          Found {cooldown_violations} cooldown violations, {len(findings) - cooldown_violations} heuristic flags")
-    all_findings.extend(findings)
-
-    print("  [8/12] Yanked/deleted versions...")
-    findings = detect_yanked_versions(deps)
-    print(f"          Found {len(findings)} yanked versions")
-    all_findings.extend(findings)
-
-    print("  [9/12] Branch protection changes...")
-    findings = detect_protection_changes(protection)
-    print(f"          Found {len(findings)} protection findings")
-    all_findings.extend(findings)
-
-    print("  [10/12] Post-approval commits in PRs...")
-    findings = detect_post_approval_commits(pr_audits)
-    print(f"          Found {len(findings)} PRs with post-approval commits")
-    all_findings.extend(findings)
-
-    print("  [11/13] Bot-only approvals (no human review)...")
-    findings = detect_bot_only_approval(pr_audits, prs)
-    print(f"          Found {len(findings)} PRs with bot-only approval")
-    all_findings.extend(findings)
-
-    print("  [12/13] Self-approved PRs...")
-    findings = detect_self_approval(pr_audits)
-    print(f"          Found {len(findings)} self-approved PRs")
-    all_findings.extend(findings)
-
-    print("  [13/13] Known vulnerabilities (OSV.dev)...")
-    findings = detect_known_vulnerabilities(vulns)
-    print(f"          Found {len(findings)} known vulnerabilities")
-    all_findings.extend(findings)
-
-    print(f"\nTotal findings: {len(all_findings)}")
-
-    by_risk = {}
-    for f in all_findings:
-        by_risk.setdefault(f.risk_level.value, 0)
-        by_risk[f.risk_level.value] += 1
-    for risk, count in sorted(by_risk.items()):
-        print(f"  {risk}: {count}")
+    all_findings = _run_detection_passes(
+        commits, prs, checks, deps, protection, pr_audits, renovate_configs, vulns
+    )
+    _print_risk_summary(all_findings)
 
     return all_findings
 
@@ -995,7 +1077,7 @@ def _build_findings_summary(findings: list[dict], manifest: dict) -> dict:
     category_breakdown = []
     for cat, cat_findings in sorted(by_category.items(), key=lambda x: -len(x[1])):
         risk_counts = Counter(f["risk_level"] for f in cat_findings)
-        repos_affected = sorted(set(f["repo"] for f in cat_findings))
+        repos_affected = sorted({f["repo"] for f in cat_findings})
         category_breakdown.append({
             "category": cat,
             "total": len(cat_findings),
@@ -1064,7 +1146,7 @@ def main() -> None:
     # Write a compact summary for agent consumption
     summary = _build_findings_summary(serialized, manifest)
     summary_path = cache_dir / "findings_summary.json"
-    with open(summary_path, "w", encoding="utf-8") as fh:
+    with summary_path.open("w", encoding="utf-8") as fh:
         json.dump(summary, fh, indent=2)
 
     print(f"\nFindings written to: {cache_dir / 'findings.json'}")

@@ -4,7 +4,6 @@ Fetches commits, PRs, check suites, and dependency file diffs for all
 target repos within a specified time window. Results are cached as JSON
 for idempotent re-runs.
 """
-# ruff: noqa: T201, S310, BLE001
 
 from __future__ import annotations
 
@@ -15,9 +14,10 @@ import re
 import subprocess
 import sys
 import time
+import urllib.error
 import urllib.request
-from datetime import datetime, timezone
-from pathlib import Path
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from cache_utils import (
     GITHUB_ORG,
@@ -25,13 +25,33 @@ from cache_utils import (
     ensure_cache_structure,
     get_cache_dir,
     has_cached_data,
+    read_cache_file,
     write_cache_file,
     write_manifest,
 )
-from models import Commit, CheckSuite, DepChange, PullRequest
+from models import CheckSuite, Commit, DepChange, PullRequest
+
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
 
 RATE_LIMIT_SLEEP = 0.5
+RATE_LIMIT_RETRY_SLEEP_SECONDS = 60
 PER_PAGE = 100
+GH_API_TIMEOUT_SECONDS = 120
+GH_VERSION_TIMEOUT_SECONDS = 10
+REGISTRY_REQUEST_TIMEOUT_SECONDS = 10
+OSV_REQUEST_TIMEOUT_SECONDS = 30
+OSV_BATCH_SIZE = 100
+OSV_BATCH_SLEEP_SECONDS = 1
+MAX_COMMIT_MSG_LEN = 120
+GITHUB_EXT_PREFIX_LEN = 7
+GITHUB_EXT_EXPECTED_PARTS = 2
+CVSS_CRITICAL_THRESHOLD = 9.0
+CVSS_HIGH_THRESHOLD = 7.0
+CVSS_MEDIUM_THRESHOLD = 4.0
+DATE_FORMAT = "%Y-%m-%d"
 
 DEP_FILES_PYTHON = {
     "pyproject.toml",
@@ -60,14 +80,16 @@ DEP_FILE_PATTERNS = re.compile(
 )
 
 
-def gh_api(endpoint: str, paginate: bool = False) -> list | dict | None:
+def gh_api(endpoint: str, *, paginate: bool = False) -> list | dict | None:
     """Call GitHub API via gh CLI. Returns parsed JSON or None on error."""
     cmd = ["gh", "api", endpoint, "--header", "Accept: application/vnd.github+json"]
     if paginate:
         cmd.append("--paginate")
 
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=GH_API_TIMEOUT_SECONDS, check=False
+        )
     except subprocess.TimeoutExpired:
         print(f"  TIMEOUT: {endpoint}", file=sys.stderr)
         return None
@@ -75,8 +97,8 @@ def gh_api(endpoint: str, paginate: bool = False) -> list | dict | None:
     if result.returncode != 0:
         if "rate limit" in result.stderr.lower() or "403" in result.stderr:
             print("  Rate limited, sleeping 60s...", file=sys.stderr)
-            time.sleep(60)
-            return gh_api(endpoint, paginate)
+            time.sleep(RATE_LIMIT_RETRY_SLEEP_SECONDS)
+            return gh_api(endpoint, paginate=paginate)
         if "404" in result.stderr or "Not Found" in result.stderr:
             return None
         print(f"  ERROR ({result.returncode}): {result.stderr[:200]}", file=sys.stderr)
@@ -92,7 +114,11 @@ def get_gh_version() -> str:
     """Get the installed gh CLI version string."""
     try:
         result = subprocess.run(
-            ["gh", "--version"], capture_output=True, text=True, timeout=10
+            ["gh", "--version"],
+            capture_output=True,
+            text=True,
+            timeout=GH_VERSION_TIMEOUT_SECONDS,
+            check=False,
         )
         return result.stdout.strip().split("\n")[0]
     except (subprocess.TimeoutExpired, FileNotFoundError):
@@ -206,7 +232,7 @@ def collect_pr_commits_and_reviews(repo: str, prs: list[dict]) -> list[dict]:
                 "author_login": author.get("login", "unknown"),
                 "committer_login": committer.get("login", "unknown"),
                 "date": commit_data.get("author", {}).get("date", ""),
-                "message": commit_data.get("message", "")[:120],
+                "message": commit_data.get("message", "")[:MAX_COMMIT_MSG_LEN],
             })
 
         pr_audit_data.append({
@@ -244,6 +270,60 @@ def collect_check_suites(repo: str, commits: list[dict]) -> dict[str, list[dict]
     return checks_by_sha
 
 
+def _decode_github_file_content(data: dict) -> dict | None:
+    """Decode base64 GitHub contents API response to JSON."""
+    if not data.get("content"):
+        return None
+    try:
+        content = base64.b64decode(data["content"]).decode("utf-8")
+        return json.loads(content)
+    except (json.JSONDecodeError, ValueError):
+        return None
+
+
+def _load_renovate_config_at_paths(config_paths: list[str]) -> dict | None:
+    """Try loading renovate config from a list of GitHub contents API paths."""
+    for path in config_paths:
+        data = gh_api(path)
+        if data and isinstance(data, dict):
+            raw = _decode_github_file_content(data)
+            if raw:
+                return raw
+    return None
+
+
+def _fetch_shared_renovate_config(extends: list) -> tuple[dict, str | None]:
+    """Resolve shared renovate preset referenced in extends list."""
+    for ext in extends:
+        if not ext.startswith("github>"):
+            continue
+        # Renovate github> preset uses org/repo//path/to/file.json
+        parts = ext[GITHUB_EXT_PREFIX_LEN:].split("//", 1)
+        if len(parts) != GITHUB_EXT_EXPECTED_PARTS:
+            continue
+        ext_repo, ext_path = parts[0], parts[1]
+        ext_data = gh_api(f"repos/{ext_repo}/contents/{ext_path}")
+        if ext_data and isinstance(ext_data, dict):
+            shared = _decode_github_file_content(ext_data)
+            if shared:
+                time.sleep(RATE_LIMIT_SLEEP)
+                return shared, f"shared:{ext}"
+        time.sleep(RATE_LIMIT_SLEEP)
+    return {}, None
+
+
+def _resolve_major_cooldown(raw: dict, shared_config: dict) -> int | None:
+    """Extract major-update cooldown days from renovate packageRules."""
+    for rules_source in (raw, shared_config):
+        for rule in rules_source.get("packageRules", []):
+            update_types = rule.get("matchUpdateTypes", [])
+            if "major" in update_types:
+                major_age = rule.get("minimumReleaseAge") or rule.get("stabilityDays")
+                if major_age:
+                    return _parse_release_age(major_age)
+    return None
+
+
 def collect_renovate_config(repo: str) -> dict:
     """Fetch and resolve the renovate config for a repo, including shared presets.
 
@@ -255,50 +335,22 @@ def collect_renovate_config(repo: str) -> dict:
     """
     config: dict = {"source": "none", "default_cooldown_days": None, "major_cooldown_days": None}
 
-    # Try standard renovate config paths
     config_paths = [
         f"repos/{GITHUB_ORG}/{repo}/contents/renovate.json",
         f"repos/{GITHUB_ORG}/{repo}/contents/.github/renovate.json",
         f"repos/{GITHUB_ORG}/{repo}/contents/renovate.json5",
     ]
 
-    raw = None
-    for path in config_paths:
-        data = gh_api(path)
-        if data and isinstance(data, dict) and data.get("content"):
-            try:
-                content = base64.b64decode(data["content"]).decode("utf-8")
-                raw = json.loads(content)
-                break
-            except (json.JSONDecodeError, ValueError):
-                continue
-
+    raw = _load_renovate_config_at_paths(config_paths)
     if not raw:
         return config
 
     config["source"] = "local"
-
-    # Check for extends pointing to a shared preset
     extends = raw.get("extends", [])
-    shared_config = {}
-    for ext in extends:
-        if ext.startswith("github>"):
-            # Format: github>org/repo//path/to/file.json
-            parts = ext[7:].split("//", 1)
-            if len(parts) == 2:
-                ext_repo, ext_path = parts[0], parts[1]
-                ext_endpoint = f"repos/{ext_repo}/contents/{ext_path}"
-                ext_data = gh_api(ext_endpoint)
-                if ext_data and isinstance(ext_data, dict) and ext_data.get("content"):
-                    try:
-                        ext_content = base64.b64decode(ext_data["content"]).decode("utf-8")
-                        shared_config = json.loads(ext_content)
-                        config["source"] = f"shared:{ext}"
-                    except (json.JSONDecodeError, ValueError):
-                        pass
-                time.sleep(RATE_LIMIT_SLEEP)
+    shared_config, shared_source = _fetch_shared_renovate_config(extends)
+    if shared_source:
+        config["source"] = shared_source
 
-    # Resolve effective minimumReleaseAge (local overrides shared)
     effective_cooldown = (
         raw.get("minimumReleaseAge")
         or raw.get("stabilityDays")
@@ -306,19 +358,7 @@ def collect_renovate_config(repo: str) -> dict:
         or shared_config.get("stabilityDays")
     )
     config["default_cooldown_days"] = _parse_release_age(effective_cooldown)
-
-    # Check for major-specific override in packageRules
-    for rules_source in [raw, shared_config]:
-        for rule in rules_source.get("packageRules", []):
-            update_types = rule.get("matchUpdateTypes", [])
-            if "major" in update_types:
-                major_age = rule.get("minimumReleaseAge") or rule.get("stabilityDays")
-                if major_age:
-                    config["major_cooldown_days"] = _parse_release_age(major_age)
-                    break
-        if config["major_cooldown_days"]:
-            break
-
+    config["major_cooldown_days"] = _resolve_major_cooldown(raw, shared_config)
     config["raw_config"] = {
         "minimumReleaseAge": effective_cooldown,
         "extends": extends,
@@ -351,7 +391,7 @@ def _parse_release_age(age_str: str | int | None) -> int | None:
     return value
 
 
-def collect_dep_changes(repo: str, start_date: str, end_date: str, commits: list[dict]) -> list[dict]:
+def collect_dep_changes(repo: str, _start_date: str, end_date: str, commits: list[dict]) -> list[dict]:
     """Identify dependency file changes by examining commits that touch dep files."""
     if not commits:
         return []
@@ -383,7 +423,15 @@ def collect_dep_changes(repo: str, start_date: str, end_date: str, commits: list
 
         # Use the latest commit date as the adoption date (when dep landed on main)
         latest_commit_date = commits[0].get("date", end_date)[:10]
-        changes = parse_dep_patch(patch, filename, repo, ecosystem, is_direct, last_sha, latest_commit_date)
+        changes = parse_dep_patch(
+            patch,
+            filename,
+            repo,
+            ecosystem,
+            is_direct=is_direct,
+            commit_sha=last_sha,
+            commit_date=latest_commit_date,
+        )
         dep_changes.extend(changes)
 
     # Deduplicate: prefer direct dep files (package.json) over lock files
@@ -410,13 +458,14 @@ def parse_dep_patch(
     file_path: str,
     repo: str,
     ecosystem: str,
+    *,
     is_direct: bool,
     commit_sha: str,
     commit_date: str,
 ) -> list[dict]:
     """Parse a unified diff patch to extract dependency additions/updates."""
     changes: list[dict] = []
-    basename = file_path.split("/")[-1] if "/" in file_path else file_path
+    basename = file_path.rsplit("/", maxsplit=1)[-1] if "/" in file_path else file_path
 
     if basename in ("package-lock.json", "package.json", "yarn.lock", "pnpm-lock.yaml"):
         added_deps, removed_deps = _parse_npm_patch(patch, basename)
@@ -617,8 +666,12 @@ def enrich_dep_release_info(dep: dict) -> None:
     try:
         if ecosystem == "pypi":
             url = f"https://pypi.org/pypi/{pkg}/{version}/json"
-            req = urllib.request.Request(url, headers={"User-Agent": "supply-chain-audit/1.0"})
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            req = urllib.request.Request(  # noqa: S310
+                url, headers={"User-Agent": "supply-chain-audit/1.0"}
+            )
+            with urllib.request.urlopen(  # noqa: S310
+                req, timeout=REGISTRY_REQUEST_TIMEOUT_SECONDS
+            ) as resp:
                 data = json.loads(resp.read())
                 urls = data.get("urls", [])
                 if urls:
@@ -629,18 +682,21 @@ def enrich_dep_release_info(dep: dict) -> None:
                     dep["yanked"] = True
         elif ecosystem == "npm":
             url = f"https://registry.npmjs.org/{pkg}"
-            req = urllib.request.Request(url, headers={"User-Agent": "supply-chain-audit/1.0"})
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            req = urllib.request.Request(  # noqa: S310
+                url, headers={"User-Agent": "supply-chain-audit/1.0"}
+            )
+            with urllib.request.urlopen(  # noqa: S310
+                req, timeout=REGISTRY_REQUEST_TIMEOUT_SECONDS
+            ) as resp:
                 data = json.loads(resp.read())
                 time_map = data.get("time", {})
                 publish_time = time_map.get(version, "")
                 dep["release_date"] = publish_time[:10] if publish_time else None
-                # Check if this version is deprecated
                 versions = data.get("versions", {})
                 ver_data = versions.get(version, {})
                 if ver_data.get("deprecated"):
                     dep["yanked"] = True
-    except Exception:
+    except (urllib.error.URLError, json.JSONDecodeError, TimeoutError, OSError):
         dep["release_date"] = None
 
     if dep.get("release_date") and dep.get("commit_date"):
@@ -694,7 +750,7 @@ def collect_package_inventory(repo: str) -> list[dict]:
     return packages
 
 
-def _parse_toml_lock_inventory(content: str, filename: str) -> list[tuple[str, str]]:
+def _parse_toml_lock_inventory(content: str, _filename: str) -> list[tuple[str, str]]:
     """Extract (name, version) pairs from a TOML-based lock file."""
     packages = []
     name_pattern = re.compile(r'^name\s*=\s*"([\w][\w.-]*)"', re.MULTILINE)
@@ -718,10 +774,9 @@ def scan_osv_batch(packages: list[dict]) -> list[dict]:
     Returns list of {package, version, ecosystem, vulns: [...]} entries.
     """
     results = []
-    batch_size = 100
 
-    for i in range(0, len(packages), batch_size):
-        batch = packages[i:i + batch_size]
+    for i in range(0, len(packages), OSV_BATCH_SIZE):
+        batch = packages[i:i + OSV_BATCH_SIZE]
         queries = [
             {
                 "version": pkg["version"],
@@ -739,7 +794,9 @@ def scan_osv_batch(packages: list[dict]) -> list[dict]:
         )
 
         try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
+            with urllib.request.urlopen(  # noqa: S310
+                req, timeout=OSV_REQUEST_TIMEOUT_SECONDS
+            ) as resp:
                 data = json.loads(resp.read())
                 batch_results = data.get("results", [])
                 for j, result in enumerate(batch_results):
@@ -760,10 +817,10 @@ def scan_osv_batch(packages: list[dict]) -> list[dict]:
                                 for v in vulns
                             ],
                         })
-        except Exception as e:
-            print(f"    OSV batch query failed: {e}")
+        except (urllib.error.URLError, json.JSONDecodeError, TimeoutError, OSError) as exc:
+            print(f"    OSV batch query failed: {exc}")
 
-        time.sleep(1)  # Rate limit courtesy
+        time.sleep(OSV_BATCH_SLEEP_SECONDS)
 
     return results
 
@@ -781,15 +838,16 @@ def _extract_osv_severity(vuln: dict) -> str:
             else:
                 try:
                     score = float(score_str)
-                    if score >= 9.0:
-                        return "critical"
-                    if score >= 7.0:
-                        return "high"
-                    if score >= 4.0:
-                        return "medium"
-                    return "low"
                 except (ValueError, TypeError):
                     pass
+                else:
+                    if score >= CVSS_CRITICAL_THRESHOLD:
+                        return "critical"
+                    if score >= CVSS_HIGH_THRESHOLD:
+                        return "high"
+                    if score >= CVSS_MEDIUM_THRESHOLD:
+                        return "medium"
+                    return "low"
     # Check database_specific severity
     db_specific = vuln.get("database_specific", {})
     gh_severity = db_specific.get("severity")
@@ -798,76 +856,74 @@ def _extract_osv_severity(vuln: dict) -> str:
     return "unknown"
 
 
+def _parse_legacy_protection_checks(data: dict) -> list[str]:
+    """Extract required status check names from legacy branch protection."""
+    rsc = data.get("required_status_checks", {})
+    if not rsc:
+        return []
+    checks = [check.get("context", "") for check in rsc.get("checks", [])]
+    return checks or list(rsc.get("contexts", []))
+
+
+def _legacy_branch_protection_result(data: dict) -> dict:
+    """Build protection result dict from legacy branch protection API."""
+    return {
+        "required_checks": _parse_legacy_protection_checks(data),
+        "source": "branch_protection",
+        "enforce_admins": bool(data.get("enforce_admins", {}).get("enabled", False)),
+        "required_reviews": bool(data.get("required_pull_request_reviews")),
+        "required_signatures": bool(data.get("required_signatures", {}).get("enabled", False)),
+        "allow_force_pushes": bool(data.get("allow_force_pushes", {}).get("enabled", False)),
+        "allow_deletions": bool(data.get("allow_deletions", {}).get("enabled", False)),
+    }
+
+
+def _collect_ruleset_required_checks(repo: str) -> list[str]:
+    """Collect required status checks from active branch rulesets."""
+    required_checks: list[str] = []
+    rulesets = gh_api(f"repos/{GITHUB_ORG}/{repo}/rulesets")
+    if not rulesets or not isinstance(rulesets, list):
+        return required_checks
+
+    for rs in rulesets:
+        if rs.get("enforcement") != "active" or rs.get("target") != "branch":
+            continue
+        rs_id = rs.get("id")
+        if not rs_id:
+            continue
+        detail = gh_api(f"repos/{GITHUB_ORG}/{repo}/rulesets/{rs_id}")
+        time.sleep(RATE_LIMIT_SLEEP)
+        if not detail or not isinstance(detail, dict):
+            continue
+        for rule in detail.get("rules", []):
+            if rule.get("type") != "required_status_checks":
+                continue
+            params = rule.get("parameters", {}) or {}
+            for check in params.get("required_status_checks", []):
+                ctx = check.get("context", "")
+                if ctx and ctx not in required_checks:
+                    required_checks.append(ctx)
+    return required_checks
+
+
 def collect_branch_protection(repo: str) -> dict:
     """Fetch branch protection rules for the default branch.
 
     Checks both legacy branch protection API and the newer rulesets API,
     since repos may use either or both.
     """
-    required_checks: list[str] = []
-    source = "none"
-
-    # Try legacy branch protection first
     endpoint = f"repos/{GITHUB_ORG}/{repo}/branches/main/protection"
     data = gh_api(endpoint)
     if data and isinstance(data, dict) and "message" not in data:
-        source = "branch_protection"
-        rsc = data.get("required_status_checks", {})
-        if rsc:
-            for check in rsc.get("checks", []):
-                required_checks.append(check.get("context", ""))
-            if not required_checks:
-                required_checks = rsc.get("contexts", [])
+        return _legacy_branch_protection_result(data)
 
-        return {
-            "required_checks": required_checks,
-            "source": source,
-            "enforce_admins": bool(
-                data.get("enforce_admins", {}).get("enabled", False)
-            ),
-            "required_reviews": bool(data.get("required_pull_request_reviews")),
-            "required_signatures": bool(
-                data.get("required_signatures", {}).get("enabled", False)
-            ),
-            "allow_force_pushes": bool(
-                data.get("allow_force_pushes", {}).get("enabled", False)
-            ),
-            "allow_deletions": bool(
-                data.get("allow_deletions", {}).get("enabled", False)
-            ),
-        }
-
-    # Fall back to rulesets API (newer GitHub feature)
-    rulesets_endpoint = f"repos/{GITHUB_ORG}/{repo}/rulesets"
-    rulesets = gh_api(rulesets_endpoint)
-    if rulesets and isinstance(rulesets, list):
-        for rs in rulesets:
-            if rs.get("enforcement") != "active" or rs.get("target") != "branch":
-                continue
-            rs_id = rs.get("id")
-            if not rs_id:
-                continue
-            detail = gh_api(f"repos/{GITHUB_ORG}/{repo}/rulesets/{rs_id}")
-            time.sleep(RATE_LIMIT_SLEEP)
-            if not detail or not isinstance(detail, dict):
-                continue
-            for rule in detail.get("rules", []):
-                if rule.get("type") == "required_status_checks":
-                    params = rule.get("parameters", {}) or {}
-                    for check in params.get("required_status_checks", []):
-                        ctx = check.get("context", "")
-                        if ctx and ctx not in required_checks:
-                            required_checks.append(ctx)
-
-        if required_checks:
-            source = "rulesets"
-
+    required_checks = _collect_ruleset_required_checks(repo)
     if not required_checks:
         return {"required_checks": [], "source": "none", "error": "not_found"}
 
     return {
         "required_checks": required_checks,
-        "source": source,
+        "source": "rulesets",
         "enforce_admins": False,
         "required_reviews": True,
         "required_signatures": False,
@@ -905,11 +961,109 @@ def collect_protection_changes(repo: str, start_date: str, end_date: str) -> lis
     return changes
 
 
+def _load_cached_repo_counts(cache_dir: Path, repo: str) -> tuple[int, int]:
+    """Return commit and PR counts from cached repo data."""
+    commits = read_cache_file(cache_dir, "commits", f"{repo}.json") or []
+    prs = read_cache_file(cache_dir, "prs", f"{repo}.json") or []
+    return len(commits), len(prs)
+
+
+def _report_osv_scan_results(inventory: list[dict], vuln_results: list[dict]) -> None:
+    """Print OSV vulnerability scan summary."""
+    if not inventory:
+        print("  No lock files found, skipping OSV scan")
+        return
+    print(f"  Found {len(inventory)} packages, querying OSV...")
+    if vuln_results:
+        total_vulns = sum(len(v["vulns"]) for v in vuln_results)
+        print(f"  \u26a0\ufe0f  {len(vuln_results)} packages with {total_vulns} known vulnerabilities")
+    else:
+        print("  \u2705 No known vulnerabilities found")
+
+
+def _scan_osv_for_repo(repo: str) -> list[dict]:
+    """Scan package inventory for known vulnerabilities via OSV.dev."""
+    print("  Scanning package inventory against OSV.dev...")
+    inventory = collect_package_inventory(repo)
+    vuln_results = scan_osv_batch(inventory) if inventory else []
+    _report_osv_scan_results(inventory, vuln_results)
+    return vuln_results
+
+
+def _collect_repo_artifacts(repo: str, start_date: str, end_date: str) -> dict:
+    """Collect all audit artifacts for a single repo."""
+    print(f"  Fetching commits ({start_date} to {end_date})...")
+    commits = collect_commits(repo, start_date, end_date)
+    print(f"  Found {len(commits)} commits")
+
+    print("  Fetching associated PRs...")
+    prs = collect_prs_for_commits(repo, commits)
+    print(f"  Found {len(prs)} PRs")
+
+    print("  Fetching check suites...")
+    checks = collect_check_suites(repo, commits)
+    print(f"  Collected checks for {len(checks)} commits")
+
+    print("  Analyzing dependency changes...")
+    deps = collect_dep_changes(repo, start_date, end_date, commits)
+    print(f"  Found {len(deps)} dependency changes")
+
+    vuln_results = _scan_osv_for_repo(repo)
+
+    print("  Fetching renovate config...")
+    renovate_config = collect_renovate_config(repo)
+    cooldown = renovate_config.get("default_cooldown_days")
+    major_cd = renovate_config.get("major_cooldown_days")
+    print(f"  Cooldown: {cooldown} days (major: {major_cd} days), source: {renovate_config['source']}")
+
+    print("  Fetching PR commit histories and reviews...")
+    pr_audits = collect_pr_commits_and_reviews(repo, prs)
+    total_pr_commits = sum(a["commit_count"] for a in pr_audits)
+    print(f"  Collected {total_pr_commits} PR branch commits across {len(pr_audits)} PRs")
+
+    print("  Fetching branch protection rules...")
+    protection = collect_branch_protection(repo)
+    required = protection.get("required_checks", [])
+    print(f"  Required checks: {required or '(none configured)'}")
+
+    print("  Checking for protection rule changes...")
+    protection_changes = collect_protection_changes(repo, start_date, end_date)
+    print(f"  Protection changes in window: {len(protection_changes)}")
+
+    return {
+        "commits": commits,
+        "prs": prs,
+        "checks": checks,
+        "deps": deps,
+        "pr_audits": pr_audits,
+        "renovate_config": renovate_config,
+        "vuln_results": vuln_results,
+        "protection": protection,
+        "protection_changes": protection_changes,
+    }
+
+
+def _write_repo_cache_files(cache_dir: Path, repo: str, artifacts: dict) -> None:
+    """Persist collected repo artifacts to the cache directory."""
+    write_cache_file(cache_dir, "commits", f"{repo}.json", artifacts["commits"])
+    write_cache_file(cache_dir, "prs", f"{repo}.json", artifacts["prs"])
+    write_cache_file(cache_dir, "checks", f"{repo}.json", artifacts["checks"])
+    write_cache_file(cache_dir, "deps", f"{repo}.json", artifacts["deps"])
+    write_cache_file(cache_dir, "pr_audits", f"{repo}.json", artifacts["pr_audits"])
+    write_cache_file(cache_dir, "renovate", f"{repo}.json", artifacts["renovate_config"])
+    write_cache_file(cache_dir, "vulns", f"{repo}.json", artifacts["vuln_results"])
+    write_cache_file(cache_dir, "protection", f"{repo}.json", {
+        "rules": artifacts["protection"],
+        "changes": artifacts["protection_changes"],
+    })
+
+
 def collect_repo(
     repo: str,
     start_date: str,
     end_date: str,
     cache_dir: Path,
+    *,
     force: bool = False,
 ) -> tuple[int, int]:
     """Collect all data for a single repo. Returns (commit_count, pr_count)."""
@@ -919,73 +1073,14 @@ def collect_repo(
 
     if not force and has_cached_data(cache_dir, repo, "commits"):
         print(f"  [cached] Skipping {repo} (already collected)")
-        from cache_utils import read_cache_file
-        commits = read_cache_file(cache_dir, "commits", f"{repo}.json") or []
-        prs = read_cache_file(cache_dir, "prs", f"{repo}.json") or []
-        return len(commits), len(prs)
+        return _load_cached_repo_counts(cache_dir, repo)
 
-    print(f"  Fetching commits ({start_date} to {end_date})...")
-    commits = collect_commits(repo, start_date, end_date)
-    print(f"  Found {len(commits)} commits")
+    artifacts = _collect_repo_artifacts(repo, start_date, end_date)
+    _write_repo_cache_files(cache_dir, repo, artifacts)
 
-    print(f"  Fetching associated PRs...")
-    prs = collect_prs_for_commits(repo, commits)
-    print(f"  Found {len(prs)} PRs")
-
-    print(f"  Fetching check suites...")
-    checks = collect_check_suites(repo, commits)
-    print(f"  Collected checks for {len(checks)} commits")
-
-    print(f"  Analyzing dependency changes...")
-    deps = collect_dep_changes(repo, start_date, end_date, commits)
-    print(f"  Found {len(deps)} dependency changes")
-
-    print(f"  Scanning package inventory against OSV.dev...")
-    inventory = collect_package_inventory(repo)
-    vuln_results = []
-    if inventory:
-        print(f"  Found {len(inventory)} packages, querying OSV...")
-        vuln_results = scan_osv_batch(inventory)
-        if vuln_results:
-            total_vulns = sum(len(v["vulns"]) for v in vuln_results)
-            print(f"  \u26a0\ufe0f  {len(vuln_results)} packages with {total_vulns} known vulnerabilities")
-        else:
-            print(f"  \u2705 No known vulnerabilities found")
-    else:
-        print(f"  No lock files found, skipping OSV scan")
-
-    print(f"  Fetching renovate config...")
-    renovate_config = collect_renovate_config(repo)
-    cooldown = renovate_config.get("default_cooldown_days")
-    major_cd = renovate_config.get("major_cooldown_days")
-    print(f"  Cooldown: {cooldown} days (major: {major_cd} days), source: {renovate_config['source']}")
-
-    print(f"  Fetching PR commit histories and reviews...")
-    pr_audits = collect_pr_commits_and_reviews(repo, prs)
-    total_pr_commits = sum(a["commit_count"] for a in pr_audits)
-    print(f"  Collected {total_pr_commits} PR branch commits across {len(pr_audits)} PRs")
-
-    print(f"  Fetching branch protection rules...")
-    protection = collect_branch_protection(repo)
-    required = protection.get("required_checks", [])
-    print(f"  Required checks: {required if required else '(none configured)'}")
-
-    print(f"  Checking for protection rule changes...")
-    protection_changes = collect_protection_changes(repo, start_date, end_date)
-    print(f"  Protection changes in window: {len(protection_changes)}")
-
-    write_cache_file(cache_dir, "commits", f"{repo}.json", commits)
-    write_cache_file(cache_dir, "prs", f"{repo}.json", prs)
-    write_cache_file(cache_dir, "checks", f"{repo}.json", checks)
-    write_cache_file(cache_dir, "deps", f"{repo}.json", deps)
-    write_cache_file(cache_dir, "pr_audits", f"{repo}.json", pr_audits)
-    write_cache_file(cache_dir, "renovate", f"{repo}.json", renovate_config)
-    write_cache_file(cache_dir, "vulns", f"{repo}.json", vuln_results)
-    write_cache_file(cache_dir, "protection", f"{repo}.json", {
-        "rules": protection,
-        "changes": protection_changes,
-    })
-
+    commits = artifacts["commits"]
+    prs = artifacts["prs"]
+    deps = artifacts["deps"]
     print(f"  [done] {repo}: {len(commits)} commits, {len(prs)} PRs, {len(deps)} dep changes")
     return len(commits), len(prs)
 
@@ -1001,8 +1096,8 @@ def main() -> None:
     args = parser.parse_args()
 
     try:
-        datetime.strptime(args.start, "%Y-%m-%d")
-        datetime.strptime(args.end, "%Y-%m-%d")
+        datetime.strptime(args.start, DATE_FORMAT).replace(tzinfo=UTC)
+        datetime.strptime(args.end, DATE_FORMAT).replace(tzinfo=UTC)
     except ValueError:
         print("ERROR: Dates must be in YYYY-MM-DD format", file=sys.stderr)
         sys.exit(1)
@@ -1013,11 +1108,11 @@ def main() -> None:
         sys.exit(1)
     print(f"Using: {gh_version}")
 
-    repos = args.repos if args.repos else TARGET_REPOS
+    repos = args.repos or TARGET_REPOS
     cache_dir = get_cache_dir(args.cache_dir, args.start, args.end)
     ensure_cache_structure(cache_dir)
 
-    print(f"\nSupply Chain Audit - Data Collection")
+    print("\nSupply Chain Audit - Data Collection")
     print(f"Time window: {args.start} to {args.end}")
     print(f"Repos: {len(repos)}")
     print(f"Cache: {cache_dir}")
@@ -1033,7 +1128,7 @@ def main() -> None:
     write_manifest(cache_dir, args.start, args.end, repos, gh_version, total_commits, total_prs)
 
     print(f"\n{'='*60}")
-    print(f"  Collection complete!")
+    print("  Collection complete!")
     print(f"  Total commits: {total_commits}")
     print(f"  Total PRs: {total_prs}")
     print(f"  Cache directory: {cache_dir}")

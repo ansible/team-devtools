@@ -4,7 +4,7 @@ Given a suspect package and compromise date, determines which repos in the
 ADT ecosystem pulled in the affected version and when. Cross-references
 cached dependency change data to build an impact timeline.
 """
-# ruff: noqa: T201, S310, BLE001
+# ruff: noqa: BLE001
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ import argparse
 import json
 import sys
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from cache_utils import (
@@ -26,8 +26,10 @@ def get_pypi_release_dates(package_name: str) -> dict[str, str]:
     """Fetch all release dates for a package from PyPI."""
     try:
         url = f"https://pypi.org/pypi/{package_name}/json"
-        req = urllib.request.Request(url, headers={"User-Agent": "supply-chain-audit/1.0"})
-        with urllib.request.urlopen(req, timeout=15) as resp:
+        req = urllib.request.Request(  # noqa: S310
+            url, headers={"User-Agent": "supply-chain-audit/1.0"}
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:  # noqa: S310
             data = json.loads(resp.read())
 
         releases = data.get("releases", {})
@@ -37,17 +39,20 @@ def get_pypi_release_dates(package_name: str) -> dict[str, str]:
                 upload_time = files[0].get("upload_time_iso_8601", "")
                 if upload_time:
                     version_dates[version] = upload_time[:10]
-        return version_dates
     except Exception:
         return {}
+    else:
+        return version_dates
 
 
 def get_npm_release_dates(package_name: str) -> dict[str, str]:
     """Fetch all release dates for a package from npm."""
     try:
         url = f"https://registry.npmjs.org/{package_name}"
-        req = urllib.request.Request(url, headers={"User-Agent": "supply-chain-audit/1.0"})
-        with urllib.request.urlopen(req, timeout=15) as resp:
+        req = urllib.request.Request(  # noqa: S310
+            url, headers={"User-Agent": "supply-chain-audit/1.0"}
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:  # noqa: S310
             data = json.loads(resp.read())
 
         time_data = data.get("time", {})
@@ -55,9 +60,10 @@ def get_npm_release_dates(package_name: str) -> dict[str, str]:
         for version, timestamp in time_data.items():
             if version not in ("created", "modified"):
                 version_dates[version] = timestamp[:10]
-        return version_dates
     except Exception:
         return {}
+    else:
+        return version_dates
 
 
 def analyze_package_impact(
@@ -74,8 +80,6 @@ def analyze_package_impact(
     for dep in deps:
         if dep.get("package_name", "").lower() == package_name.lower():
             repos_with_package.setdefault(dep["repo"], []).append(dep)
-
-    compromise_dt = datetime.strptime(compromise_date, "%Y-%m-%d")
 
     for repo, repo_deps in repos_with_package.items():
         for dep in sorted(repo_deps, key=lambda d: d.get("commit_date", "")):
@@ -104,7 +108,10 @@ def analyze_package_impact(
                 "adopted_after_compromise": is_after_compromise,
                 "version_released_after_compromise": version_released_after,
                 "risk_assessment": _assess_risk(
-                    is_after_compromise, version_released_after, is_pinned, change_type
+                    adopted_after=is_after_compromise,
+                    released_after=version_released_after,
+                    is_pinned=is_pinned,
+                    change_type=change_type,
                 ),
             }
 
@@ -135,12 +142,11 @@ def _is_version_pinned(dep: dict) -> bool:
     version = dep.get("new_version", "")
     if not version:
         return False
-    if any(c in version for c in ("*", "^", "~", ">", "<", "!")):
-        return False
-    return True
+    return not any(c in version for c in ("*", "^", "~", ">", "<", "!"))
 
 
 def _assess_risk(
+    *,
     adopted_after: bool,
     released_after: bool,
     is_pinned: bool,
@@ -173,8 +179,8 @@ def _build_timeline(
         "repo": None,
     })
 
-    for entry in affected + safe:
-        events.append({
+    events.extend(
+        {
             "date": entry["commit_date"],
             "event": "dep_change",
             "description": (
@@ -183,7 +189,9 @@ def _build_timeline(
             ),
             "repo": entry["repo"],
             "risk": entry.get("risk_assessment", "unknown"),
-        })
+        }
+        for entry in affected + safe
+    )
 
     events.sort(key=lambda e: e.get("date", ""))
     return events
@@ -200,7 +208,7 @@ def main() -> None:
     args = parser.parse_args()
 
     try:
-        datetime.strptime(args.compromise_date, "%Y-%m-%d")
+        datetime.strptime(args.compromise_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
     except ValueError:
         print("ERROR: compromise-date must be YYYY-MM-DD", file=sys.stderr)
         sys.exit(1)
@@ -218,7 +226,7 @@ def main() -> None:
             sys.exit(1)
 
     manifest = read_manifest(cache_dir)
-    print(f"Package Focus Analysis")
+    print("Package Focus Analysis")
     print(f"  Package: {args.package}")
     print(f"  Compromise date: {args.compromise_date}")
     print(f"  Audit window: {manifest['start_date']} to {manifest['end_date']}")
@@ -241,7 +249,7 @@ def main() -> None:
     write_package_focus(cache_dir, results)
 
     print(f"\n{'='*60}")
-    print(f"  Results Summary")
+    print("  Results Summary")
     print(f"{'='*60}")
     print(f"  Repos using '{args.package}': {results['total_repos_using']}")
     print(f"  Potentially exposed: {results['potentially_exposed_count']}")
@@ -249,7 +257,7 @@ def main() -> None:
     print(f"  Safe entries: {len(results['safe_entries'])}")
 
     if results["affected_entries"]:
-        print(f"\n  Affected repos:")
+        print("\n  Affected repos:")
         for entry in results["affected_entries"]:
             risk = entry["risk_assessment"].upper()
             print(f"    [{risk}] {entry['repo']}: v{entry['version']} "
