@@ -15,7 +15,7 @@ Assuming that the next version is `0.8.1`:
 1. Edit `CHANGELOG.md` and insert copied text
 1. `npm version 0.8.1 --no-git-tag-version --no-commit-hooks`
 1. `git commit -a -m "Release 0.8.1"`. If done correctly you should see 3 files modified, the changelog and the two package files.
-1. `pre-commit run -a`
+1. `tox -e lint`
 1. `gh pr create --draft --label skip-changelog`
 1. Open pull request on github wait for it to pass. Merge it.
 1. Go github releases and release it! while being sure that you create a discussion thread for it. This will create a \*_tag_.

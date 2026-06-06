@@ -16,7 +16,9 @@ on:
 jobs:
   ack:
     runs-on: ubuntu-24.04
-    environment: ack
+    environment:
+      name: ack
+      deployment: false
     env:
       BOT_PAT: ${{ secrets.BOT_PAT || secrets.ANSIBUDDY_BOT_PAT }}
     permissions:
@@ -25,23 +27,22 @@ jobs:
       pull-requests: write # pr approval and merge
     steps:
       - name: Checkout
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Dump GitHub context
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-        run: echo "$GITHUB_CONTEXT"
+        run: |
+          cat <<'EOF_GITHUB_CONTEXT'
+          ${{ toJson(github) }}
+          EOF_GITHUB_CONTEXT
 
-      - uses: bcoe/conventional-release-labels@v1
-        with:
-          type_labels: '{"feat": "feat", "fix": "fix", "breaking": "breaking", "chore": "chore"}'
-          ignored_types: "[]"
+      - uses: release-drafter/release-drafter/autolabeler@v7
 
       - name: Verify PR label action
         if: github.event_name != 'merge_group'
-        uses: mheap/github-action-required-labels@8afbe8ae6ab7647d0c9f0cfa7c2f939650d22509 # v5
+        uses: mheap/github-action-required-labels@0ac283b4e65c1fb28ce6079dea5546ceca98ccbe # v5
         with:
-          mode: exactly
+          # minimum (not exactly): Renovate/Dependabot add labels like `dependencies` alongside chore
+          mode: minimum
           count: 1
           add_comment: true
           message: >
@@ -52,20 +53,13 @@ jobs:
           # see conventional commits prefixes: https://www.conventionalcommits.org
           labels: |
             breaking
-            build
             chore
-            ci
-            docs
             feat
             fix
-            perf
-            refactor
-            style
-            test
 
       - name: Update release notes if this is already merged
         if: github.event.pull_request.merged == true
-        uses: release-drafter/release-drafter@b1476f6e6eb133afa41ed8589daba6dc69b4d3f5 # v6
+        uses: release-drafter/release-drafter@563bf132657a13ded0b01fcb723c5a58cdd824e2 # v7
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

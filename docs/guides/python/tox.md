@@ -51,7 +51,7 @@ Tox env name should not be about the tool as that may change, it should be more 
 Current list of popular names:
 
 - `py` - unitests
-- `lint` - linting, runts all linters (likely pre-commit)
+- `lint` - linting, runts all linters
 - `docs` - anything related to building docs (aka Sphinx)
 - `packaging` - tests related to python packaging
 - `deps` - Bumping of test dependencies. This should not be included in default `envlist`, expected to be run only manually.
@@ -71,5 +71,5 @@ In order to achieve this, we define `PIP_CONSTRAINTS=requirements.txt` inside `t
 There are few particular tox environments where we neuter this option by using `PIP_CONSTRAINTS=/dev/null`:
 
 - `deps` - as we want to allow pip-compile to be able to bump dependencies
-- `lint` as pre-commit tool has it own pinning logic which is incompatible with use of pip constraints file
+- `lint`
 - `devel` ones, where we usually use some pre-released or unreleased versions of key dependencies or sister projects. Use of pinning would prevent us from doing this.

@@ -10,6 +10,7 @@ This script:
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 import tomllib
 from packaging.requirements import Requirement
@@ -23,7 +24,8 @@ from packaging.version import Version
 PLATFORM_CONSTRAINTS = {
     "ansible-core": "<2.17",  # AAP 2.5/2.6 ships ansible-core 2.16.x
     "cffi": "<1.16",  # RHEL 8/9 ships cffi 1.15.x
-    "django": "<4.3",  # at 4.2
+    "cryptography": "<38",  # downstream at 37
+    "django": "<6.0",  # at 5.2
     "importlib-metadata": "<6.1",  # at 6.0.1
     "jsonschema": "<4.22",  # at 4.21.1
     "packaging": "<25.0",  # galaxy-importer constraint
@@ -41,12 +43,14 @@ def get_constraints() -> dict[str, SpecifierSet]:
     return {name: SpecifierSet(spec) for name, spec in PLATFORM_CONSTRAINTS.items()}
 
 
-def check_dependency_compatibility(dep_str: str, constraints: dict[str, SpecifierSet]) -> list[str]:
+def check_dependency_compatibility(
+    dep_str: str, constraints: dict[str, SpecifierSet]
+) -> list[str]:
     """Check if a dependency violates platform constraints.
 
     Returns list of violation messages.
     """
-    violations = []
+    violations: list[str] = []
 
     try:
         req = Requirement(dep_str)
@@ -115,7 +119,9 @@ def update_renovate_config(
         "Platform compatibility constraint from .config/platform-constraints.txt",
     }
     filtered_rules = [
-        rule for rule in existing_rules if rule.get("description") not in old_descriptions
+        rule
+        for rule in existing_rules
+        if rule.get("description") not in old_descriptions
     ]
 
     # Add new rules
@@ -133,7 +139,9 @@ def update_renovate_config(
     return True, f"Updated renovate.json with {len(new_rules)} constraint rule(s)"
 
 
-def check_all_dependencies(pyproject: dict, constraints: dict[str, SpecifierSet]) -> list[str]:
+def check_all_dependencies(
+    pyproject: dict[str, Any], constraints: dict[str, SpecifierSet]
+) -> list[str]:
     """Check all dependency types in pyproject.toml.
 
     Args:

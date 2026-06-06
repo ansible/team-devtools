@@ -11,19 +11,34 @@ teams:
   devtools:
     # https://rover.redhat.com/groups/group/ansible-devtools (ldap)
     # https://github.com/orgs/ansible/teams/devtools/members (github)
-    - alisonlhart
-    - audgirka
-    - qalthos
+    - rockygeekz
+    - sathyapramod
     - shatakshiiii
     - ssbarnea
+    - sudhirverma
   indirect:
+    - mitoshuki # manager
+    - alisonlhart # former member
     - KB-perByte # Sagar
     - ansibuddy
     - ariordan-redhat
     - cidrblock # Brad
     - ganeshrn
-    - ruchip16
     - trishnaguha
+    - tima # pdm
+  # https://github.com/orgs/ansible-automation-platform/teams/devtools-admin
+  ansible-automation-platform/devtools-admin:
+    - alisonlhart # maintainer
+    - cidrblock # maintainer
+    - mitoshuki # maintainer
+    - rockygeekz
+    - sathyapramod
+    - shatakshiiii
+    - ssbarnea # maintainer
+    - sudhirverma
+    - trishnaguha # maintainer
+    - tima # pdm
+
 labels:
   AAP:
     color: "#F9D0C4"

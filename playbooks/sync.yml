@@ -12,7 +12,7 @@
       - name: ansible-navigator
         repo: ansible/ansible-navigator
   tasks:
-    ## - name: Load project configuration
+    # # - name: Load project configuration
     #   ansible.builtin.include_vars:
     #     file: ../config/devtools.yml
     #     name: devtools

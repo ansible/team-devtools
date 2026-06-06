@@ -96,10 +96,33 @@ jobs:
   prepare:
     name: prepare
     runs-on: ubuntu-24.04
-    environment: ${{ inputs.environment }}
+    environment:
+      name: ${{ inputs.environment }}
+      deployment: false
     outputs:
       matrix: ${{ steps.generate_matrix.outputs.matrix }}
     steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0 # needed by setuptools-scm
+          submodules: true
+
+      - name: Check signed commits (PRs only)
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euxo pipefail
+          gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/commits \
+            --paginate \
+            --jq '[.[].commit.verification.verified] | all' \
+            | grep -q true || {
+              gh issue comment ${{ github.event.pull_request.number }} --create-if-none --edit-last --body \
+                "@${{ github.event.pull_request.user.login }} All commits must have verified signatures.\n\nPlease see [this Ansible Forum post](https://forum.ansible.com/t/important-github-com-ansible-now-requires-signed-commits/) for more information."
+              gh pr ready --undo ${{ github.event.pull_request.number }} || echo "::error::Failed to move PR to draft due to lack of signed commits."
+             exit 1
+            }
+
       - name: Determine matrix
         id: generate_matrix
         uses: ansible/actions/matrix@main
@@ -116,7 +139,9 @@ jobs:
   test:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os || 'ubuntu-24.04' }}
-    environment: ${{ inputs.environment }}
+    environment:
+      name: ${{ inputs.environment }}
+      deployment: false
     needs:
       - prepare
     defaults:
@@ -127,21 +152,20 @@ jobs:
       matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
 
     steps:
-      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0 # needed by setuptools-scm
           submodules: true
 
-      - name: Set pre-commit cache
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      - name: Set prek cache
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         if: ${{ matrix.name == 'lint' }}
         with:
-          path: |
-            ~/.cache/pre-commit
-          key: pre-commit-${{ matrix.name }}-${{ hashFiles('.pre-commit-config.yaml') }}
+          path: ~/.cache/prek
+          key: prek-${{ matrix.name }}-${{ hashFiles('.pre-commit-config.yaml') }}
 
       - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@v8.1.0
         with:
           python-version: ${{ matrix.uv_python_version || '3.12' }}
 
@@ -159,11 +183,17 @@ jobs:
           tox --version
           coverage --version
 
-      - name: Set up Node.js
+      - name: Set up Node.js (custom)
         if: ${{ inputs.node-version-file != '' }}
-        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version-file: ${{ inputs.node-version-file }}
+
+      - name: Set up Node.js
+        if: ${{ inputs.node-version-file == '' }}
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: "24"
 
       - name: Run pre
         if: ${{ inputs.run_pre }}
@@ -212,7 +242,8 @@ jobs:
         run: ${{ inputs.run_post }}
 
       - name: Archive logs and coverage data
-        uses: coactions/upload-artifact@ec1957e16e4ecd304d3a115907ccb4ba5f636e9d # v4
+        if: always()
+        uses: ansible/actions/upload-artifact@main
         with:
           name: logs-${{ matrix.name }}.zip
           include-hidden-files: true
@@ -222,7 +253,7 @@ jobs:
       - name: Upload coverage data to codecov.io
         id: upload-coverage
         if: ${{ !cancelled() && hashFiles('**/coverage.xml') != '' }}
-        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
         with:
           name: ${{ matrix.name }}
           fail_ci_if_error: true
@@ -237,10 +268,11 @@ jobs:
       - name: Upload test results to codecov.io
         id: upload-test-results
         if: ${{ !cancelled() && hashFiles('junit.xml') != '' }}
-        uses: codecov/test-results-action@47f89e9acb64b76debcd5ea40642d25a4adced9f # v1
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
         with:
           fail_ci_if_error: true
           name: ${{ matrix.name }}
+          report_type: test_results
           # unable to use wildcards yet due to https://github.com/codecov/test-results-action/issues/110
           flags: ${{ matrix.python_version }},${{ matrix.os }}
           use_oidc: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) }}
@@ -256,18 +288,27 @@ jobs:
             exit 99
           fi
 
+      - name: Cache gc clean-ups to prevent build-ups
+        run: |
+          # Only run if prek cache folder exists
+          if [[ -d ~/.cache/.cache/prek ]]; then
+            uv tool run prek cache gc --verbose
+          fi
+
   check:
     if: always()
-    environment: ${{ inputs.environment }}
+    environment:
+      name: ${{ inputs.environment }}
+      deployment: false
     needs:
       - test
     runs-on: ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@v8.1.0
 
       - name: Save PR number
         if: github.event_name == 'pull_request'
@@ -277,20 +318,22 @@ jobs:
 
       - name: Upload PR number artifact
         if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: pr_number
           path: pr_number.txt
 
       - name: Merge logs into a single archive
         # Should do nothing if job is retried
-        uses: actions/upload-artifact/merge@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        uses: actions/upload-artifact/merge@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: logs.zip
           pattern: logs-*.zip
           delete-merged: true
           include-hidden-files: true
           separate-directories: true
+        # Don't fail the job if there aren't any artifacts to merge.
+        continue-on-error: true
 
       - name: Decide whether the needed jobs succeeded or failed
         id: alls-green
@@ -312,7 +355,19 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.DEVTOOLS_CI_SLACK_URL }}
         run: |
           if [ -n "$SLACK_WEBHOOK_URL" ]; then
-            curl -X POST -H 'Content-type: application/json' \
-              --data "{\"text\":\" Python tests failed in jobs: test for '${GITHUB_REPOSITORY}' (tox.yml). Check logs: '${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}'\"}" \
-              $SLACK_WEBHOOK_URL
+          cat <<JSON_PAYLOAD | curl -X POST -H 'Content-type: application/json' --data @- $SLACK_WEBHOOK_URL
+          {
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "`$GITHUB_EVENT_NAME` *$GITHUB_WORKFLOW* \
+                  failed on [${GITHUB_REPOSITORY}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}). \
+                  Check [logs](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})\"
+                }
+              }
+            ]
+          }
+          JSON_PAYLOAD
           fi
