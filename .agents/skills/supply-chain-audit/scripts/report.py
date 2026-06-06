@@ -3,17 +3,17 @@
 Reads cached audit data and findings, produces a standalone HTML file
 with embedded CSS, JS, and SVG visualizations.
 """
+# ruff: noqa: T201
 
 from __future__ import annotations
 
 import argparse
 import html
 import json
+import re as _re
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent))
 
 from cache_utils import (
     get_all_cached_checks,
@@ -69,8 +69,6 @@ def esc(text: str | None) -> str:
     return html.escape(str(text))
 
 
-import re as _re
-
 _ADVISORY_PATTERN = _re.compile(r"(GHSA-[\w-]+|PYSEC-[\d-]+|CVE-[\d-]+)")
 
 
@@ -82,7 +80,7 @@ def _linkify_advisory_ids(text: str) -> str:
             url = f"https://github.com/advisories/{vuln_id}"
         else:
             url = f"https://osv.dev/vulnerability/{vuln_id}"
-        return f'<a href="{url}" target="_blank">{vuln_id}</a>'
+        return f'<a href="{url}" target="_blank" rel="noopener noreferrer">{vuln_id}</a>'
 
     return _ADVISORY_PATTERN.sub(_make_link, text)
 
@@ -185,7 +183,7 @@ def generate_repo_summary_rows(
 
         row = (
             f'<tr>'
-            f'<td><a href="https://github.com/ansible/{repo}" target="_blank">{esc(repo)}</a></td>'
+            f'<td><a href="https://github.com/ansible/{repo}" target="_blank" rel="noopener noreferrer">{esc(repo)}</a></td>'
             f'<td>{num_commits}</td>'
             f'<td>{num_prs}</td>'
             f'<td>{signed_github}</td>'
@@ -397,7 +395,7 @@ def generate_commit_integrity_section(commits: list[dict], findings: list[dict])
         repo_name = commit.get("repo", "")
         pr_str = ", ".join(
             f'<a href="https://github.com/ansible/{repo_name}/pull/{p}" '
-            f'target="_blank">#{p}</a>'
+            f'target="_blank" rel="noopener noreferrer">#{p}</a>'
             for p in prs
         ) if prs else "\u2014"
 
@@ -479,7 +477,7 @@ def generate_dep_section(deps: list[dict], prs: list[dict]) -> str:
             repo_name, pr_num = pr_info
             pr_cell = (
                 f'<a href="https://github.com/ansible/{repo_name}/pull/{pr_num}" '
-                f'target="_blank">#{pr_num}</a>'
+                f'target="_blank" rel="noopener noreferrer">#{pr_num}</a>'
             )
         else:
             pr_cell = "\u2014"
@@ -598,7 +596,7 @@ def generate_findings_details(findings: list[dict]) -> str:
             if pr_num:
                 pr_link = (
                     f' <a href="https://github.com/ansible/{repo}/pull/{pr_num}" '
-                    f'target="_blank">PR #{pr_num}</a>'
+                    f'target="_blank" rel="noopener noreferrer">PR #{pr_num}</a>'
                 )
             summary_html = _linkify_advisory_ids(esc(f.get("summary", "")))
             details_html = _linkify_advisory_ids(esc(f.get("details", "")[:300]))
@@ -643,10 +641,12 @@ def render_recommendations_html(recommendations: list[dict[str, str]]) -> str:
     if not recommendations:
         return ""
 
+    _SAFE_TAGS = _re.compile(r"<(?!/?(?:code|strong|em|a\s|/a))[^>]+>")
+
     items = []
     for i, rec in enumerate(recommendations[:10], 1):
         title = esc(rec.get("title", ""))
-        detail = rec.get("detail", "")
+        detail = _SAFE_TAGS.sub("", rec.get("detail", ""))
         items.append(
             f'<div style="padding: 0.75rem 0; border-bottom: 1px solid var(--border);">'
             f'<strong>{i}. {title}</strong>'

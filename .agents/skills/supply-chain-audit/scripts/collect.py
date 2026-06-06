@@ -4,10 +4,12 @@ Fetches commits, PRs, check suites, and dependency file diffs for all
 target repos within a specified time window. Results are cached as JSON
 for idempotent re-runs.
 """
+# ruff: noqa: T201, S310, BLE001
 
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import re
 import subprocess
@@ -16,8 +18,6 @@ import time
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent))
 
 from cache_utils import (
     GITHUB_ORG,
@@ -266,7 +266,6 @@ def collect_renovate_config(repo: str) -> dict:
     for path in config_paths:
         data = gh_api(path)
         if data and isinstance(data, dict) and data.get("content"):
-            import base64
             try:
                 content = base64.b64decode(data["content"]).decode("utf-8")
                 raw = json.loads(content)
@@ -666,7 +665,6 @@ def collect_package_inventory(repo: str) -> list[dict]:
         endpoint = f"repos/{GITHUB_ORG}/{repo}/contents/{lock_file}"
         data = gh_api(endpoint)
         if data and isinstance(data, dict) and data.get("content"):
-            import base64
             try:
                 content = base64.b64decode(data["content"]).decode("utf-8")
                 pkgs = _parse_toml_lock_inventory(content, lock_file)
@@ -681,7 +679,6 @@ def collect_package_inventory(repo: str) -> list[dict]:
     endpoint = f"repos/{GITHUB_ORG}/{repo}/contents/package.json"
     data = gh_api(endpoint)
     if data and isinstance(data, dict) and data.get("content"):
-        import base64
         try:
             content = base64.b64decode(data["content"]).decode("utf-8")
             pkg_json = json.loads(content)

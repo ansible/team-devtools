@@ -127,8 +127,8 @@ an attacker with write access would prefer direct pushes to avoid review.
 
 ### What it detects
 
-Pull requests that were merged despite having one or more check suites in
-a failing, skipped, or timed-out state.
+Pull requests that were merged despite having one or more **required** check
+suites in a failing or timed-out state.
 
 ### Why it matters
 
@@ -148,13 +148,16 @@ which could indicate:
 
 | Check conclusion | Flagged? | Rationale |
 |-----------------|----------|-----------|
-| `failure` | Yes | Explicit failure |
-| `timed_out` | Yes | May indicate manipulated checks |
-| `action_required` | Yes | Unresolved required action |
-| `skipped` | Yes | Deliberately skipped |
+| `failure` | Yes (if required) | Explicit failure of required check |
+| `timed_out` | Yes (if required) | May indicate manipulated checks |
+| `action_required` | Yes (if required) | Unresolved required action |
+| `skipped` | No | Often legitimate (conditional workflows) |
 | `cancelled` | No | Usually user-initiated re-run |
 | `success` | No | Normal |
 | `neutral` | No | Informational checks |
+
+Only checks listed in branch protection required status checks or rulesets
+are evaluated. Advisory/optional checks are not flagged.
 
 ### Investigation steps
 

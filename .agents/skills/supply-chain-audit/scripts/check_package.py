@@ -4,6 +4,7 @@ Given a suspect package and compromise date, determines which repos in the
 ADT ecosystem pulled in the affected version and when. Cross-references
 cached dependency change data to build an impact timeline.
 """
+# ruff: noqa: T201, S310, BLE001
 
 from __future__ import annotations
 
@@ -14,24 +15,11 @@ import urllib.request
 from datetime import datetime
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
-
 from cache_utils import (
     get_all_cached_deps,
     read_manifest,
     write_package_focus,
 )
-
-
-def resolve_cve_to_package(cve_id: str) -> dict | None:
-    """Attempt to resolve a CVE ID to affected package info via PyPI advisory API."""
-    try:
-        url = f"https://pypi.org/pypi/{cve_id}/json"
-        req = urllib.request.Request(url, headers={"User-Agent": "supply-chain-audit/1.0"})
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            return json.loads(resp.read())
-    except Exception:
-        return None
 
 
 def get_pypi_release_dates(package_name: str) -> dict[str, str]:

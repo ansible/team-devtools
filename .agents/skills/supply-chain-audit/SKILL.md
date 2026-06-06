@@ -210,7 +210,7 @@ If critical findings are detected (bypassed CI, post-merge pushes, suspicious de
 ## Cache Behavior
 
 - Cache location: `.supply-chain-audit/cache/`
-- Cache key: SHA-256 of `start_date + end_date + sorted_repo_list`
+- Cache key: first 16 hex chars of SHA-256(`start_date + end_date + sorted_repo_list`)
 - Re-running with identical parameters produces identical output
 - To force a fresh collection, delete the cache directory or pass `--force` to collect.py
-- Git history is immutable; cached data never goes stale for a given time window
+- Git history is effectively immutable for merged PRs; cached data reflects the state at collection time

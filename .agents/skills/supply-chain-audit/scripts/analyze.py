@@ -1,25 +1,18 @@
 """Anomaly detection engine for supply chain audit.
 
-Processes cached data to detect eight categories of supply chain anomalies:
-1. Unsigned commits
-2. GitHub-web-signed commits
-3. Orphan commits (no associated PR)
-4. Bypassed CI (merged with failing checks)
-5. Post-merge pushes
-6. Replicated commit messages
-7. Suspicious dependency timing
-8. Yanked/deleted package versions
+Processes cached data to detect 13 categories of supply chain anomalies
+including commit integrity, CI integrity, dependency provenance, review
+integrity, and known vulnerabilities.
 """
+# ruff: noqa: T201
 
 from __future__ import annotations
 
 import argparse
 import json
 import sys
-from datetime import datetime
+from collections import Counter
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent))
 
 from cache_utils import (
     get_all_cached_checks,
@@ -328,13 +321,10 @@ def detect_protection_changes(protection: dict[str, dict]) -> list[Finding]:
 
 def detect_post_merge_pushes(commits: list[dict], prs: list[dict]) -> list[Finding]:
     """Detect commits pushed to branches after their PR was merged/closed."""
-    pr_by_branch: dict[tuple[str, str], dict] = {}
+    pr_index: dict[tuple[str, int], dict] = {}
     for pr in prs:
         if pr.get("merged") or pr.get("state") == "closed":
-            key = (pr["repo"], pr.get("head_ref", ""))
-            existing = pr_by_branch.get(key)
-            if existing is None or (pr.get("merged_at") or "") > (existing.get("merged_at") or ""):
-                pr_by_branch[key] = pr
+            pr_index[(pr["repo"], pr["number"])] = pr
 
     findings = []
     for commit in commits:
@@ -342,11 +332,7 @@ def detect_post_merge_pushes(commits: list[dict], prs: list[dict]) -> list[Findi
         commit_date = commit.get("date", "")
 
         for pr_num in commit.get("associated_prs", []):
-            matching_pr = None
-            for pr in prs:
-                if pr["repo"] == repo and pr["number"] == pr_num:
-                    matching_pr = pr
-                    break
+            matching_pr = pr_index.get((repo, pr_num))
 
             if not matching_pr:
                 continue
@@ -994,7 +980,6 @@ def run_analysis(cache_dir: Path) -> list[Finding]:
 
 def _build_findings_summary(findings: list[dict], manifest: dict) -> dict:
     """Build a compact summary of findings for the agent to reason about."""
-    from collections import Counter
 
     by_category: dict[str, list[dict]] = {}
     for f in findings:
