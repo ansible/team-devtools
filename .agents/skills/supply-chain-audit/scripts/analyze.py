@@ -62,24 +62,26 @@ def detect_unsigned_commits(commits: list[dict]) -> list[Finding]:
     for commit in commits:
         verification = commit.get("verification", {})
         if not verification.get("verified", False):
-            findings.append(Finding(
-                category=FindingCategory.UNSIGNED_COMMIT,
-                risk_level=RiskLevel.MEDIUM,
-                repo=commit["repo"],
-                summary=f"Unsigned commit by {commit.get('author_login', 'unknown')}",
-                details=(
-                    f"Commit {commit['sha'][:8]} is not cryptographically signed. "
-                    f"Reason: {verification.get('reason', 'unsigned')}. "
-                    f"Author: {commit.get('author_login', 'unknown')} "
-                    f"({commit.get('author_email', '')})"
-                ),
-                commit_sha=commit["sha"],
-                date=commit.get("date"),
-                evidence={
-                    "author": commit.get("author_login"),
-                    "reason": verification.get("reason"),
-                },
-            ))
+            findings.append(
+                Finding(
+                    category=FindingCategory.UNSIGNED_COMMIT,
+                    risk_level=RiskLevel.MEDIUM,
+                    repo=commit["repo"],
+                    summary=f"Unsigned commit by {commit.get('author_login', 'unknown')}",
+                    details=(
+                        f"Commit {commit['sha'][:8]} is not cryptographically signed. "
+                        f"Reason: {verification.get('reason', 'unsigned')}. "
+                        f"Author: {commit.get('author_login', 'unknown')} "
+                        f"({commit.get('author_email', '')})"
+                    ),
+                    commit_sha=commit["sha"],
+                    date=commit.get("date"),
+                    evidence={
+                        "author": commit.get("author_login"),
+                        "reason": verification.get("reason"),
+                    },
+                )
+            )
     return findings
 
 
@@ -122,34 +124,38 @@ def detect_github_web_signed(commits: list[dict], prs: list[dict]) -> list[Findi
         if commit.get("associated_prs"):
             continue
 
-        findings.append(Finding(
-            category=FindingCategory.GITHUB_WEB_SIGNED,
-            risk_level=RiskLevel.MEDIUM,
-            repo=commit["repo"],
-            summary=f"GitHub-web-signed commit (not a PR merge) by {commit.get('author_login', 'unknown')}",
-            details=(
-                f"Commit {commit['sha'][:8]} is signed by GitHub but is NOT the "
-                f"merge commit of any known PR. This suggests a direct web UI edit. "
-                f"Author: {commit.get('author_login', 'unknown')}, "
-                f"Committer: {committer_login} ({committer_email}). "
-                f"A compromised GitHub account can create verified commits via "
-                f"the web editor without needing the author's signing key."
-            ),
-            commit_sha=commit["sha"],
-            date=commit.get("date"),
-            evidence={
-                "author": commit.get("author_login"),
-                "committer": committer_login,
-                "committer_email": committer_email,
-                "is_pr_merge": False,
-            },
-        ))
+        findings.append(
+            Finding(
+                category=FindingCategory.GITHUB_WEB_SIGNED,
+                risk_level=RiskLevel.MEDIUM,
+                repo=commit["repo"],
+                summary=f"GitHub-web-signed commit (not a PR merge) by {commit.get('author_login', 'unknown')}",
+                details=(
+                    f"Commit {commit['sha'][:8]} is signed by GitHub but is NOT the "
+                    f"merge commit of any known PR. This suggests a direct web UI edit. "
+                    f"Author: {commit.get('author_login', 'unknown')}, "
+                    f"Committer: {committer_login} ({committer_email}). "
+                    f"A compromised GitHub account can create verified commits via "
+                    f"the web editor without needing the author's signing key."
+                ),
+                commit_sha=commit["sha"],
+                date=commit.get("date"),
+                evidence={
+                    "author": commit.get("author_login"),
+                    "committer": committer_login,
+                    "committer_email": committer_email,
+                    "is_pr_merge": False,
+                },
+            )
+        )
     return findings
 
 
 def detect_orphan_commits(commits: list[dict], prs: list[dict]) -> list[Finding]:
     """Detect commits with no associated pull request."""
-    pr_merge_shas = {pr.get("merge_commit_sha") for pr in prs if pr.get("merge_commit_sha")}
+    pr_merge_shas = {
+        pr.get("merge_commit_sha") for pr in prs if pr.get("merge_commit_sha")
+    }
 
     findings = []
     for commit in commits:
@@ -158,23 +164,25 @@ def detect_orphan_commits(commits: list[dict], prs: list[dict]) -> list[Finding]
 
         if not associated and sha not in pr_merge_shas:
             msg_first_line = commit.get("message", "").split("\n")[0][:80]
-            findings.append(Finding(
-                category=FindingCategory.ORPHAN_COMMIT,
-                risk_level=RiskLevel.HIGH,
-                repo=commit["repo"],
-                summary=f"Commit without PR: {msg_first_line}",
-                details=(
-                    f"Commit {sha[:8]} by {commit.get('author_login', 'unknown')} "
-                    f"has no associated pull request. Direct pushes to protected branches "
-                    f"bypass code review. Message: '{msg_first_line}'"
-                ),
-                commit_sha=sha,
-                date=commit.get("date"),
-                evidence={
-                    "author": commit.get("author_login"),
-                    "message_preview": msg_first_line,
-                },
-            ))
+            findings.append(
+                Finding(
+                    category=FindingCategory.ORPHAN_COMMIT,
+                    risk_level=RiskLevel.HIGH,
+                    repo=commit["repo"],
+                    summary=f"Commit without PR: {msg_first_line}",
+                    details=(
+                        f"Commit {sha[:8]} by {commit.get('author_login', 'unknown')} "
+                        f"has no associated pull request. Direct pushes to protected branches "
+                        f"bypass code review. Message: '{msg_first_line}'"
+                    ),
+                    commit_sha=sha,
+                    date=commit.get("date"),
+                    evidence={
+                        "author": commit.get("author_login"),
+                        "message_preview": msg_first_line,
+                    },
+                )
+            )
     return findings
 
 
@@ -200,7 +208,9 @@ def detect_bypassed_ci(
 
         repo = pr["repo"]
         repo_protection = protection.get(repo, {})
-        required_checks = set(repo_protection.get("rules", {}).get("required_checks", []))
+        required_checks = set(
+            repo_protection.get("rules", {}).get("required_checks", [])
+        )
 
         suites = checks.get(merge_sha, [])
         if not suites:
@@ -231,29 +241,31 @@ def detect_bypassed_ci(
                 failed_advisory.append(f"{app_name}: {conclusion}")
 
         if failed_required:
-            findings.append(Finding(
-                category=FindingCategory.BYPASSED_CI,
-                risk_level=RiskLevel.CRITICAL,
-                repo=repo,
-                summary=f"PR #{pr['number']} merged with REQUIRED check failing",
-                details=(
-                    f"PR #{pr['number']} ('{pr.get('title', '')}') was merged despite "
-                    f"required check failures: {'; '.join(failed_required)}. "
-                    f"Advisory failures (non-blocking): {'; '.join(failed_advisory) or 'none'}. "
-                    f"Author: {pr.get('author_login', 'unknown')}, "
-                    f"Merged at: {pr.get('merged_at', 'unknown')}"
-                ),
-                commit_sha=merge_sha,
-                pr_number=pr["number"],
-                date=pr.get("merged_at"),
-                evidence={
-                    "pr_title": pr.get("title"),
-                    "author": pr.get("author_login"),
-                    "failed_required": failed_required,
-                    "failed_advisory": failed_advisory,
-                    "required_checks_configured": list(required_checks),
-                },
-            ))
+            findings.append(
+                Finding(
+                    category=FindingCategory.BYPASSED_CI,
+                    risk_level=RiskLevel.CRITICAL,
+                    repo=repo,
+                    summary=f"PR #{pr['number']} merged with REQUIRED check failing",
+                    details=(
+                        f"PR #{pr['number']} ('{pr.get('title', '')}') was merged despite "
+                        f"required check failures: {'; '.join(failed_required)}. "
+                        f"Advisory failures (non-blocking): {'; '.join(failed_advisory) or 'none'}. "
+                        f"Author: {pr.get('author_login', 'unknown')}, "
+                        f"Merged at: {pr.get('merged_at', 'unknown')}"
+                    ),
+                    commit_sha=merge_sha,
+                    pr_number=pr["number"],
+                    date=pr.get("merged_at"),
+                    evidence={
+                        "pr_title": pr.get("title"),
+                        "author": pr.get("author_login"),
+                        "failed_required": failed_required,
+                        "failed_advisory": failed_advisory,
+                        "required_checks_configured": list(required_checks),
+                    },
+                )
+            )
         # If no required checks configured, don't flag individual PRs — there's
         # no gate to bypass. The weak posture is reported separately in
         # detect_protection_changes as a repo-level finding.
@@ -296,35 +308,39 @@ def detect_protection_changes(protection: dict[str, dict]) -> list[Finding]:
             continue
 
         if rules.get("allow_force_pushes"):
-            findings.append(Finding(
-                category=FindingCategory.PROTECTION_CHANGED,
-                risk_level=RiskLevel.HIGH,
-                repo=repo,
-                summary=f"Force pushes allowed on {repo} default branch",
-                details=(
-                    f"Branch protection for {repo} allows force pushes to the "
-                    f"default branch. This means history can be rewritten, "
-                    f"which could mask malicious commits."
-                ),
-                evidence={"allow_force_pushes": True},
-            ))
+            findings.append(
+                Finding(
+                    category=FindingCategory.PROTECTION_CHANGED,
+                    risk_level=RiskLevel.HIGH,
+                    repo=repo,
+                    summary=f"Force pushes allowed on {repo} default branch",
+                    details=(
+                        f"Branch protection for {repo} allows force pushes to the "
+                        f"default branch. This means history can be rewritten, "
+                        f"which could mask malicious commits."
+                    ),
+                    evidence={"allow_force_pushes": True},
+                )
+            )
 
         required_checks = rules.get("required_checks", [])
         if not required_checks:
-            findings.append(Finding(
-                category=FindingCategory.PROTECTION_CHANGED,
-                risk_level=RiskLevel.MEDIUM,
-                repo=repo,
-                summary=f"No required status checks configured for {repo}",
-                details=(
-                    f"Branch protection for {repo} does not require any status "
-                    f"checks to pass before merging. PRs can be merged regardless "
-                    f"of CI results. This weakens the supply chain integrity "
-                    f"guarantee — there is no automated gate preventing merges "
-                    f"with failing tests or security scans."
-                ),
-                evidence={"required_checks": [], "has_protection": True},
-            ))
+            findings.append(
+                Finding(
+                    category=FindingCategory.PROTECTION_CHANGED,
+                    risk_level=RiskLevel.MEDIUM,
+                    repo=repo,
+                    summary=f"No required status checks configured for {repo}",
+                    details=(
+                        f"Branch protection for {repo} does not require any status "
+                        f"checks to pass before merging. PRs can be merged regardless "
+                        f"of CI results. This weakens the supply chain integrity "
+                        f"guarantee — there is no automated gate preventing merges "
+                        f"with failing tests or security scans."
+                    ),
+                    evidence={"required_checks": [], "has_protection": True},
+                )
+            )
 
     return findings
 
@@ -351,29 +367,33 @@ def detect_post_merge_pushes(commits: list[dict], prs: list[dict]) -> list[Findi
             if not merged_at:
                 continue
 
-            if commit_date > merged_at and commit["sha"] != matching_pr.get("merge_commit_sha"):
-                findings.append(Finding(
-                    category=FindingCategory.POST_MERGE_PUSH,
-                    risk_level=RiskLevel.CRITICAL,
-                    repo=repo,
-                    summary=f"Post-merge commit on PR #{pr_num} branch",
-                    details=(
-                        f"Commit {commit['sha'][:8]} was pushed to branch "
-                        f"'{matching_pr.get('head_ref', '')}' AFTER PR #{pr_num} was merged "
-                        f"at {merged_at}. Commit date: {commit_date}. "
-                        f"Author: {commit.get('author_login', 'unknown')}. "
-                        f"This could indicate branch tampering."
-                    ),
-                    commit_sha=commit["sha"],
-                    pr_number=pr_num,
-                    date=commit_date,
-                    evidence={
-                        "branch": matching_pr.get("head_ref"),
-                        "merged_at": merged_at,
-                        "commit_date": commit_date,
-                        "author": commit.get("author_login"),
-                    },
-                ))
+            if commit_date > merged_at and commit["sha"] != matching_pr.get(
+                "merge_commit_sha"
+            ):
+                findings.append(
+                    Finding(
+                        category=FindingCategory.POST_MERGE_PUSH,
+                        risk_level=RiskLevel.CRITICAL,
+                        repo=repo,
+                        summary=f"Post-merge commit on PR #{pr_num} branch",
+                        details=(
+                            f"Commit {commit['sha'][:8]} was pushed to branch "
+                            f"'{matching_pr.get('head_ref', '')}' AFTER PR #{pr_num} was merged "
+                            f"at {merged_at}. Commit date: {commit_date}. "
+                            f"Author: {commit.get('author_login', 'unknown')}. "
+                            f"This could indicate branch tampering."
+                        ),
+                        commit_sha=commit["sha"],
+                        pr_number=pr_num,
+                        date=commit_date,
+                        evidence={
+                            "branch": matching_pr.get("head_ref"),
+                            "merged_at": merged_at,
+                            "commit_date": commit_date,
+                            "author": commit.get("author_login"),
+                        },
+                    )
+                )
     return findings
 
 
@@ -410,26 +430,28 @@ def detect_replicated_messages(commits: list[dict]) -> list[Finding]:
                         risk = RiskLevel.LOW
 
                     msg_preview = msg.split("\n")[0][:60]
-                    findings.append(Finding(
-                        category=FindingCategory.REPLICATED_MESSAGE,
-                        risk_level=risk,
-                        repo=repo,
-                        summary=f"Replicated commit message: '{msg_preview}'",
-                        details=(
-                            f"Commit {commit['sha'][:8]} has a message nearly identical "
-                            f"(similarity: {similarity:.2f}) to earlier commit {earlier['sha'][:8]}. "
-                            f"New author: {commit.get('author_login', 'unknown')}, "
-                            f"Original author: {earlier.get('author_login', 'unknown')}."
-                        ),
-                        commit_sha=commit["sha"],
-                        date=commit.get("date"),
-                        evidence={
-                            "similarity": round(similarity, 3),
-                            "original_sha": earlier["sha"],
-                            "original_author": earlier.get("author_login"),
-                            "new_author": commit.get("author_login"),
-                        },
-                    ))
+                    findings.append(
+                        Finding(
+                            category=FindingCategory.REPLICATED_MESSAGE,
+                            risk_level=risk,
+                            repo=repo,
+                            summary=f"Replicated commit message: '{msg_preview}'",
+                            details=(
+                                f"Commit {commit['sha'][:8]} has a message nearly identical "
+                                f"(similarity: {similarity:.2f}) to earlier commit {earlier['sha'][:8]}. "
+                                f"New author: {commit.get('author_login', 'unknown')}, "
+                                f"Original author: {earlier.get('author_login', 'unknown')}."
+                            ),
+                            commit_sha=commit["sha"],
+                            date=commit.get("date"),
+                            evidence={
+                                "similarity": round(similarity, 3),
+                                "original_sha": earlier["sha"],
+                                "original_author": earlier.get("author_login"),
+                                "new_author": commit.get("author_login"),
+                            },
+                        )
+                    )
                     break
 
     return findings
@@ -465,63 +487,69 @@ def detect_suspicious_dep_timing(
             new_major = new_ver.split(".")[0] if "." in new_ver else new_ver
             is_major = old_major != new_major
 
-        effective_cooldown = (major_cooldown if is_major and major_cooldown else default_cooldown)
+        effective_cooldown = (
+            major_cooldown if is_major and major_cooldown else default_cooldown
+        )
 
         if effective_cooldown is not None and days < effective_cooldown:
             # Policy violation — adopted before configured cooldown
-            findings.append(Finding(
-                category=FindingCategory.COOLDOWN_VIOLATED,
-                risk_level=RiskLevel.CRITICAL,
-                repo=repo,
-                summary=(
-                    f"'{dep['package_name']}' adopted {days}d after release "
-                    f"(cooldown: {effective_cooldown}d)"
-                ),
-                details=(
-                    f"Package '{dep['package_name']}' {new_ver} was released on "
-                    f"{dep.get('release_date')} and adopted {days} day(s) later. "
-                    f"The repo's renovate config requires a {effective_cooldown}-day "
-                    f"cooldown ({'major update rule' if is_major and major_cooldown else 'default'}). "
-                    f"This dep bypassed the configured safety period. "
-                    f"Source: {config.get('source', 'unknown')}"
-                ),
-                commit_sha=dep.get("commit_sha"),
-                date=dep.get("commit_date"),
-                evidence={
-                    "package": dep["package_name"],
-                    "version": new_ver,
-                    "release_date": dep.get("release_date"),
-                    "days_since_release": days,
-                    "configured_cooldown": effective_cooldown,
-                    "is_major": is_major,
-                    "config_source": config.get("source"),
-                },
-            ))
+            findings.append(
+                Finding(
+                    category=FindingCategory.COOLDOWN_VIOLATED,
+                    risk_level=RiskLevel.CRITICAL,
+                    repo=repo,
+                    summary=(
+                        f"'{dep['package_name']}' adopted {days}d after release "
+                        f"(cooldown: {effective_cooldown}d)"
+                    ),
+                    details=(
+                        f"Package '{dep['package_name']}' {new_ver} was released on "
+                        f"{dep.get('release_date')} and adopted {days} day(s) later. "
+                        f"The repo's renovate config requires a {effective_cooldown}-day "
+                        f"cooldown ({'major update rule' if is_major and major_cooldown else 'default'}). "
+                        f"This dep bypassed the configured safety period. "
+                        f"Source: {config.get('source', 'unknown')}"
+                    ),
+                    commit_sha=dep.get("commit_sha"),
+                    date=dep.get("commit_date"),
+                    evidence={
+                        "package": dep["package_name"],
+                        "version": new_ver,
+                        "release_date": dep.get("release_date"),
+                        "days_since_release": days,
+                        "configured_cooldown": effective_cooldown,
+                        "is_major": is_major,
+                        "config_source": config.get("source"),
+                    },
+                )
+            )
         elif effective_cooldown is None and days < FALLBACK_COOLDOWN_DAYS:
             # No cooldown configured — fallback heuristic for very rapid adoption
-            findings.append(Finding(
-                category=FindingCategory.SUSPICIOUS_DEP_TIMING,
-                risk_level=RiskLevel.LOW,
-                repo=repo,
-                summary=(
-                    f"'{dep['package_name']}' adopted {days}d after release (no cooldown configured)"
-                ),
-                details=(
-                    f"Package '{dep['package_name']}' {new_ver} was released on "
-                    f"{dep.get('release_date')} and adopted {days} day(s) later. "
-                    f"No renovate minimumReleaseAge is configured for this repo. "
-                    f"Consider adding a cooldown policy."
-                ),
-                commit_sha=dep.get("commit_sha"),
-                date=dep.get("commit_date"),
-                evidence={
-                    "package": dep["package_name"],
-                    "version": new_ver,
-                    "release_date": dep.get("release_date"),
-                    "days_since_release": days,
-                    "configured_cooldown": None,
-                },
-            ))
+            findings.append(
+                Finding(
+                    category=FindingCategory.SUSPICIOUS_DEP_TIMING,
+                    risk_level=RiskLevel.LOW,
+                    repo=repo,
+                    summary=(
+                        f"'{dep['package_name']}' adopted {days}d after release (no cooldown configured)"
+                    ),
+                    details=(
+                        f"Package '{dep['package_name']}' {new_ver} was released on "
+                        f"{dep.get('release_date')} and adopted {days} day(s) later. "
+                        f"No renovate minimumReleaseAge is configured for this repo. "
+                        f"Consider adding a cooldown policy."
+                    ),
+                    commit_sha=dep.get("commit_sha"),
+                    date=dep.get("commit_date"),
+                    evidence={
+                        "package": dep["package_name"],
+                        "version": new_ver,
+                        "release_date": dep.get("release_date"),
+                        "days_since_release": days,
+                        "configured_cooldown": None,
+                    },
+                )
+            )
 
     return findings
 
@@ -575,7 +603,7 @@ def detect_post_approval_commits(pr_audits: list[dict]) -> list[Finding]:
         last_approval_time = max(a["submitted_at"] for a in approvals)
         last_approver = next(
             (a["user"] for a in approvals if a["submitted_at"] == last_approval_time),
-            "unknown"
+            "unknown",
         )
 
         post_approval = []
@@ -592,16 +620,17 @@ def detect_post_approval_commits(pr_audits: list[dict]) -> list[Finding]:
 
         # Categorize post-approval commits by author relationship
         from_pr_author = [
-            c for c in post_approval
-            if c.get("author_login", "") == pr_author
+            c for c in post_approval if c.get("author_login", "") == pr_author
         ]
         from_approver = [
-            c for c in post_approval
+            c
+            for c in post_approval
             if c.get("author_login", "") in approver_logins
             and c.get("author_login", "") != pr_author
         ]
         from_unknown_third_party = [
-            c for c in post_approval
+            c
+            for c in post_approval
             if c.get("author_login", "") != pr_author
             and c.get("author_login", "") not in approver_logins
             and c.get("author_login", "") != "unknown"
@@ -634,29 +663,37 @@ def detect_post_approval_commits(pr_audits: list[dict]) -> list[Finding]:
         for c in post_approval[:5]:
             author = c.get("author_login", "unknown")
             msg = c.get("message", "").split("\n")[0][:60]
-            details_parts.append(f"  - {c['sha'][:8]} by {author}: '{msg}' ({c.get('date', '')[:16]})")
+            details_parts.append(
+                f"  - {c['sha'][:8]} by {author}: '{msg}' ({c.get('date', '')[:16]})"
+            )
 
-        findings.append(Finding(
-            category=FindingCategory.POST_APPROVAL_COMMIT,
-            risk_level=risk,
-            repo=repo,
-            summary=summary,
-            details=" ".join(details_parts),
-            pr_number=pr_num,
-            date=audit.get("merged_at"),
-            evidence={
-                "pr_author": pr_author,
-                "last_approver": last_approver,
-                "last_approval_time": last_approval_time,
-                "post_approval_commits": [
-                    {"sha": c["sha"][:8], "author": c.get("author_login"), "date": c.get("date")}
-                    for c in post_approval
-                ],
-                "from_pr_author": len(from_pr_author),
-                "from_approver": len(from_approver),
-                "from_unknown_third_party": len(from_unknown_third_party),
-            },
-        ))
+        findings.append(
+            Finding(
+                category=FindingCategory.POST_APPROVAL_COMMIT,
+                risk_level=risk,
+                repo=repo,
+                summary=summary,
+                details=" ".join(details_parts),
+                pr_number=pr_num,
+                date=audit.get("merged_at"),
+                evidence={
+                    "pr_author": pr_author,
+                    "last_approver": last_approver,
+                    "last_approval_time": last_approval_time,
+                    "post_approval_commits": [
+                        {
+                            "sha": c["sha"][:8],
+                            "author": c.get("author_login"),
+                            "date": c.get("date"),
+                        }
+                        for c in post_approval
+                    ],
+                    "from_pr_author": len(from_pr_author),
+                    "from_approver": len(from_approver),
+                    "from_unknown_third_party": len(from_unknown_third_party),
+                },
+            )
+        )
 
     return findings
 
@@ -684,24 +721,26 @@ def detect_known_vulnerabilities(vulns: dict[str, list[dict]]) -> list[Finding]:
                     risk = RiskLevel.MEDIUM
 
                 alias_str = f" (aliases: {', '.join(aliases)})" if aliases else ""
-                findings.append(Finding(
-                    category=FindingCategory.KNOWN_VULNERABILITY,
-                    risk_level=risk,
-                    repo=repo,
-                    summary=f"{pkg_name}@{version}: {vuln_id}{alias_str}",
-                    details=(
-                        f"{ecosystem} package '{pkg_name}' version {version} in {repo} "
-                        f"has known vulnerability {vuln_id}: {summary}"
-                    ),
-                    evidence={
-                        "package": pkg_name,
-                        "version": version,
-                        "ecosystem": ecosystem,
-                        "vuln_id": vuln_id,
-                        "severity": severity,
-                        "aliases": aliases,
-                    },
-                ))
+                findings.append(
+                    Finding(
+                        category=FindingCategory.KNOWN_VULNERABILITY,
+                        risk_level=risk,
+                        repo=repo,
+                        summary=f"{pkg_name}@{version}: {vuln_id}{alias_str}",
+                        details=(
+                            f"{ecosystem} package '{pkg_name}' version {version} in {repo} "
+                            f"has known vulnerability {vuln_id}: {summary}"
+                        ),
+                        evidence={
+                            "package": pkg_name,
+                            "version": version,
+                            "ecosystem": ecosystem,
+                            "vuln_id": vuln_id,
+                            "severity": severity,
+                            "aliases": aliases,
+                        },
+                    )
+                )
 
     return findings
 
@@ -781,27 +820,29 @@ def detect_bot_only_approval(pr_audits: list[dict], prs: list[dict]) -> list[Fin
                 f"({', '.join(bot_names)}), no human review"
             )
 
-        findings.append(Finding(
-            category=FindingCategory.BOT_ONLY_APPROVAL,
-            risk_level=risk,
-            repo=repo,
-            summary=summary,
-            details=(
-                f"PR #{pr_num} ('{pr_title}') in {repo} by {pr_author} was merged "
-                f"with approvals only from: {', '.join(bot_names)}. "
-                f"No human reviewer approved this change before merge."
-            ),
-            pr_number=pr_num,
-            date=audit.get("merged_at"),
-            evidence={
-                "pr_author": pr_author,
-                "pr_title": pr_title,
-                "bot_approvers": bot_names,
-                "is_bot_pr": is_bot_pr,
-                "is_dep_only": is_dep_only,
-                "commit_count": audit.get("commit_count", 0),
-            },
-        ))
+        findings.append(
+            Finding(
+                category=FindingCategory.BOT_ONLY_APPROVAL,
+                risk_level=risk,
+                repo=repo,
+                summary=summary,
+                details=(
+                    f"PR #{pr_num} ('{pr_title}') in {repo} by {pr_author} was merged "
+                    f"with approvals only from: {', '.join(bot_names)}. "
+                    f"No human reviewer approved this change before merge."
+                ),
+                pr_number=pr_num,
+                date=audit.get("merged_at"),
+                evidence={
+                    "pr_author": pr_author,
+                    "pr_title": pr_title,
+                    "bot_approvers": bot_names,
+                    "is_bot_pr": is_bot_pr,
+                    "is_dep_only": is_dep_only,
+                    "commit_count": audit.get("commit_count", 0),
+                },
+            )
+        )
 
     return findings
 
@@ -833,49 +874,53 @@ def detect_self_approval(pr_audits: list[dict]) -> list[Finding]:
 
         # Self-approval: author is the only human approver
         if human_approvers == [pr_author]:
-            findings.append(Finding(
-                category=FindingCategory.SELF_APPROVED,
-                risk_level=RiskLevel.CRITICAL,
-                repo=repo,
-                summary=f"PR #{pr_num}: self-approved by author {pr_author} (no independent review)",
-                details=(
-                    f"PR #{pr_num} ('{audit.get('pr_title', '')}') in {repo} was authored "
-                    f"and approved by the same person ({pr_author}). No independent human "
-                    f"reviewed this change before merge."
-                ),
-                pr_number=pr_num,
-                date=audit.get("merged_at"),
-                evidence={
-                    "pr_author": pr_author,
-                    "approvers": approver_logins,
-                    "human_approvers": human_approvers,
-                },
-            ))
+            findings.append(
+                Finding(
+                    category=FindingCategory.SELF_APPROVED,
+                    risk_level=RiskLevel.CRITICAL,
+                    repo=repo,
+                    summary=f"PR #{pr_num}: self-approved by author {pr_author} (no independent review)",
+                    details=(
+                        f"PR #{pr_num} ('{audit.get('pr_title', '')}') in {repo} was authored "
+                        f"and approved by the same person ({pr_author}). No independent human "
+                        f"reviewed this change before merge."
+                    ),
+                    pr_number=pr_num,
+                    date=audit.get("merged_at"),
+                    evidence={
+                        "pr_author": pr_author,
+                        "approvers": approver_logins,
+                        "human_approvers": human_approvers,
+                    },
+                )
+            )
         elif pr_author in human_approvers and len(human_approvers) > 1:
             # Author approved alongside others — informational only
             others = [a for a in human_approvers if a != pr_author]
-            findings.append(Finding(
-                category=FindingCategory.SELF_APPROVED,
-                risk_level=RiskLevel.LOW,
-                repo=repo,
-                summary=(
-                    f"PR #{pr_num}: author {pr_author} self-approved "
-                    f"(also reviewed by {', '.join(others)})"
-                ),
-                details=(
-                    f"PR #{pr_num} in {repo} was approved by its author {pr_author} "
-                    f"in addition to independent reviewer(s): {', '.join(others)}. "
-                    f"The independent review satisfies policy, but self-approval is unusual."
-                ),
-                pr_number=pr_num,
-                date=audit.get("merged_at"),
-                evidence={
-                    "pr_author": pr_author,
-                    "approvers": approver_logins,
-                    "human_approvers": human_approvers,
-                    "independent_reviewers": others,
-                },
-            ))
+            findings.append(
+                Finding(
+                    category=FindingCategory.SELF_APPROVED,
+                    risk_level=RiskLevel.LOW,
+                    repo=repo,
+                    summary=(
+                        f"PR #{pr_num}: author {pr_author} self-approved "
+                        f"(also reviewed by {', '.join(others)})"
+                    ),
+                    details=(
+                        f"PR #{pr_num} in {repo} was approved by its author {pr_author} "
+                        f"in addition to independent reviewer(s): {', '.join(others)}. "
+                        f"The independent review satisfies policy, but self-approval is unusual."
+                    ),
+                    pr_number=pr_num,
+                    date=audit.get("merged_at"),
+                    evidence={
+                        "pr_author": pr_author,
+                        "approvers": approver_logins,
+                        "human_approvers": human_approvers,
+                        "independent_reviewers": others,
+                    },
+                )
+            )
 
     return findings
 
@@ -933,7 +978,9 @@ def _run_detection_passes(
     """Execute all detection passes and return combined findings."""
     print("\nRunning detection passes...")
 
-    pass_specs: list[tuple[str, str, Callable[[], list[Finding]], Callable[[list[Finding]], str]]] = [
+    pass_specs: list[
+        tuple[str, str, Callable[[], list[Finding]], Callable[[list[Finding]], str]]
+    ] = [
         (
             "[1/12]",
             "Unsigned commits",
@@ -944,7 +991,9 @@ def _run_detection_passes(
             "[2/12]",
             "GitHub-web-signed commits (excluding PR merges)",
             lambda: detect_github_web_signed(commits, prs),
-            lambda findings: f"Found {len(findings)} GitHub-web-signed commits (non-merge)",
+            lambda findings: (
+                f"Found {len(findings)} GitHub-web-signed commits (non-merge)"
+            ),
         ),
         (
             "[3/12]",
@@ -1021,7 +1070,9 @@ def _run_detection_passes(
 
     all_findings: list[Finding] = []
     for step, description, detector, result_message in pass_specs:
-        all_findings.extend(_run_detection_pass(step, description, detector, result_message))
+        all_findings.extend(
+            _run_detection_pass(step, description, detector, result_message)
+        )
 
     return all_findings
 
@@ -1050,7 +1101,9 @@ def run_analysis(cache_dir: Path) -> list[Finding]:
     renovate_configs = get_all_cached_renovate(cache_dir)
     vulns = get_all_cached_vulns(cache_dir)
 
-    _print_cache_stats(commits, prs, checks, deps, protection, pr_audits, renovate_configs, vulns)
+    _print_cache_stats(
+        commits, prs, checks, deps, protection, pr_audits, renovate_configs, vulns
+    )
 
     all_findings = _run_detection_passes(
         commits, prs, checks, deps, protection, pr_audits, renovate_configs, vulns
@@ -1078,29 +1131,48 @@ def _build_findings_summary(findings: list[dict], manifest: dict) -> dict:
     for cat, cat_findings in sorted(by_category.items(), key=lambda x: -len(x[1])):
         risk_counts = Counter(f["risk_level"] for f in cat_findings)
         repos_affected = sorted({f["repo"] for f in cat_findings})
-        category_breakdown.append({
-            "category": cat,
-            "total": len(cat_findings),
-            "risk_counts": dict(risk_counts),
-            "repos_affected": repos_affected,
-            "top_findings": [
-                {"repo": f["repo"], "risk_level": f["risk_level"], "summary": f["summary"]}
-                for f in sorted(cat_findings, key=lambda x: ["critical", "high", "medium", "low", "info"].index(x.get("risk_level", "info")))[:5]
-            ],
-        })
+        category_breakdown.append(
+            {
+                "category": cat,
+                "total": len(cat_findings),
+                "risk_counts": dict(risk_counts),
+                "repos_affected": repos_affected,
+                "top_findings": [
+                    {
+                        "repo": f["repo"],
+                        "risk_level": f["risk_level"],
+                        "summary": f["summary"],
+                    }
+                    for f in sorted(
+                        cat_findings,
+                        key=lambda x: [
+                            "critical",
+                            "high",
+                            "medium",
+                            "low",
+                            "info",
+                        ].index(x.get("risk_level", "info")),
+                    )[:5]
+                ],
+            }
+        )
 
     repo_breakdown = []
     for repo in sorted(by_repo.keys()):
         counts = by_repo[repo]
-        repo_breakdown.append({
-            "repo": repo,
-            "total": sum(counts.values()),
-            "critical": counts.get("critical", 0),
-            "high": counts.get("high", 0),
-            "medium": counts.get("medium", 0),
-            "low": counts.get("low", 0),
-        })
-    repo_breakdown.sort(key=lambda x: (x["critical"], x["high"], x["total"]), reverse=True)
+        repo_breakdown.append(
+            {
+                "repo": repo,
+                "total": sum(counts.values()),
+                "critical": counts.get("critical", 0),
+                "high": counts.get("high", 0),
+                "medium": counts.get("medium", 0),
+                "low": counts.get("low", 0),
+            }
+        )
+    repo_breakdown.sort(
+        key=lambda x: (x["critical"], x["high"], x["total"]), reverse=True
+    )
 
     return {
         "audit_window": f"{manifest['start_date']} to {manifest['end_date']}",
@@ -1115,7 +1187,9 @@ def _build_findings_summary(findings: list[dict], manifest: dict) -> dict:
 def main() -> None:
     """Entry point for anomaly analysis."""
     parser = argparse.ArgumentParser(description="Supply chain anomaly analyzer")
-    parser.add_argument("--cache-dir", required=True, help="Cache directory from collect.py")
+    parser.add_argument(
+        "--cache-dir", required=True, help="Cache directory from collect.py"
+    )
     args = parser.parse_args()
 
     cache_path = Path(args.cache_dir)
@@ -1136,7 +1210,9 @@ def main() -> None:
         sys.exit(1)
 
     manifest = read_manifest(cache_dir)
-    print(f"Analyzing audit data for: {manifest['start_date']} to {manifest['end_date']}")
+    print(
+        f"Analyzing audit data for: {manifest['start_date']} to {manifest['end_date']}"
+    )
     print(f"Repos: {', '.join(manifest.get('repos', []))}")
 
     findings = run_analysis(cache_dir)

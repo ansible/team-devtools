@@ -87,13 +87,16 @@ RISK_PRIORITY = ["critical", "high", "medium", "low", "info"]
 
 def _linkify_advisory_ids(text: str) -> str:
     """Turn advisory IDs (GHSA-*, PYSEC-*, CVE-*) into clickable links."""
+
     def _make_link(m: _re.Match) -> str:
         vuln_id = m.group(1)
         if vuln_id.startswith("GHSA-"):
             url = f"https://github.com/advisories/{vuln_id}"
         else:
             url = f"https://osv.dev/vulnerability/{vuln_id}"
-        return f'<a href="{url}" target="_blank" rel="noopener noreferrer">{vuln_id}</a>'
+        return (
+            f'<a href="{url}" target="_blank" rel="noopener noreferrer">{vuln_id}</a>'
+        )
 
     return _ADVISORY_PATTERN.sub(_make_link, text)
 
@@ -103,9 +106,9 @@ def generate_verdict(findings: list[dict], total_commits: int, total_prs: int) -
     if not findings:
         return (
             '<div class="verdict verdict-clean">'
-            f'No supply chain anomalies detected. All {total_commits} commits across '
-            f'{total_prs} pull requests passed verification checks.'
-            '</div>'
+            f"No supply chain anomalies detected. All {total_commits} commits across "
+            f"{total_prs} pull requests passed verification checks."
+            "</div>"
         )
 
     critical = sum(1 for f in findings if f.get("risk_level") == "critical")
@@ -114,16 +117,16 @@ def generate_verdict(findings: list[dict], total_commits: int, total_prs: int) -
     if critical or high:
         return (
             '<div class="verdict verdict-issues">'
-            f'{critical + high} high/critical findings require investigation. '
-            f'{len(findings)} total anomalies detected across {total_commits} commits.'
-            '</div>'
+            f"{critical + high} high/critical findings require investigation. "
+            f"{len(findings)} total anomalies detected across {total_commits} commits."
+            "</div>"
         )
 
     return (
         '<div class="verdict verdict-clean">'
-        f'{len(findings)} low-severity observations noted. No critical supply chain '
-        f'threats detected across {total_commits} commits and {total_prs} pull requests.'
-        '</div>'
+        f"{len(findings)} low-severity observations noted. No critical supply chain "
+        f"threats detected across {total_commits} commits and {total_prs} pull requests."
+        "</div>"
     )
 
 
@@ -136,7 +139,10 @@ def _count_signature_stats(repo_commits: list[dict]) -> tuple[int, int, int]:
         v = c.get("verification", {})
         if v.get("verified"):
             committer = c.get("committer_login", "")
-            if committer == "web-flow" or "github" in c.get("committer_email", "").lower():
+            if (
+                committer == "web-flow"
+                or "github" in c.get("committer_email", "").lower()
+            ):
                 signed_github += 1
             else:
                 signed_personal += 1
@@ -166,21 +172,23 @@ def _build_repo_summary_row(
     num_findings: int,
 ) -> str:
     """Build a single per-repo summary table row."""
-    findings_str = str(num_findings) if num_findings == 0 else (
-        f'<span class="badge badge-high">{num_findings}</span>'
+    findings_str = (
+        str(num_findings)
+        if num_findings == 0
+        else (f'<span class="badge badge-high">{num_findings}</span>')
     )
     return (
-        f'<tr>'
+        f"<tr>"
         f'<td><a href="https://github.com/ansible/{repo}" target="_blank" rel="noopener noreferrer">{esc(repo)}</a></td>'
-        f'<td>{num_commits}</td>'
-        f'<td>{num_prs}</td>'
-        f'<td>{signed_github}</td>'
-        f'<td>{signed_personal}</td>'
-        f'<td>{unsigned}</td>'
-        f'<td>{num_deps}</td>'
-        f'<td>{checks_str}</td>'
-        f'<td>{findings_str}</td>'
-        f'</tr>'
+        f"<td>{num_commits}</td>"
+        f"<td>{num_prs}</td>"
+        f"<td>{signed_github}</td>"
+        f"<td>{signed_personal}</td>"
+        f"<td>{unsigned}</td>"
+        f"<td>{num_deps}</td>"
+        f"<td>{checks_str}</td>"
+        f"<td>{findings_str}</td>"
+        f"</tr>"
     )
 
 
@@ -245,8 +253,8 @@ def generate_findings_summary(findings: list[dict]) -> str:
     if not findings:
         return (
             '<div class="verdict verdict-clean" style="margin: 1rem 0;">'
-            'All checks passed. No anomalies detected in any category.'
-            '</div>'
+            "All checks passed. No anomalies detected in any category."
+            "</div>"
         )
 
     risk_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
@@ -262,7 +270,7 @@ def generate_findings_summary(findings: list[dict]) -> str:
                 f'<div class="summary-card risk-{risk}">'
                 f'<span class="number">{count}</span>'
                 f'<span class="label">{risk.title()}</span>'
-                f'</div>'
+                f"</div>"
             )
 
     return f'<div class="summary-grid">{"".join(cards)}</div>'
@@ -296,7 +304,7 @@ def generate_repo_cards(findings: list[dict], repos: list[str]) -> str:
             f'<div class="light {light_class}"></div>'
             f'<span class="repo-name">{esc(repo)}</span>'
             f'<span class="repo-count">{count_str}</span>'
-            f'</div>'
+            f"</div>"
         )
     return "\n".join(cards)
 
@@ -327,7 +335,7 @@ def _append_timeline_repo_labels(
         svg_parts.append(
             f'<text x="{margin_left - 5}" y="{y + 4}" '
             f'font-size="9" fill="#8b949e" text-anchor="end" font-family="sans-serif">'
-            f'{esc(short_name)}</text>'
+            f"{esc(short_name)}</text>"
         )
         svg_parts.append(
             f'<line x1="{margin_left}" y1="{y}" x2="{width - margin_right}" y2="{y}" '
@@ -359,7 +367,7 @@ def _append_timeline_ticks(
         svg_parts.append(
             f'<text x="{x}" y="{height - margin_bottom + 15}" '
             f'font-size="9" fill="#8b949e" text-anchor="middle" font-family="sans-serif">'
-            f'{label}</text>'
+            f"{label}</text>"
         )
 
 
@@ -401,12 +409,14 @@ def _append_timeline_commits(
 
         svg_parts.append(
             f'<circle cx="{x}" cy="{y}" r="{radius}" fill="{color}" opacity="0.8">'
-            f'<title>{esc(repo)} {esc(sha[:8])} {esc(date_str)}</title>'
-            f'</circle>'
+            f"<title>{esc(repo)} {esc(sha[:8])} {esc(date_str)}</title>"
+            f"</circle>"
         )
 
 
-def generate_timeline_svg(commits: list[dict], findings: list[dict], start_date: str, end_date: str) -> str:
+def generate_timeline_svg(
+    commits: list[dict], findings: list[dict], start_date: str, end_date: str
+) -> str:
     """Generate an SVG timeline visualization."""
     width = 900
     height = 200
@@ -427,8 +437,10 @@ def generate_timeline_svg(commits: list[dict], findings: list[dict], start_date:
     if not repos:
         return '<p class="no-data">No commits to visualize</p>'
 
-    repo_y = {repo: margin_top + (i * plot_height // max(len(repos) - 1, 1))
-              for i, repo in enumerate(repos)}
+    repo_y = {
+        repo: margin_top + (i * plot_height // max(len(repos) - 1, 1))
+        for i, repo in enumerate(repos)
+    }
 
     svg_parts = [
         f'<svg class="timeline-svg" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">',
@@ -437,10 +449,24 @@ def generate_timeline_svg(commits: list[dict], findings: list[dict], start_date:
 
     _append_timeline_repo_labels(svg_parts, repo_y, margin_left, width, margin_right)
     _append_timeline_ticks(
-        svg_parts, start_dt, total_days, margin_left, plot_width, margin_top, height, margin_bottom,
+        svg_parts,
+        start_dt,
+        total_days,
+        margin_left,
+        plot_width,
+        margin_top,
+        height,
+        margin_bottom,
     )
     _append_timeline_commits(
-        svg_parts, commits, repo_y, finding_shas, start_dt, total_days, margin_left, plot_width,
+        svg_parts,
+        commits,
+        repo_y,
+        finding_shas,
+        start_dt,
+        total_days,
+        margin_left,
+        plot_width,
     )
 
     svg_parts.append("</svg>")
@@ -480,29 +506,35 @@ def generate_commit_integrity_section(commits: list[dict], findings: list[dict])
         signer = commit.get("committer_login", "")
         prs = commit.get("associated_prs", [])
         repo_name = commit.get("repo", "")
-        pr_str = ", ".join(
-            f'<a href="https://github.com/ansible/{repo_name}/pull/{p}" '
-            f'target="_blank" rel="noopener noreferrer">#{p}</a>'
-            for p in prs
-        ) if prs else EM_DASH
+        pr_str = (
+            ", ".join(
+                f'<a href="https://github.com/ansible/{repo_name}/pull/{p}" '
+                f'target="_blank" rel="noopener noreferrer">#{p}</a>'
+                for p in prs
+            )
+            if prs
+            else EM_DASH
+        )
 
         flags = []
         for f in cf:
             cat = f.get("category", "")
             label = CATEGORY_LABELS.get(cat, cat).split("(")[0].strip()
-            flags.append(f'<span class="badge badge-{f.get("risk_level", "info")}">{esc(label)}</span>')
+            flags.append(
+                f'<span class="badge badge-{f.get("risk_level", "info")}">{esc(label)}</span>'
+            )
 
         row = (
             f'<tr data-risk="{risk}">'
-            f'<td>{esc(commit["repo"])}</td>'
-            f'<td><code>{esc(sha[:8])}</code></td>'
-            f'<td>{esc(commit.get("author_login", ""))}</td>'
-            f'<td>{esc(commit.get("date", "")[:10])}</td>'
+            f"<td>{esc(commit['repo'])}</td>"
+            f"<td><code>{esc(sha[:8])}</code></td>"
+            f"<td>{esc(commit.get('author_login', ''))}</td>"
+            f"<td>{esc(commit.get('date', '')[:10])}</td>"
             f'<td><span class="badge badge-{signed_class}">{signed_icon}</span></td>'
-            f'<td>{esc(signer)}</td>'
-            f'<td>{pr_str}</td>'
-            f'<td>{" ".join(flags)}</td>'
-            f'</tr>'
+            f"<td>{esc(signer)}</td>"
+            f"<td>{pr_str}</td>"
+            f"<td>{' '.join(flags)}</td>"
+            f"</tr>"
         )
         rows.append(row)
 
@@ -510,15 +542,15 @@ def generate_commit_integrity_section(commits: list[dict], findings: list[dict])
         return ""
 
     return (
-        '<h2>Flagged Commits</h2>'
-        '<p>Commits with one or more anomaly detections. Click column headers to sort.</p>'
+        "<h2>Flagged Commits</h2>"
+        "<p>Commits with one or more anomaly detections. Click column headers to sort.</p>"
         '<div class="controls">'
         '<input type="text" id="commitFilter" placeholder="Filter by repo, author, SHA..." '
-        'onkeyup="filterTable(\'commitTable\', this.value)">'
-        '</div>'
+        "onkeyup=\"filterTable('commitTable', this.value)\">"
+        "</div>"
         '<div style="overflow-x: auto;">'
         '<table id="commitTable">'
-        '<thead><tr>'
+        "<thead><tr>"
         '<th onclick="sortTable(\'commitTable\', 0)">Repo <span class="sort-arrow">\u25be</span></th>'
         '<th onclick="sortTable(\'commitTable\', 1)">SHA <span class="sort-arrow">\u25be</span></th>'
         '<th onclick="sortTable(\'commitTable\', 2)">Author <span class="sort-arrow">\u25be</span></th>'
@@ -527,16 +559,18 @@ def generate_commit_integrity_section(commits: list[dict], findings: list[dict])
         '<th onclick="sortTable(\'commitTable\', 5)">Signer <span class="sort-arrow">\u25be</span></th>'
         '<th onclick="sortTable(\'commitTable\', 6)">PR# <span class="sort-arrow">\u25be</span></th>'
         '<th onclick="sortTable(\'commitTable\', 7)">Flags <span class="sort-arrow">\u25be</span></th>'
-        '</tr></thead>'
-        f'<tbody>{"".join(rows)}</tbody>'
-        '</table></div>'
+        "</tr></thead>"
+        f"<tbody>{''.join(rows)}</tbody>"
+        "</table></div>"
     )
 
 
 def generate_dep_section(deps: list[dict], prs: list[dict]) -> str:
     """Generate the dependency changes section."""
     if not deps:
-        return '<p class="no-data">No dependency changes detected in the audit window.</p>'
+        return (
+            '<p class="no-data">No dependency changes detected in the audit window.</p>'
+        )
 
     # Build a map of merge_commit_sha -> PR number for linking
     sha_to_pr: dict[str, tuple[str, int]] = {}
@@ -575,26 +609,26 @@ def generate_dep_section(deps: list[dict], prs: list[dict]) -> str:
         flags_cell = " ".join(flags) if flags else EM_DASH
 
         row = (
-            f'<tr>'
-            f'<td>{esc(dep.get("repo", ""))}</td>'
-            f'<td><code>{esc(dep.get("package_name", ""))}</code></td>'
-            f'<td>{esc(dep.get("change_type", ""))}</td>'
-            f'<td>{old_version}</td>'
-            f'<td>{new_version}</td>'
-            f'<td>{release_date}</td>'
-            f'<td>{commit_date}</td>'
-            f'<td>{days_str}</td>'
-            f'<td>{pr_cell}</td>'
-            f'<td>{flags_cell}</td>'
-            f'</tr>'
+            f"<tr>"
+            f"<td>{esc(dep.get('repo', ''))}</td>"
+            f"<td><code>{esc(dep.get('package_name', ''))}</code></td>"
+            f"<td>{esc(dep.get('change_type', ''))}</td>"
+            f"<td>{old_version}</td>"
+            f"<td>{new_version}</td>"
+            f"<td>{release_date}</td>"
+            f"<td>{commit_date}</td>"
+            f"<td>{days_str}</td>"
+            f"<td>{pr_cell}</td>"
+            f"<td>{flags_cell}</td>"
+            f"</tr>"
         )
         rows.append(row)
 
     return (
         '<div class="controls">'
         '<input type="text" id="depFilter" placeholder="Filter by package, repo..." '
-        'onkeyup="filterTable(\'depTable\', this.value)">'
-        '</div>'
+        "onkeyup=\"filterTable('depTable', this.value)\">"
+        "</div>"
         '<div style="overflow-x: auto;">'
         '<table id="depTable"><thead><tr>'
         '<th onclick="sortTable(\'depTable\', 0)">Repo <span class="sort-arrow">\u25be</span></th>'
@@ -607,13 +641,15 @@ def generate_dep_section(deps: list[dict], prs: list[dict]) -> str:
         '<th onclick="sortTable(\'depTable\', 7)">Days <span class="sort-arrow">\u25be</span></th>'
         '<th onclick="sortTable(\'depTable\', 8)">PR <span class="sort-arrow">\u25be</span></th>'
         '<th onclick="sortTable(\'depTable\', 9)">Flags <span class="sort-arrow">\u25be</span></th>'
-        '</tr></thead>'
-        f'<tbody>{"".join(rows)}</tbody>'
-        '</table></div>'
+        "</tr></thead>"
+        f"<tbody>{''.join(rows)}</tbody>"
+        "</table></div>"
     )
 
 
-def generate_renovate_config_table(renovate_configs: dict[str, dict], repos: list[str]) -> str:
+def generate_renovate_config_table(
+    renovate_configs: dict[str, dict], repos: list[str]
+) -> str:
     """Generate a table showing each repo's configured renovate cooldown."""
     rows = []
     for repo in sorted(repos):
@@ -641,18 +677,18 @@ def generate_renovate_config_table(renovate_configs: dict[str, dict], repos: lis
         )
 
     return (
-        '<h2>Renovate Cooldown Policy</h2>'
-        '<p>Configured <code>minimumReleaseAge</code> per repository. '
-        'Dependencies adopted before the cooldown expires are flagged as critical violations.</p>'
+        "<h2>Renovate Cooldown Policy</h2>"
+        "<p>Configured <code>minimumReleaseAge</code> per repository. "
+        "Dependencies adopted before the cooldown expires are flagged as critical violations.</p>"
         '<div style="overflow-x: auto;">'
-        '<table><thead><tr>'
-        '<th>Repository</th>'
-        '<th>Default Cooldown</th>'
-        '<th>Major Update Cooldown</th>'
-        '<th>Config Source</th>'
-        '</tr></thead>'
-        f'<tbody>{"".join(rows)}</tbody>'
-        '</table></div>'
+        "<table><thead><tr>"
+        "<th>Repository</th>"
+        "<th>Default Cooldown</th>"
+        "<th>Major Update Cooldown</th>"
+        "<th>Config Source</th>"
+        "</tr></thead>"
+        f"<tbody>{''.join(rows)}</tbody>"
+        "</table></div>"
     )
 
 
@@ -673,7 +709,9 @@ def generate_findings_details(findings: list[dict]) -> str:
         count = len(cat_findings)
 
         # Sort findings within category: highest risk first
-        cat_findings.sort(key=lambda f: risk_priority.index(f.get("risk_level", "info")))
+        cat_findings.sort(
+            key=lambda f: risk_priority.index(f.get("risk_level", "info"))
+        )
 
         max_risk = cat_findings[0].get("risk_level", "info") if cat_findings else "info"
 
@@ -692,10 +730,10 @@ def generate_findings_details(findings: list[dict]) -> str:
             items_html.append(
                 f'<div style="padding: 0.5rem 0; border-bottom: 1px solid var(--border);">'
                 f'<span class="badge badge-{f.get("risk_level", "info")}">{f.get("risk_level", "")}</span> '
-                f'<strong>{esc(repo)}</strong>{pr_link} \u2014 {summary_html}'
+                f"<strong>{esc(repo)}</strong>{pr_link} \u2014 {summary_html}"
                 f'<div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.3rem;">'
-                f'{details_html}</div>'
-                f'</div>'
+                f"{details_html}</div>"
+                f"</div>"
             )
         if count > MAX_FINDINGS_PER_CATEGORY:
             items_html.append(
@@ -707,19 +745,18 @@ def generate_findings_details(findings: list[dict]) -> str:
             f'<div class="collapsible-header">'
             f'<span class="arrow">\u25b6</span>'
             f'<span class="badge badge-{max_risk}">{count}</span>'
-            f'{esc(label)}'
-            f'</div>'
+            f"{esc(label)}"
+            f"</div>"
             f'<div class="collapsible-body">'
-            f'{"".join(items_html)}'
-            f'</div>'
-            f'</div>'
+            f"{''.join(items_html)}"
+            f"</div>"
+            f"</div>"
         )
         sections.append(section)
 
     return (
         "<h2>Anomaly Details</h2>"
-        "<p>Expand each category to see individual findings.</p>"
-        + "\n".join(sections)
+        "<p>Expand each category to see individual findings.</p>" + "\n".join(sections)
     )
 
 
@@ -738,10 +775,10 @@ def render_recommendations_html(recommendations: list[dict[str, str]]) -> str:
         detail = _SAFE_HTML_TAGS.sub("", rec.get("detail", ""))
         items.append(
             f'<div style="padding: 0.75rem 0; border-bottom: 1px solid var(--border);">'
-            f'<strong>{i}. {title}</strong>'
+            f"<strong>{i}. {title}</strong>"
             f'<div style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.3rem;">'
-            f'{detail}</div>'
-            f'</div>'
+            f"{detail}</div>"
+            f"</div>"
         )
 
     return (
@@ -766,34 +803,36 @@ def generate_package_focus_section(package_data: dict | None) -> str:
     for entry in affected:
         risk = entry.get("risk_assessment", "low")
         rows.append(
-            f'<tr>'
-            f'<td>{esc(entry.get("repo", ""))}</td>'
-            f'<td><code>{esc(entry.get("version", ""))}</code></td>'
-            f'<td>{esc(entry.get("change_type", ""))}</td>'
-            f'<td>{esc(entry.get("commit_date", ""))}</td>'
-            f'<td>{esc(entry.get("version_release_date", ""))}</td>'
-            f'<td>{"Yes" if entry.get("is_pinned") else "No (range)"}</td>'
+            f"<tr>"
+            f"<td>{esc(entry.get('repo', ''))}</td>"
+            f"<td><code>{esc(entry.get('version', ''))}</code></td>"
+            f"<td>{esc(entry.get('change_type', ''))}</td>"
+            f"<td>{esc(entry.get('commit_date', ''))}</td>"
+            f"<td>{esc(entry.get('version_release_date', ''))}</td>"
+            f"<td>{'Yes' if entry.get('is_pinned') else 'No (range)'}</td>"
             f'<td><span class="badge badge-{risk}">{risk}</span></td>'
-            f'</tr>'
+            f"</tr>"
         )
 
     table_html = ""
     if rows:
         table_html = (
-            '<table><thead><tr>'
-            '<th>Repo</th><th>Version</th><th>Change</th>'
-            '<th>Adopted</th><th>Released</th><th>Pinned?</th><th>Risk</th>'
-            '</tr></thead>'
-            f'<tbody>{"".join(rows)}</tbody>'
-            '</table>'
+            "<table><thead><tr>"
+            "<th>Repo</th><th>Version</th><th>Change</th>"
+            "<th>Adopted</th><th>Released</th><th>Pinned?</th><th>Risk</th>"
+            "</tr></thead>"
+            f"<tbody>{''.join(rows)}</tbody>"
+            "</table>"
         )
     else:
-        table_html = '<div class="no-data">No affected entries found in the audit window</div>'
+        table_html = (
+            '<div class="no-data">No affected entries found in the audit window</div>'
+        )
 
     return (
-        f'<h2>Package Focus: {esc(pkg)}</h2>'
+        f"<h2>Package Focus: {esc(pkg)}</h2>"
         f'<div class="package-focus">'
-        f'<h3>Impact Analysis: {esc(pkg)} (compromise date: {esc(date)})</h3>'
+        f"<h3>Impact Analysis: {esc(pkg)} (compromise date: {esc(date)})</h3>"
         f'<div class="summary-grid">'
         f'<div class="summary-card"><span class="number">{total_using}</span>'
         f'<span class="label">Repos Using Package</span></div>'
@@ -801,9 +840,9 @@ def generate_package_focus_section(package_data: dict | None) -> str:
         f'<span class="label">Potentially Exposed</span></div>'
         f'<div class="summary-card"><span class="number">{len(affected)}</span>'
         f'<span class="label">Affected Entries</span></div>'
-        f'</div>'
-        f'{table_html}'
-        f'</div>'
+        f"</div>"
+        f"{table_html}"
+        f"</div>"
     )
 
 
@@ -877,11 +916,15 @@ def _generate_report_sections(data: dict) -> dict[str, str]:
 
     return {
         "verdict_section": generate_verdict(findings, len(commits), total_prs),
-        "repo_summary_rows": generate_repo_summary_rows(commits, prs, deps, findings, protection, repos),
+        "repo_summary_rows": generate_repo_summary_rows(
+            commits, prs, deps, findings, protection, repos
+        ),
         "findings_summary_section": generate_findings_summary(findings),
         "repo_cards": generate_repo_cards(findings, repos),
         "timeline_svg": generate_timeline_svg(commits, findings, start_date, end_date),
-        "commit_integrity_section": generate_commit_integrity_section(commits, findings),
+        "commit_integrity_section": generate_commit_integrity_section(
+            commits, findings
+        ),
         "dep_section": generate_dep_section(deps, prs),
         "renovate_section": generate_renovate_config_table(renovate_configs, repos),
         "findings_details_section": generate_findings_details(findings),
@@ -889,7 +932,9 @@ def _generate_report_sections(data: dict) -> dict[str, str]:
     }
 
 
-def _build_replacements(data: dict, sections: dict[str, str], recommendations_section: str) -> dict[str, str]:
+def _build_replacements(
+    data: dict, sections: dict[str, str], recommendations_section: str
+) -> dict[str, str]:
     """Build template placeholder replacements for the report."""
     manifest = data["manifest"]
     commits = data["commits"]
@@ -965,10 +1010,17 @@ def generate_report(cache_dir: Path, output_path: Path) -> None:
 
 def main() -> None:
     """Entry point for report generation."""
-    parser = argparse.ArgumentParser(description="Supply chain audit HTML report generator")
-    parser.add_argument("--cache-dir", required=True, help="Cache directory with audit data")
-    parser.add_argument("--output", default=".supply-chain-audit/report.html",
-                        help="Output HTML file path")
+    parser = argparse.ArgumentParser(
+        description="Supply chain audit HTML report generator"
+    )
+    parser.add_argument(
+        "--cache-dir", required=True, help="Cache directory with audit data"
+    )
+    parser.add_argument(
+        "--output",
+        default=".supply-chain-audit/report.html",
+        help="Output HTML file path",
+    )
     args = parser.parse_args()
 
     cache_path = Path(args.cache_dir)
@@ -980,7 +1032,9 @@ def main() -> None:
                 cache_dir = subdir
                 break
         else:
-            print("ERROR: No manifest.json found. Run collect.py first.", file=sys.stderr)
+            print(
+                "ERROR: No manifest.json found. Run collect.py first.", file=sys.stderr
+            )
             sys.exit(1)
 
     generate_report(cache_dir, Path(args.output))

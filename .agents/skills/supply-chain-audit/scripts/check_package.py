@@ -121,8 +121,7 @@ def analyze_package_impact(
                 safe_repos.append(entry)
 
     potentially_exposed = [
-        r for r in affected_repos
-        if r["risk_assessment"] in ("critical", "high")
+        r for r in affected_repos if r["risk_assessment"] in ("critical", "high")
     ]
 
     return {
@@ -172,12 +171,14 @@ def _build_timeline(
     """Build a chronological timeline of events."""
     events: list[dict] = []
 
-    events.append({
-        "date": compromise_date,
-        "event": "compromise",
-        "description": "Suspected compromise date",
-        "repo": None,
-    })
+    events.append(
+        {
+            "date": compromise_date,
+            "event": "compromise",
+            "description": "Suspected compromise date",
+            "repo": None,
+        }
+    )
 
     events.extend(
         {
@@ -199,12 +200,24 @@ def _build_timeline(
 
 def main() -> None:
     """Entry point for package focus analysis."""
-    parser = argparse.ArgumentParser(description="Package/CVE focused supply chain analysis")
-    parser.add_argument("--cache-dir", required=True, help="Cache directory from collect.py")
+    parser = argparse.ArgumentParser(
+        description="Package/CVE focused supply chain analysis"
+    )
+    parser.add_argument(
+        "--cache-dir", required=True, help="Cache directory from collect.py"
+    )
     parser.add_argument("--package", required=True, help="Package name to investigate")
-    parser.add_argument("--compromise-date", required=True, help="Suspected compromise date (YYYY-MM-DD)")
-    parser.add_argument("--ecosystem", default="pypi", choices=["pypi", "npm"],
-                        help="Package ecosystem (default: pypi)")
+    parser.add_argument(
+        "--compromise-date",
+        required=True,
+        help="Suspected compromise date (YYYY-MM-DD)",
+    )
+    parser.add_argument(
+        "--ecosystem",
+        default="pypi",
+        choices=["pypi", "npm"],
+        help="Package ecosystem (default: pypi)",
+    )
     args = parser.parse_args()
 
     try:
@@ -222,7 +235,9 @@ def main() -> None:
                 cache_dir = subdir
                 break
         else:
-            print("ERROR: No manifest.json found. Run collect.py first.", file=sys.stderr)
+            print(
+                "ERROR: No manifest.json found. Run collect.py first.", file=sys.stderr
+            )
             sys.exit(1)
 
     manifest = read_manifest(cache_dir)
@@ -244,13 +259,15 @@ def main() -> None:
     print(f"  Total dep changes in cache: {len(deps)}")
 
     print("\nAnalyzing impact...")
-    results = analyze_package_impact(args.package, args.compromise_date, deps, release_dates)
+    results = analyze_package_impact(
+        args.package, args.compromise_date, deps, release_dates
+    )
 
     write_package_focus(cache_dir, results)
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("  Results Summary")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"  Repos using '{args.package}': {results['total_repos_using']}")
     print(f"  Potentially exposed: {results['potentially_exposed_count']}")
     print(f"  Affected entries: {len(results['affected_entries'])}")
@@ -260,8 +277,10 @@ def main() -> None:
         print("\n  Affected repos:")
         for entry in results["affected_entries"]:
             risk = entry["risk_assessment"].upper()
-            print(f"    [{risk}] {entry['repo']}: v{entry['version']} "
-                  f"({entry['change_type']} on {entry['commit_date']})")
+            print(
+                f"    [{risk}] {entry['repo']}: v{entry['version']} "
+                f"({entry['change_type']} on {entry['commit_date']})"
+            )
 
     print(f"\n  Results written to: {cache_dir / 'package_focus.json'}")
 

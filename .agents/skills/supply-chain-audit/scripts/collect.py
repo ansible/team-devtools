@@ -88,7 +88,11 @@ def gh_api(endpoint: str, *, paginate: bool = False) -> list | dict | None:
 
     try:
         result = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=GH_API_TIMEOUT_SECONDS, check=False
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=GH_API_TIMEOUT_SECONDS,
+            check=False,
         )
     except subprocess.TimeoutExpired:
         print(f"  TIMEOUT: {endpoint}", file=sys.stderr)
@@ -197,7 +201,9 @@ def collect_pr_commits_and_reviews(repo: str, prs: list[dict]) -> list[dict]:
         pr_num = pr["number"]
 
         # Get all commits on the PR branch
-        commits_endpoint = f"repos/{GITHUB_ORG}/{repo}/pulls/{pr_num}/commits?per_page=100"
+        commits_endpoint = (
+            f"repos/{GITHUB_ORG}/{repo}/pulls/{pr_num}/commits?per_page=100"
+        )
         pr_commits = gh_api(commits_endpoint)
         time.sleep(RATE_LIMIT_SLEEP)
 
@@ -227,24 +233,28 @@ def collect_pr_commits_and_reviews(repo: str, prs: list[dict]) -> list[dict]:
             commit_data = c.get("commit", {})
             author = c.get("author") or {}
             committer = c.get("committer") or {}
-            commit_entries.append({
-                "sha": c.get("sha", ""),
-                "author_login": author.get("login", "unknown"),
-                "committer_login": committer.get("login", "unknown"),
-                "date": commit_data.get("author", {}).get("date", ""),
-                "message": commit_data.get("message", "")[:MAX_COMMIT_MSG_LEN],
-            })
+            commit_entries.append(
+                {
+                    "sha": c.get("sha", ""),
+                    "author_login": author.get("login", "unknown"),
+                    "committer_login": committer.get("login", "unknown"),
+                    "date": commit_data.get("author", {}).get("date", ""),
+                    "message": commit_data.get("message", "")[:MAX_COMMIT_MSG_LEN],
+                }
+            )
 
-        pr_audit_data.append({
-            "repo": repo,
-            "pr_number": pr_num,
-            "pr_title": pr.get("title", ""),
-            "pr_author": pr.get("author_login", ""),
-            "merged_at": pr.get("merged_at", ""),
-            "commits": commit_entries,
-            "approvals": approvals,
-            "commit_count": len(commit_entries),
-        })
+        pr_audit_data.append(
+            {
+                "repo": repo,
+                "pr_number": pr_num,
+                "pr_title": pr.get("title", ""),
+                "pr_author": pr.get("author_login", ""),
+                "merged_at": pr.get("merged_at", ""),
+                "commits": commit_entries,
+                "approvals": approvals,
+                "commit_count": len(commit_entries),
+            }
+        )
 
     return pr_audit_data
 
@@ -333,7 +343,11 @@ def collect_renovate_config(repo: str) -> dict:
       - source: where the config comes from (local, shared preset, or none)
       - raw_config: the merged effective config values
     """
-    config: dict = {"source": "none", "default_cooldown_days": None, "major_cooldown_days": None}
+    config: dict = {
+        "source": "none",
+        "default_cooldown_days": None,
+        "major_cooldown_days": None,
+    }
 
     config_paths = [
         f"repos/{GITHUB_ORG}/{repo}/contents/renovate.json",
@@ -391,7 +405,9 @@ def _parse_release_age(age_str: str | int | None) -> int | None:
     return value
 
 
-def collect_dep_changes(repo: str, _start_date: str, end_date: str, commits: list[dict]) -> list[dict]:
+def collect_dep_changes(
+    repo: str, _start_date: str, end_date: str, commits: list[dict]
+) -> list[dict]:
     """Identify dependency file changes by examining commits that touch dep files."""
     if not commits:
         return []
@@ -417,9 +433,15 @@ def collect_dep_changes(repo: str, _start_date: str, end_date: str, commits: lis
 
         patch = file_info.get("patch", "")
         ecosystem = "npm" if basename in DEP_FILES_NODE else "pypi"
-        is_direct = basename not in {"poetry.lock", "uv.lock", "pdm.lock",
-                                      "Pipfile.lock", "package-lock.json",
-                                      "yarn.lock", "pnpm-lock.yaml"}
+        is_direct = basename not in {
+            "poetry.lock",
+            "uv.lock",
+            "pdm.lock",
+            "Pipfile.lock",
+            "package-lock.json",
+            "yarn.lock",
+            "pnpm-lock.yaml",
+        }
 
         # Use the latest commit date as the adoption date (when dep landed on main)
         latest_commit_date = commits[0].get("date", end_date)[:10]
@@ -437,7 +459,11 @@ def collect_dep_changes(repo: str, _start_date: str, end_date: str, commits: lis
     # Deduplicate: prefer direct dep files (package.json) over lock files
     seen: dict[tuple[str, str, str], dict] = {}
     for dep in dep_changes:
-        key = (dep["repo"], dep["package_name"], dep.get("new_version") or dep.get("old_version", ""))
+        key = (
+            dep["repo"],
+            dep["package_name"],
+            dep.get("new_version") or dep.get("old_version", ""),
+        )
         existing = seen.get(key)
         if existing:
             if dep.get("is_direct") and not existing.get("is_direct"):
@@ -509,7 +535,9 @@ def parse_dep_patch(
     return changes
 
 
-def _parse_npm_patch(patch: str, basename: str) -> tuple[dict[str, str], dict[str, str]]:
+def _parse_npm_patch(
+    patch: str, basename: str
+) -> tuple[dict[str, str], dict[str, str]]:
     """Parse npm ecosystem diff lines for package names and versions."""
     added_deps: dict[str, str] = {}
     removed_deps: dict[str, str] = {}
@@ -517,15 +545,11 @@ def _parse_npm_patch(patch: str, basename: str) -> tuple[dict[str, str], dict[st
     # package.json / package-lock.json dependency declarations:
     #   "@devcontainers/cli": "^0.87.0"
     #   "some-pkg": "~2.1.0"
-    dep_decl = re.compile(
-        r'"((?:@[\w.-]+/)?[\w][\w./-]*)"\s*:\s*"[~^]?(\d+[\d.]*\w*)"'
-    )
+    dep_decl = re.compile(r'"((?:@[\w.-]+/)?[\w][\w./-]*)"\s*:\s*"[~^]?(\d+[\d.]*\w*)"')
 
     # package-lock.json node_modules path (extracts name from path key):
     #   "node_modules/@devcontainers/cli": {
-    node_path = re.compile(
-        r'"node_modules/((?:@[\w.-]+/)?[\w][\w./-]*)"\s*:'
-    )
+    node_path = re.compile(r'"node_modules/((?:@[\w.-]+/)?[\w][\w./-]*)"\s*:')
 
     # package-lock.json "version" field (used to pair with preceding path key)
     version_field = re.compile(r'"version"\s*:\s*"(\d+[\d.]*\w*)"')
@@ -631,7 +655,7 @@ def _parse_python_patch(patch: str) -> tuple[dict[str, str], dict[str, str]]:
     # Matches: package>=1.0.0, package==1.0.0, package~=1.0, "package[extra]>=1.0"
     version_pattern = re.compile(
         r'["\']?([\w][\w.-]*(?:\[[^\]]*\])?)["\']?\s*'
-        r'(?:[><=!~^]+\s*)?(\d+\.\d+[\w.*]*)'
+        r"(?:[><=!~^]+\s*)?(\d+\.\d+[\w.*]*)"
     )
 
     for line in patch.split("\n"):
@@ -724,7 +748,9 @@ def collect_package_inventory(repo: str) -> list[dict]:
             try:
                 content = base64.b64decode(data["content"]).decode("utf-8")
                 pkgs = _parse_toml_lock_inventory(content, lock_file)
-                packages.extend({"name": p[0], "version": p[1], "ecosystem": "PyPI"} for p in pkgs)
+                packages.extend(
+                    {"name": p[0], "version": p[1], "ecosystem": "PyPI"} for p in pkgs
+                )
             except (ValueError, UnicodeDecodeError):
                 pass
             break
@@ -743,7 +769,9 @@ def collect_package_inventory(repo: str) -> list[dict]:
                     # Strip version prefixes (^, ~, >=)
                     ver = re.sub(r"^[~^>=<]*", "", ver_spec).strip()
                     if ver and re.match(r"\d", ver):
-                        packages.append({"name": name, "version": ver, "ecosystem": "npm"})
+                        packages.append(
+                            {"name": name, "version": ver, "ecosystem": "npm"}
+                        )
         except (json.JSONDecodeError, ValueError):
             pass
 
@@ -776,7 +804,7 @@ def scan_osv_batch(packages: list[dict]) -> list[dict]:
     results = []
 
     for i in range(0, len(packages), OSV_BATCH_SIZE):
-        batch = packages[i:i + OSV_BATCH_SIZE]
+        batch = packages[i : i + OSV_BATCH_SIZE]
         queries = [
             {
                 "version": pkg["version"],
@@ -789,7 +817,10 @@ def scan_osv_batch(packages: list[dict]) -> list[dict]:
         req = urllib.request.Request(
             "https://api.osv.dev/v1/querybatch",
             data=payload,
-            headers={"Content-Type": "application/json", "User-Agent": "supply-chain-audit/1.0"},
+            headers={
+                "Content-Type": "application/json",
+                "User-Agent": "supply-chain-audit/1.0",
+            },
             method="POST",
         )
 
@@ -803,21 +834,28 @@ def scan_osv_batch(packages: list[dict]) -> list[dict]:
                     vulns = result.get("vulns", [])
                     if vulns:
                         pkg = batch[j]
-                        results.append({
-                            "name": pkg["name"],
-                            "version": pkg["version"],
-                            "ecosystem": pkg["ecosystem"],
-                            "vulns": [
-                                {
-                                    "id": v.get("id", ""),
-                                    "summary": v.get("summary", "")[:120],
-                                    "severity": _extract_osv_severity(v),
-                                    "aliases": v.get("aliases", [])[:3],
-                                }
-                                for v in vulns
-                            ],
-                        })
-        except (urllib.error.URLError, json.JSONDecodeError, TimeoutError, OSError) as exc:
+                        results.append(
+                            {
+                                "name": pkg["name"],
+                                "version": pkg["version"],
+                                "ecosystem": pkg["ecosystem"],
+                                "vulns": [
+                                    {
+                                        "id": v.get("id", ""),
+                                        "summary": v.get("summary", "")[:120],
+                                        "severity": _extract_osv_severity(v),
+                                        "aliases": v.get("aliases", [])[:3],
+                                    }
+                                    for v in vulns
+                                ],
+                            }
+                        )
+        except (
+            urllib.error.URLError,
+            json.JSONDecodeError,
+            TimeoutError,
+            OSError,
+        ) as exc:
             print(f"    OSV batch query failed: {exc}")
 
         time.sleep(OSV_BATCH_SLEEP_SECONDS)
@@ -872,8 +910,12 @@ def _legacy_branch_protection_result(data: dict) -> dict:
         "source": "branch_protection",
         "enforce_admins": bool(data.get("enforce_admins", {}).get("enabled", False)),
         "required_reviews": bool(data.get("required_pull_request_reviews")),
-        "required_signatures": bool(data.get("required_signatures", {}).get("enabled", False)),
-        "allow_force_pushes": bool(data.get("allow_force_pushes", {}).get("enabled", False)),
+        "required_signatures": bool(
+            data.get("required_signatures", {}).get("enabled", False)
+        ),
+        "allow_force_pushes": bool(
+            data.get("allow_force_pushes", {}).get("enabled", False)
+        ),
         "allow_deletions": bool(data.get("allow_deletions", {}).get("enabled", False)),
     }
 
@@ -950,13 +992,15 @@ def collect_protection_changes(repo: str, start_date: str, end_date: str) -> lis
             continue
 
         actor = event.get("actor") or {}
-        changes.append({
-            "repo": repo,
-            "timestamp": event.get("timestamp", ""),
-            "actor_login": actor.get("login", "unknown"),
-            "actor_type": actor.get("type", "unknown"),
-            "ref": event.get("ref", ""),
-        })
+        changes.append(
+            {
+                "repo": repo,
+                "timestamp": event.get("timestamp", ""),
+                "actor_login": actor.get("login", "unknown"),
+                "actor_type": actor.get("type", "unknown"),
+                "ref": event.get("ref", ""),
+            }
+        )
 
     return changes
 
@@ -976,7 +1020,9 @@ def _report_osv_scan_results(inventory: list[dict], vuln_results: list[dict]) ->
     print(f"  Found {len(inventory)} packages, querying OSV...")
     if vuln_results:
         total_vulns = sum(len(v["vulns"]) for v in vuln_results)
-        print(f"  \u26a0\ufe0f  {len(vuln_results)} packages with {total_vulns} known vulnerabilities")
+        print(
+            f"  \u26a0\ufe0f  {len(vuln_results)} packages with {total_vulns} known vulnerabilities"
+        )
     else:
         print("  \u2705 No known vulnerabilities found")
 
@@ -1014,12 +1060,16 @@ def _collect_repo_artifacts(repo: str, start_date: str, end_date: str) -> dict:
     renovate_config = collect_renovate_config(repo)
     cooldown = renovate_config.get("default_cooldown_days")
     major_cd = renovate_config.get("major_cooldown_days")
-    print(f"  Cooldown: {cooldown} days (major: {major_cd} days), source: {renovate_config['source']}")
+    print(
+        f"  Cooldown: {cooldown} days (major: {major_cd} days), source: {renovate_config['source']}"
+    )
 
     print("  Fetching PR commit histories and reviews...")
     pr_audits = collect_pr_commits_and_reviews(repo, prs)
     total_pr_commits = sum(a["commit_count"] for a in pr_audits)
-    print(f"  Collected {total_pr_commits} PR branch commits across {len(pr_audits)} PRs")
+    print(
+        f"  Collected {total_pr_commits} PR branch commits across {len(pr_audits)} PRs"
+    )
 
     print("  Fetching branch protection rules...")
     protection = collect_branch_protection(repo)
@@ -1050,12 +1100,19 @@ def _write_repo_cache_files(cache_dir: Path, repo: str, artifacts: dict) -> None
     write_cache_file(cache_dir, "checks", f"{repo}.json", artifacts["checks"])
     write_cache_file(cache_dir, "deps", f"{repo}.json", artifacts["deps"])
     write_cache_file(cache_dir, "pr_audits", f"{repo}.json", artifacts["pr_audits"])
-    write_cache_file(cache_dir, "renovate", f"{repo}.json", artifacts["renovate_config"])
+    write_cache_file(
+        cache_dir, "renovate", f"{repo}.json", artifacts["renovate_config"]
+    )
     write_cache_file(cache_dir, "vulns", f"{repo}.json", artifacts["vuln_results"])
-    write_cache_file(cache_dir, "protection", f"{repo}.json", {
-        "rules": artifacts["protection"],
-        "changes": artifacts["protection_changes"],
-    })
+    write_cache_file(
+        cache_dir,
+        "protection",
+        f"{repo}.json",
+        {
+            "rules": artifacts["protection"],
+            "changes": artifacts["protection_changes"],
+        },
+    )
 
 
 def collect_repo(
@@ -1067,9 +1124,9 @@ def collect_repo(
     force: bool = False,
 ) -> tuple[int, int]:
     """Collect all data for a single repo. Returns (commit_count, pr_count)."""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"  Collecting: {GITHUB_ORG}/{repo}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     if not force and has_cached_data(cache_dir, repo, "commits"):
         print(f"  [cached] Skipping {repo} (already collected)")
@@ -1081,7 +1138,9 @@ def collect_repo(
     commits = artifacts["commits"]
     prs = artifacts["prs"]
     deps = artifacts["deps"]
-    print(f"  [done] {repo}: {len(commits)} commits, {len(prs)} PRs, {len(deps)} dep changes")
+    print(
+        f"  [done] {repo}: {len(commits)} commits, {len(prs)} PRs, {len(deps)} dep changes"
+    )
     return len(commits), len(prs)
 
 
@@ -1090,9 +1149,15 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Supply chain audit data collector")
     parser.add_argument("--start", required=True, help="Start date (YYYY-MM-DD)")
     parser.add_argument("--end", required=True, help="End date (YYYY-MM-DD)")
-    parser.add_argument("--cache-dir", default=".supply-chain-audit/cache", help="Cache directory")
-    parser.add_argument("--force", action="store_true", help="Force re-collection even if cached")
-    parser.add_argument("--repos", nargs="*", help="Specific repos to collect (default: all)")
+    parser.add_argument(
+        "--cache-dir", default=".supply-chain-audit/cache", help="Cache directory"
+    )
+    parser.add_argument(
+        "--force", action="store_true", help="Force re-collection even if cached"
+    )
+    parser.add_argument(
+        "--repos", nargs="*", help="Specific repos to collect (default: all)"
+    )
     args = parser.parse_args()
 
     try:
@@ -1104,7 +1169,10 @@ def main() -> None:
 
     gh_version = get_gh_version()
     if "unknown" in gh_version:
-        print("ERROR: gh CLI not found. Install it and run 'gh auth login'", file=sys.stderr)
+        print(
+            "ERROR: gh CLI not found. Install it and run 'gh auth login'",
+            file=sys.stderr,
+        )
         sys.exit(1)
     print(f"Using: {gh_version}")
 
@@ -1125,14 +1193,16 @@ def main() -> None:
         total_commits += c
         total_prs += p
 
-    write_manifest(cache_dir, args.start, args.end, repos, gh_version, total_commits, total_prs)
+    write_manifest(
+        cache_dir, args.start, args.end, repos, gh_version, total_commits, total_prs
+    )
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("  Collection complete!")
     print(f"  Total commits: {total_commits}")
     print(f"  Total PRs: {total_prs}")
     print(f"  Cache directory: {cache_dir}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
 
 if __name__ == "__main__":

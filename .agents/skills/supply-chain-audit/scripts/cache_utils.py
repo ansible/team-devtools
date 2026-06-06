@@ -30,7 +30,9 @@ TARGET_REPOS = [
 GITHUB_ORG = "ansible"
 
 
-def compute_cache_key(start_date: str, end_date: str, repos: list[str] | None = None) -> str:
+def compute_cache_key(
+    start_date: str, end_date: str, repos: list[str] | None = None
+) -> str:
     """Deterministic cache key from time frame and repo list."""
     if repos is None:
         repos = TARGET_REPOS
@@ -51,7 +53,9 @@ def ensure_cache_structure(cache_dir: Path) -> None:
         (cache_dir / sub).mkdir(parents=True, exist_ok=True)
 
 
-def read_cache_file(cache_dir: Path, subdir: str, filename: str) -> dict[str, object] | list[object] | None:
+def read_cache_file(
+    cache_dir: Path, subdir: str, filename: str
+) -> dict[str, object] | list[object] | None:
     """Read a JSON file from cache. Returns None if not found."""
     path = cache_dir / subdir / filename
     if not path.exists():
