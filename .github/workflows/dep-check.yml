@@ -1,0 +1,132 @@
+---
+name: dep-check
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+  issue_comment:
+    types: [created]
+  schedule:
+    - cron: "0 6 * * *" # Daily at 06:00 UTC
+  workflow_call:
+    secrets:
+      BOT_PAT:
+        required: false
+
+concurrency:
+  group: dep-check-${{ github.event.pull_request.number || github.event.issue.number || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  dep-check:
+    runs-on: ubuntu-24.04
+    # For issue_comment: only run on /recheck in a PR context
+    if: >
+      github.event_name == 'pull_request_target' ||
+      github.event_name == 'workflow_call' ||
+      github.event_name == 'schedule' ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       contains(github.event.comment.body, '/recheck'))
+    env:
+      GH_TOKEN: ${{ secrets.BOT_PAT || secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout workflow scripts
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          repository: ansible/team-devtools
+          sparse-checkout: .github/scripts
+          path: _scripts
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # --- PR-triggered or /recheck: scan a single PR ---
+      - name: Resolve PR number
+        if: github.event_name != 'schedule'
+        id: pr
+        run: |
+          if [ "${{ github.event_name }}" = "issue_comment" ]; then
+            echo "number=${{ github.event.issue.number }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Get PR diff
+        if: github.event_name != 'schedule'
+        run: |
+          gh pr diff ${{ steps.pr.outputs.number }} \
+            --repo "${{ github.repository }}" > /tmp/pr.diff || true
+
+      - name: Run dep-check
+        if: github.event_name != 'schedule'
+        id: scan
+        run: |
+          python _scripts/.github/scripts/dep-check.py \
+            --diff /tmp/pr.diff \
+            --output /tmp/comment.md
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+        continue-on-error: true
+
+      - name: Post or update PR comment
+        if: github.event_name != 'schedule'
+        run: |
+          PR_NUM="${{ steps.pr.outputs.number }}"
+          REPO="${{ github.repository }}"
+          MARKER="<!-- dep-check-result -->"
+
+          # Find existing comment by marker
+          COMMENT_ID=$(gh api "repos/${REPO}/issues/${PR_NUM}/comments" \
+            --jq ".[] | select(.body | startswith(\"${MARKER}\")) | .id" \
+            2>/dev/null | head -1)
+
+          if [ -n "$COMMENT_ID" ]; then
+            gh api "repos/${REPO}/issues/comments/${COMMENT_ID}" \
+              -X PATCH -F "body=@/tmp/comment.md"
+          else
+            gh pr comment "$PR_NUM" --repo "$REPO" --body-file /tmp/comment.md
+          fi
+
+      - name: Fail if vulnerabilities found
+        if: github.event_name != 'schedule' && steps.scan.outcome == 'failure'
+        run: exit 1
+
+      # --- Scheduled: re-scan all open PRs ---
+      - name: Re-scan open PRs (scheduled)
+        if: github.event_name == 'schedule'
+        run: |
+          REPO="${{ github.repository }}"
+          MARKER="<!-- dep-check-result -->"
+
+          # Get all open PRs
+          PR_NUMBERS=$(gh pr list --repo "$REPO" --state open --json number --jq '.[].number')
+
+          for PR_NUM in $PR_NUMBERS; do
+            echo "::group::Scanning PR #${PR_NUM}"
+
+            gh pr diff "$PR_NUM" --repo "$REPO" > /tmp/pr.diff 2>/dev/null || continue
+
+            python _scripts/.github/scripts/dep-check.py \
+              --diff /tmp/pr.diff \
+              --output /tmp/comment.md || true
+
+            # Update existing comment or post new one
+            COMMENT_ID=$(gh api "repos/${REPO}/issues/${PR_NUM}/comments" \
+              --jq ".[] | select(.body | startswith(\"${MARKER}\")) | .id" \
+              2>/dev/null | head -1)
+
+            if [ -n "$COMMENT_ID" ]; then
+              gh api "repos/${REPO}/issues/comments/${COMMENT_ID}" \
+                -X PATCH -F "body=@/tmp/comment.md"
+            else
+              gh pr comment "$PR_NUM" --repo "$REPO" --body-file /tmp/comment.md
+            fi
+
+            echo "::endgroup::"
+          done

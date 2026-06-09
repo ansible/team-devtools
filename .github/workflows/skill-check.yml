@@ -1,0 +1,159 @@
+---
+name: skill-check
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    paths:
+      - ".agents/skills/**"
+  issue_comment:
+    types: [created]
+  workflow_call:
+    secrets:
+      BOT_PAT:
+        required: false
+
+concurrency:
+  group: skill-check-${{ github.event.pull_request.number || github.event.issue.number || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  skill-check:
+    runs-on: ubuntu-24.04
+    if: >
+      github.event_name == 'pull_request_target' ||
+      github.event_name == 'workflow_call' ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       contains(github.event.comment.body, '/recheck'))
+    env:
+      GH_TOKEN: ${{ secrets.BOT_PAT || secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Resolve PR metadata
+        id: pr
+        run: |
+          if [ "${{ github.event_name }}" = "issue_comment" ]; then
+            PR_NUM="${{ github.event.issue.number }}"
+          else
+            PR_NUM="${{ github.event.pull_request.number }}"
+          fi
+          echo "number=${PR_NUM}" >> "$GITHUB_OUTPUT"
+
+          # Fetch PR details
+          PR_JSON=$(gh pr view "$PR_NUM" --repo "${{ github.repository }}" \
+            --json author,headRefName,files,commits)
+          echo "author=$(echo "$PR_JSON" | jq -r '.author.login')" >> "$GITHUB_OUTPUT"
+          echo "branch=$(echo "$PR_JSON" | jq -r '.headRefName')" >> "$GITHUB_OUTPUT"
+
+          # Check if .agents/skills/ files are modified
+          SKILL_FILES=$(echo "$PR_JSON" | jq -r '.files[].path' | grep -c '^\.agents/skills/' || true)
+          echo "skill_file_count=${SKILL_FILES}" >> "$GITHUB_OUTPUT"
+
+      - name: Check if skill files are modified
+        if: steps.pr.outputs.skill_file_count == '0'
+        run: |
+          echo "No .agents/skills/ changes detected. Skipping."
+          echo "skip=true" >> "$GITHUB_ENV"
+
+      - name: Verify trusted source
+        if: env.skip != 'true'
+        id: verify
+        run: |
+          AUTHOR="${{ steps.pr.outputs.author }}"
+          BRANCH="${{ steps.pr.outputs.branch }}"
+          PR_NUM="${{ steps.pr.outputs.number }}"
+          REPO="${{ github.repository }}"
+          MARKER="<!-- skill-check-result -->"
+          NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          TRUSTED_AUTHOR="ansibuddy"
+          TRUSTED_BRANCH="chore/sync-agent-skills"
+
+          AUTHOR_OK="false"
+          BRANCH_OK="false"
+
+          if [ "$AUTHOR" = "$TRUSTED_AUTHOR" ]; then
+            AUTHOR_OK="true"
+          fi
+          if [ "$BRANCH" = "$TRUSTED_BRANCH" ]; then
+            BRANCH_OK="true"
+          fi
+
+          # Check commit messages for team-devtools reference
+          COMMIT_REF=$(gh pr view "$PR_NUM" --repo "$REPO" --json commits \
+            --jq '.commits[].messageHeadline' | grep -c 'team-devtools' || true)
+          COMMIT_OK="false"
+          if [ "$COMMIT_REF" -gt 0 ]; then
+            COMMIT_OK="true"
+          fi
+
+          if [ "$AUTHOR_OK" = "true" ] && [ "$BRANCH_OK" = "true" ]; then
+            STATUS="PASS"
+            BODY=$(cat <<EOF
+          ${MARKER}
+          ## Skill Injection Check
+
+          **Status**: PASS
+          **Scanned**: ${NOW}
+
+          Trusted skill sync verified:
+          - Author: \`${AUTHOR}\` (trusted)
+          - Branch: \`${BRANCH}\` (matches sync pattern)
+          - Commit references team-devtools: ${COMMIT_OK}
+
+          ---
+          _Re-run with \`/recheck\`._
+          EOF
+          )
+          else
+            STATUS="FAIL"
+            BODY=$(cat <<EOF
+          ${MARKER}
+          ## Skill Injection Check
+
+          **Status**: WARNING
+
+          This PR modifies \`.agents/skills/\` but does NOT match the trusted sync pattern:
+          - Author: \`${AUTHOR}\` (expected: \`${TRUSTED_AUTHOR}\`) $([ "$AUTHOR_OK" = "true" ] && echo "✓" || echo "✗")
+          - Branch: \`${BRANCH}\` (expected: \`${TRUSTED_BRANCH}\`) $([ "$BRANCH_OK" = "true" ] && echo "✓" || echo "✗")
+          - Commit references team-devtools: ${COMMIT_OK}
+
+          **Skill changes from untrusted sources require manual security review.**
+
+          ---
+          _Re-run with \`/recheck\`._
+          EOF
+          )
+          fi
+
+          echo "$BODY" > /tmp/skill-comment.md
+          echo "status=${STATUS}" >> "$GITHUB_OUTPUT"
+
+      - name: Post or update PR comment
+        if: env.skip != 'true'
+        run: |
+          PR_NUM="${{ steps.pr.outputs.number }}"
+          REPO="${{ github.repository }}"
+          MARKER="<!-- skill-check-result -->"
+
+          # Find existing comment by marker
+          COMMENT_ID=$(gh api "repos/${REPO}/issues/${PR_NUM}/comments" \
+            --jq ".[] | select(.body | contains(\"${MARKER}\")) | .id" \
+            2>/dev/null | head -1)
+
+          if [ -n "$COMMENT_ID" ]; then
+            gh api "repos/${REPO}/issues/comments/${COMMENT_ID}" \
+              -X PATCH -F "body=@/tmp/skill-comment.md"
+          else
+            gh pr comment "$PR_NUM" --repo "$REPO" --body-file /tmp/skill-comment.md
+          fi
+
+      - name: Fail if untrusted
+        if: env.skip != 'true' && steps.verify.outputs.status == 'FAIL'
+        run: |
+          echo "::error::Untrusted .agents/skills/ modification detected"
+          exit 1
