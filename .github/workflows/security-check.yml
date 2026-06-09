@@ -126,7 +126,7 @@ jobs:
           # --- .claude/ directory (CRITICAL - known malware vector) ---
           if [ "$CLAUDE_FILE_COUNT" -gt 0 ]; then
             SEVERITY="CRITICAL"
-            FINDINGS="${FINDINGS}### 🚨 CRITICAL: \`.claude/\` Directory Detected\n\n"
+            FINDINGS="${FINDINGS}### CRITICAL: \`.claude/\` Directory Detected\n\n"
             FINDINGS="${FINDINGS}This PR adds or modifies files in \`.claude/\`. "
             FINDINGS="${FINDINGS}This is a **known malware injection vector** (Miasma campaign).\n\n"
             FINDINGS="${FINDINGS}Files containing \`\"command\": \"node .claude/setup.mjs\"\` are **confirmed malware**.\n\n"
@@ -141,17 +141,17 @@ jobs:
             [ "$BRANCH" = "$TRUSTED_SKILL_BRANCH" ] && BRANCH_OK="true"
 
             if [ "$AUTHOR_OK" = "true" ] && [ "$BRANCH_OK" = "true" ]; then
-              FINDINGS="${FINDINGS}### ✅ Skill Sync: Trusted\n\n"
+              FINDINGS="${FINDINGS}### Skill Sync: Trusted\n\n"
               FINDINGS="${FINDINGS}- Author: \`${AUTHOR}\` (trusted bot)\n"
               FINDINGS="${FINDINGS}- Branch: \`${BRANCH}\` (matches sync pattern)\n\n"
             else
               [ "$SEVERITY" = "PASS" ] && SEVERITY="HIGH"
-              FINDINGS="${FINDINGS}### ⚠️ HIGH: Untrusted \`.agents/skills/\` Modification\n\n"
+              FINDINGS="${FINDINGS}### HIGH: Untrusted \`.agents/skills/\` Modification\n\n"
               FINDINGS="${FINDINGS}This PR modifies agent skills but does NOT match the trusted sync pattern:\n"
               FINDINGS="${FINDINGS}- Author: \`${AUTHOR}\` (expected: \`${TRUSTED_BOT}\`)"
-              [ "$AUTHOR_OK" = "true" ] && FINDINGS="${FINDINGS} ✓" || FINDINGS="${FINDINGS} ✗"
+              [ "$AUTHOR_OK" = "true" ] && FINDINGS="${FINDINGS} [PASS]" || FINDINGS="${FINDINGS} [FAIL]"
               FINDINGS="${FINDINGS}\n- Branch: \`${BRANCH}\` (expected: \`${TRUSTED_SKILL_BRANCH}\`)"
-              [ "$BRANCH_OK" = "true" ] && FINDINGS="${FINDINGS} ✓" || FINDINGS="${FINDINGS} ✗"
+              [ "$BRANCH_OK" = "true" ] && FINDINGS="${FINDINGS} [PASS]" || FINDINGS="${FINDINGS} [FAIL]"
               FINDINGS="${FINDINGS}\n\n**Skill changes from untrusted sources require manual security review.**\n\n"
             fi
           fi
@@ -159,7 +159,7 @@ jobs:
           # --- .vscode/ directory (HIGH - IDE config injection) ---
           if [ "$VSCODE_FILE_COUNT" -gt 0 ]; then
             [ "$SEVERITY" = "PASS" ] && SEVERITY="HIGH"
-            FINDINGS="${FINDINGS}### ⚠️ HIGH: \`.vscode/\` Directory Modified\n\n"
+            FINDINGS="${FINDINGS}### HIGH: \`.vscode/\` Directory Modified\n\n"
             FINDINGS="${FINDINGS}This PR modifies IDE configuration files. "
             FINDINGS="${FINDINGS}Malicious extensions or tasks in \`.vscode/\` can execute arbitrary code.\n\n"
             FINDINGS="${FINDINGS}**Review these files carefully:**\n"
@@ -176,7 +176,7 @@ jobs:
                [[ "$BRANCH" != chore/* ]] && \
                [[ "$BRANCH" != fix/* ]]; then
               [ "$SEVERITY" = "PASS" ] && SEVERITY="MEDIUM"
-              FINDINGS="${FINDINGS}### ⚠️ MEDIUM: CI/CD Workflow Modified\n\n"
+              FINDINGS="${FINDINGS}### MEDIUM: CI/CD Workflow Modified\n\n"
               FINDINGS="${FINDINGS}This PR modifies GitHub Actions workflows. "
               FINDINGS="${FINDINGS}Unauthorized pipeline changes can exfiltrate secrets or inject malware into builds.\n\n"
               FINDINGS="${FINDINGS}**Modified workflows:**\n"
@@ -217,7 +217,7 @@ jobs:
 
           {
             echo "${MARKER}"
-            echo "## 🔒 PR Security Check"
+            echo "## PR Security Check"
             echo ""
             echo "**Overall**: ${OVERALL}"
             echo "**Scanned**: ${NOW}"
@@ -291,7 +291,7 @@ jobs:
             NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
             {
               echo "${MARKER}"
-              echo "## 🔒 PR Security Check (Scheduled Re-scan)"
+              echo "## PR Security Check (Scheduled Re-scan)"
               echo ""
               echo "**Scanned**: ${NOW}"
               echo ""
