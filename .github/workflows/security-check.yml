@@ -40,8 +40,9 @@ jobs:
         run: |
           REF="${WORKFLOW_REF:-main}"
           mkdir -p _scripts/.github/scripts
-          gh api "repos/ansible/team-devtools/contents/.github/scripts/dep-check.py?ref=${REF}" \
-            --jq '.content' | tr -d '\n' | base64 -d > _scripts/.github/scripts/dep-check.py
+          curl -sSfL \
+            "https://raw.githubusercontent.com/ansible/team-devtools/${REF}/.github/scripts/dep-check.py" \
+            -o _scripts/.github/scripts/dep-check.py
           chmod +x _scripts/.github/scripts/dep-check.py
 
       - name: Set up Python
