@@ -38,11 +38,10 @@ jobs:
         env:
           WORKFLOW_REF: ${{ github.job_workflow_sha }}
         run: |
-          # Fetch only the scripts directory from team-devtools
           REF="${WORKFLOW_REF:-main}"
           mkdir -p _scripts/.github/scripts
           gh api "repos/ansible/team-devtools/contents/.github/scripts/dep-check.py?ref=${REF}" \
-            --jq '.content' | base64 -d > _scripts/.github/scripts/dep-check.py
+            --jq '.content' | tr -d '\n' | base64 -d > _scripts/.github/scripts/dep-check.py
           chmod +x _scripts/.github/scripts/dep-check.py
 
       - name: Set up Python
