@@ -40,6 +40,7 @@ jobs:
           repository: ansible/team-devtools
           ref: ${{ github.job_workflow_sha }}
           sparse-checkout: .github/scripts
+          sparse-checkout-cone-mode: false
           path: _scripts
 
       - name: Set up Python
