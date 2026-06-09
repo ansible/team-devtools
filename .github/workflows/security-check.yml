@@ -108,16 +108,23 @@ jobs:
       - name: Check for malware patterns
         if: github.event_name != 'schedule'
         id: malware
+        env:
+          PR_AUTHOR: ${{ steps.meta.outputs.author }}
+          PR_BRANCH: ${{ steps.meta.outputs.branch }}
+          SKILL_FILE_COUNT: ${{ steps.meta.outputs.skill_files }}
+          CLAUDE_FILE_COUNT: ${{ steps.meta.outputs.claude_files }}
+          VSCODE_FILE_COUNT: ${{ steps.meta.outputs.vscode_files }}
+          WORKFLOW_FILE_COUNT: ${{ steps.meta.outputs.workflow_files }}
         run: |
           FINDINGS=""
           SEVERITY="PASS"
-          AUTHOR="${{ steps.meta.outputs.author }}"
-          BRANCH="${{ steps.meta.outputs.branch }}"
+          AUTHOR="$PR_AUTHOR"
+          BRANCH="$PR_BRANCH"
           TRUSTED_BOT="ansibuddy"
           TRUSTED_SKILL_BRANCH="chore/sync-agent-skills"
 
           # --- .claude/ directory (CRITICAL - known malware vector) ---
-          if [ "${{ steps.meta.outputs.claude_files }}" -gt 0 ]; then
+          if [ "$CLAUDE_FILE_COUNT" -gt 0 ]; then
             SEVERITY="CRITICAL"
             FINDINGS="${FINDINGS}### 🚨 CRITICAL: \`.claude/\` Directory Detected\n\n"
             FINDINGS="${FINDINGS}This PR adds or modifies files in \`.claude/\`. "
@@ -127,7 +134,7 @@ jobs:
           fi
 
           # --- .agents/skills/ (untrusted source check) ---
-          if [ "${{ steps.meta.outputs.skill_files }}" -gt 0 ]; then
+          if [ "$SKILL_FILE_COUNT" -gt 0 ]; then
             AUTHOR_OK="false"
             BRANCH_OK="false"
             [ "$AUTHOR" = "$TRUSTED_BOT" ] && AUTHOR_OK="true"
@@ -150,7 +157,7 @@ jobs:
           fi
 
           # --- .vscode/ directory (HIGH - IDE config injection) ---
-          if [ "${{ steps.meta.outputs.vscode_files }}" -gt 0 ]; then
+          if [ "$VSCODE_FILE_COUNT" -gt 0 ]; then
             [ "$SEVERITY" = "PASS" ] && SEVERITY="HIGH"
             FINDINGS="${FINDINGS}### ⚠️ HIGH: \`.vscode/\` Directory Modified\n\n"
             FINDINGS="${FINDINGS}This PR modifies IDE configuration files. "
@@ -163,7 +170,7 @@ jobs:
           fi
 
           # --- .github/workflows/ (MEDIUM - CI/CD tampering) ---
-          if [ "${{ steps.meta.outputs.workflow_files }}" -gt 0 ]; then
+          if [ "$WORKFLOW_FILE_COUNT" -gt 0 ]; then
             # Trusted sources: the bot or known infra branches
             if [ "$AUTHOR" != "$TRUSTED_BOT" ] && \
                [[ "$BRANCH" != chore/* ]] && \
