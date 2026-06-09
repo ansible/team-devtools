@@ -159,6 +159,10 @@ lines-after-imports = 2  # Ensures consistency for cases when there's variable v
   "INP001",  # implicit namespace package (standalone scripts, not a library)
   "T201",  # print statements (CLI progress output)
 ]
+".github/scripts/*" = [
+  "INP001",  # implicit namespace package (standalone scripts, not a library)
+  "T201",  # print statements (CLI progress output)
+]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

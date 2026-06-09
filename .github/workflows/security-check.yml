@@ -1,0 +1,312 @@
+---
+name: security-check
+
+"on":
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+  issue_comment:
+    types: [created]
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_call:
+    secrets:
+      BOT_PAT:
+        required: false
+
+concurrency:
+  group: security-check-${{ github.event.pull_request.number || github.event.issue.number || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  security-check:
+    runs-on: ubuntu-24.04
+    if: >
+      github.event_name == 'pull_request_target' ||
+      github.event_name == 'workflow_call' ||
+      github.event_name == 'schedule' ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       contains(github.event.comment.body, '/recheck'))
+    env:
+      GH_TOKEN: ${{ secrets.BOT_PAT || secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout workflow scripts
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          repository: ansible/team-devtools
+          sparse-checkout: .github/scripts
+          path: _scripts
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # ─── Resolve PR number ───────────────────────────────────────────
+      - name: Resolve PR number
+        if: github.event_name != 'schedule'
+        id: pr
+        run: |
+          if [ "${{ github.event_name }}" = "issue_comment" ]; then
+            echo "number=${{ github.event.issue.number }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ─── Gather PR metadata ─────────────────────────────────────────
+      - name: Gather PR metadata
+        if: github.event_name != 'schedule'
+        id: meta
+        run: |
+          PR_NUM="${{ steps.pr.outputs.number }}"
+          REPO="${{ github.repository }}"
+
+          PR_JSON=$(gh pr view "$PR_NUM" --repo "$REPO" \
+            --json author,headRefName,files)
+          echo "author=$(echo "$PR_JSON" | jq -r '.author.login')" >> "$GITHUB_OUTPUT"
+          echo "branch=$(echo "$PR_JSON" | jq -r '.headRefName')" >> "$GITHUB_OUTPUT"
+
+          # Classify changed files
+          FILES=$(echo "$PR_JSON" | jq -r '.files[].path')
+          echo "$FILES" > /tmp/changed-files.txt
+
+          SKILL_FILES=$(echo "$FILES" | grep -c '^\.agents/skills/' || true)
+          CLAUDE_FILES=$(echo "$FILES" | grep -c '^\.claude/' || true)
+          VSCODE_FILES=$(echo "$FILES" | grep -c '^\.vscode/' || true)
+          WORKFLOW_FILES=$(echo "$FILES" | grep -c '^\.github/workflows/' || true)
+
+          echo "skill_files=${SKILL_FILES}" >> "$GITHUB_OUTPUT"
+          echo "claude_files=${CLAUDE_FILES}" >> "$GITHUB_OUTPUT"
+          echo "vscode_files=${VSCODE_FILES}" >> "$GITHUB_OUTPUT"
+          echo "workflow_files=${WORKFLOW_FILES}" >> "$GITHUB_OUTPUT"
+
+          # Track overall security findings
+          echo "has_security_findings=false" >> "$GITHUB_OUTPUT"
+
+      # ─── CHECK 1: Dependency Vulnerability Scan ──────────────────────
+      - name: Get PR diff
+        if: github.event_name != 'schedule'
+        run: |
+          gh pr diff ${{ steps.pr.outputs.number }} \
+            --repo "${{ github.repository }}" > /tmp/pr.diff || true
+
+      - name: Run dep-check
+        if: github.event_name != 'schedule'
+        id: dep_scan
+        run: |
+          python _scripts/.github/scripts/dep-check.py \
+            --diff /tmp/pr.diff \
+            --output /tmp/dep-comment.md
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+        continue-on-error: true
+
+      # ─── CHECK 2: Malware Pattern Detection ─────────────────────────
+      - name: Check for malware patterns
+        if: github.event_name != 'schedule'
+        id: malware
+        run: |
+          FINDINGS=""
+          SEVERITY="PASS"
+          AUTHOR="${{ steps.meta.outputs.author }}"
+          BRANCH="${{ steps.meta.outputs.branch }}"
+          TRUSTED_BOT="ansibuddy"
+          TRUSTED_SKILL_BRANCH="chore/sync-agent-skills"
+
+          # --- .claude/ directory (CRITICAL - known malware vector) ---
+          if [ "${{ steps.meta.outputs.claude_files }}" -gt 0 ]; then
+            SEVERITY="CRITICAL"
+            FINDINGS="${FINDINGS}### 🚨 CRITICAL: \`.claude/\` Directory Detected\n\n"
+            FINDINGS="${FINDINGS}This PR adds or modifies files in \`.claude/\`. "
+            FINDINGS="${FINDINGS}This is a **known malware injection vector** (Miasma campaign).\n\n"
+            FINDINGS="${FINDINGS}Files containing \`\"command\": \"node .claude/setup.mjs\"\` are **confirmed malware**.\n\n"
+            FINDINGS="${FINDINGS}**Action required**: Reject this PR immediately unless you can verify the content is safe.\n\n"
+          fi
+
+          # --- .agents/skills/ (untrusted source check) ---
+          if [ "${{ steps.meta.outputs.skill_files }}" -gt 0 ]; then
+            AUTHOR_OK="false"
+            BRANCH_OK="false"
+            [ "$AUTHOR" = "$TRUSTED_BOT" ] && AUTHOR_OK="true"
+            [ "$BRANCH" = "$TRUSTED_SKILL_BRANCH" ] && BRANCH_OK="true"
+
+            if [ "$AUTHOR_OK" = "true" ] && [ "$BRANCH_OK" = "true" ]; then
+              FINDINGS="${FINDINGS}### ✅ Skill Sync: Trusted\n\n"
+              FINDINGS="${FINDINGS}- Author: \`${AUTHOR}\` (trusted bot)\n"
+              FINDINGS="${FINDINGS}- Branch: \`${BRANCH}\` (matches sync pattern)\n\n"
+            else
+              [ "$SEVERITY" = "PASS" ] && SEVERITY="HIGH"
+              FINDINGS="${FINDINGS}### ⚠️ HIGH: Untrusted \`.agents/skills/\` Modification\n\n"
+              FINDINGS="${FINDINGS}This PR modifies agent skills but does NOT match the trusted sync pattern:\n"
+              FINDINGS="${FINDINGS}- Author: \`${AUTHOR}\` (expected: \`${TRUSTED_BOT}\`)"
+              [ "$AUTHOR_OK" = "true" ] && FINDINGS="${FINDINGS} ✓" || FINDINGS="${FINDINGS} ✗"
+              FINDINGS="${FINDINGS}\n- Branch: \`${BRANCH}\` (expected: \`${TRUSTED_SKILL_BRANCH}\`)"
+              [ "$BRANCH_OK" = "true" ] && FINDINGS="${FINDINGS} ✓" || FINDINGS="${FINDINGS} ✗"
+              FINDINGS="${FINDINGS}\n\n**Skill changes from untrusted sources require manual security review.**\n\n"
+            fi
+          fi
+
+          # --- .vscode/ directory (HIGH - IDE config injection) ---
+          if [ "${{ steps.meta.outputs.vscode_files }}" -gt 0 ]; then
+            [ "$SEVERITY" = "PASS" ] && SEVERITY="HIGH"
+            FINDINGS="${FINDINGS}### ⚠️ HIGH: \`.vscode/\` Directory Modified\n\n"
+            FINDINGS="${FINDINGS}This PR modifies IDE configuration files. "
+            FINDINGS="${FINDINGS}Malicious extensions or tasks in \`.vscode/\` can execute arbitrary code.\n\n"
+            FINDINGS="${FINDINGS}**Review these files carefully:**\n"
+            grep '\.vscode/' /tmp/changed-files.txt | while read -r f; do
+              FINDINGS="${FINDINGS}- \`${f}\`\n"
+            done
+            FINDINGS="${FINDINGS}\n"
+          fi
+
+          # --- .github/workflows/ (MEDIUM - CI/CD tampering) ---
+          if [ "${{ steps.meta.outputs.workflow_files }}" -gt 0 ]; then
+            # Trusted sources: the bot or known infra branches
+            if [ "$AUTHOR" != "$TRUSTED_BOT" ] && \
+               [[ "$BRANCH" != chore/* ]] && \
+               [[ "$BRANCH" != fix/* ]]; then
+              [ "$SEVERITY" = "PASS" ] && SEVERITY="MEDIUM"
+              FINDINGS="${FINDINGS}### ⚠️ MEDIUM: CI/CD Workflow Modified\n\n"
+              FINDINGS="${FINDINGS}This PR modifies GitHub Actions workflows. "
+              FINDINGS="${FINDINGS}Unauthorized pipeline changes can exfiltrate secrets or inject malware into builds.\n\n"
+              FINDINGS="${FINDINGS}**Modified workflows:**\n"
+              grep '\.github/workflows/' /tmp/changed-files.txt | while read -r f; do
+                FINDINGS="${FINDINGS}- \`${f}\`\n"
+              done
+              FINDINGS="${FINDINGS}\n**Ensure this change is intentional and reviewed by a maintainer.**\n\n"
+            fi
+          fi
+
+          # Write outputs
+          echo "severity=${SEVERITY}" >> "$GITHUB_OUTPUT"
+          if [ -n "$FINDINGS" ]; then
+            # Use a file to avoid escaping issues
+            printf '%b' "$FINDINGS" > /tmp/malware-findings.md
+          else
+            echo "" > /tmp/malware-findings.md
+          fi
+
+      # ─── Compose and Post Comment ───────────────────────────────────
+      - name: Compose security comment
+        if: github.event_name != 'schedule'
+        id: compose
+        run: |
+          MARKER="<!-- security-check-result -->"
+          NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          SEVERITY="${{ steps.malware.outputs.severity }}"
+          DEP_STATUS="PASS"
+          [ "${{ steps.dep_scan.outcome }}" = "failure" ] && DEP_STATUS="FAIL"
+
+          # Determine overall status
+          OVERALL="PASS"
+          if [ "$SEVERITY" = "CRITICAL" ] || [ "$DEP_STATUS" = "FAIL" ]; then
+            OVERALL="FAIL"
+          elif [ "$SEVERITY" = "HIGH" ] || [ "$SEVERITY" = "MEDIUM" ]; then
+            OVERALL="WARNING"
+          fi
+
+          {
+            echo "${MARKER}"
+            echo "## 🔒 PR Security Check"
+            echo ""
+            echo "**Overall**: ${OVERALL}"
+            echo "**Scanned**: ${NOW}"
+            echo ""
+
+            # Malware/injection findings
+            if [ -s /tmp/malware-findings.md ]; then
+              cat /tmp/malware-findings.md
+              echo ""
+            fi
+
+            # Dependency scan results
+            if [ -f /tmp/dep-comment.md ]; then
+              # Strip the marker from dep-comment (we have our own)
+              sed '1d' /tmp/dep-comment.md
+              echo ""
+            fi
+
+            echo "---"
+            echo "_Re-run with \`/recheck\`. Dependency scan runs daily._"
+          } > /tmp/security-comment.md
+
+          echo "overall=${OVERALL}" >> "$GITHUB_OUTPUT"
+
+      - name: Post or update PR comment
+        if: github.event_name != 'schedule'
+        run: |
+          PR_NUM="${{ steps.pr.outputs.number }}"
+          REPO="${{ github.repository }}"
+          MARKER="<!-- security-check-result -->"
+
+          COMMENT_ID=$(gh api "repos/${REPO}/issues/${PR_NUM}/comments" \
+            --jq ".[] | select(.body | startswith(\"${MARKER}\")) | .id" \
+            2>/dev/null | head -1)
+
+          if [ -n "$COMMENT_ID" ]; then
+            gh api "repos/${REPO}/issues/comments/${COMMENT_ID}" \
+              -X PATCH -F "body=@/tmp/security-comment.md"
+          else
+            gh pr comment "$PR_NUM" --repo "$REPO" \
+              --body-file /tmp/security-comment.md
+          fi
+
+      - name: Fail on critical findings
+        if: >
+          github.event_name != 'schedule' &&
+          (steps.compose.outputs.overall == 'FAIL')
+        run: |
+          echo "::error::Security check failed — see PR comment for details"
+          exit 1
+
+      # ─── Scheduled: re-scan all open PRs ────────────────────────────
+      - name: Re-scan open PRs (scheduled)
+        if: github.event_name == 'schedule'
+        run: |
+          REPO="${{ github.repository }}"
+          MARKER="<!-- security-check-result -->"
+
+          PR_NUMBERS=$(gh pr list --repo "$REPO" --state open \
+            --json number --jq '.[].number')
+
+          for PR_NUM in $PR_NUMBERS; do
+            echo "::group::Scanning PR #${PR_NUM}"
+
+            gh pr diff "$PR_NUM" --repo "$REPO" > /tmp/pr.diff 2>/dev/null || continue
+
+            python _scripts/.github/scripts/dep-check.py \
+              --diff /tmp/pr.diff \
+              --output /tmp/dep-comment.md || true
+
+            NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+            {
+              echo "${MARKER}"
+              echo "## 🔒 PR Security Check (Scheduled Re-scan)"
+              echo ""
+              echo "**Scanned**: ${NOW}"
+              echo ""
+              if [ -f /tmp/dep-comment.md ]; then
+                sed '1d' /tmp/dep-comment.md
+              fi
+              echo ""
+              echo "---"
+              echo "_Re-run with \`/recheck\`. Dependency scan runs daily._"
+            } > /tmp/security-comment.md
+
+            COMMENT_ID=$(gh api "repos/${REPO}/issues/${PR_NUM}/comments" \
+              --jq ".[] | select(.body | startswith(\"${MARKER}\")) | .id" \
+              2>/dev/null | head -1)
+
+            if [ -n "$COMMENT_ID" ]; then
+              gh api "repos/${REPO}/issues/comments/${COMMENT_ID}" \
+                -X PATCH -F "body=@/tmp/security-comment.md"
+            else
+              gh pr comment "$PR_NUM" --repo "$REPO" \
+                --body-file /tmp/security-comment.md
+            fi
+
+            echo "::endgroup::"
+          done
