@@ -35,15 +35,13 @@ jobs:
       GH_TOKEN: ${{ secrets.BOT_PAT || secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout workflow scripts
-        env:
-          WORKFLOW_REF: ${{ github.job_workflow_sha }}
-        run: |
-          REF="${WORKFLOW_REF:-main}"
-          mkdir -p _scripts/.github/scripts
-          curl -sSfL \
-            "https://raw.githubusercontent.com/ansible/team-devtools/${REF}/.github/scripts/dep-check.py" \
-            -o _scripts/.github/scripts/dep-check.py
-          chmod +x _scripts/.github/scripts/dep-check.py
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          repository: ansible/team-devtools
+          sparse-checkout: |
+            .github/scripts/
+          sparse-checkout-cone-mode: false
+          path: _scripts
 
       - name: Set up Python
         uses: actions/setup-python@v5
