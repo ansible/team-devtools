@@ -10,7 +10,6 @@ import json
 from dataclasses import asdict, dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any
 
 
 class RepoTier(str, Enum):
@@ -62,7 +61,9 @@ class DiscoveredComponent:
 
     name: str
     repo_slug: str
-    component_type: str  # "library", "cli", "server", "extension", "container", "frontend", "proxy"
+    component_type: (
+        str  # "library", "cli", "server", "extension", "container", "frontend", "proxy"
+    )
     technology: str
     description: str
 
@@ -103,21 +104,22 @@ class CrawlResult:
     def to_json(self, path: Path) -> None:
         """Serialize to JSON for agent review."""
 
-        def _default(o: Any) -> Any:
+        def _default(o: object) -> object:
             if isinstance(o, Enum):
                 return o.value
             if isinstance(o, Path):
                 return str(o)
-            raise TypeError(f"Object of type {type(o)} is not JSON serializable")
+            msg = f"Object of type {type(o)} is not JSON serializable"
+            raise TypeError(msg)
 
         path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "w") as f:
+        with path.open("w") as f:
             json.dump(asdict(self), f, indent=2, default=_default)
 
     @classmethod
     def from_json(cls, path: Path) -> CrawlResult:
         """Deserialize from JSON."""
-        with open(path) as f:
+        with path.open() as f:
             data = json.load(f)
         result = cls()
         for slug, entry in data.get("repos", {}).items():

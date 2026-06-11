@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Render C4 diagram Python files to PNG via `c4 export`.
 
 Usage:
@@ -55,7 +54,7 @@ def check_prerequisites(renderer: str) -> bool:
             file=sys.stderr,
         )
         return False
-    elif renderer == "mermaid":
+    if renderer == "mermaid":
         if shutil.which("mmdc"):
             print("  Mermaid CLI (mmdc) found.")
             return True
@@ -87,7 +86,15 @@ def render_diagram(diagram_py: Path, output_dir: Path, renderer: str) -> Path | 
             capture_output=True,
             timeout=120,
             env=env,
+            check=False,
         )
+    except FileNotFoundError:
+        print("FAILED (c4 command not found -- is c4-diagrams installed?)")
+        return None
+    except subprocess.TimeoutExpired:
+        print("FAILED (timeout after 120s)")
+        return None
+    else:
         if proc.returncode != 0:
             stderr = proc.stderr.decode(errors="replace")
             print(f"FAILED\n    {stderr[:500]}")
@@ -97,18 +104,21 @@ def render_diagram(diagram_py: Path, output_dir: Path, renderer: str) -> Path | 
         size_kb = len(proc.stdout) / 1024
         print(f"OK ({size_kb:.0f} KB)")
         return png_path
-    except FileNotFoundError:
-        print("FAILED (c4 command not found -- is c4-diagrams installed?)")
-        return None
-    except subprocess.TimeoutExpired:
-        print("FAILED (timeout after 120s)")
-        return None
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Render C4 diagram .py files to PNG")
-    parser.add_argument("--input-dir", default=".architecture-diagrams", help="Directory containing diagram .py files")
-    parser.add_argument("--renderer", choices=["plantuml", "mermaid"], default="plantuml", help="Rendering backend")
+    parser.add_argument(
+        "--input-dir",
+        default=".architecture-diagrams",
+        help="Directory containing diagram .py files",
+    )
+    parser.add_argument(
+        "--renderer",
+        choices=["plantuml", "mermaid"],
+        default="plantuml",
+        help="Rendering backend",
+    )
     args = parser.parse_args()
 
     input_dir = Path(args.input_dir)
@@ -135,7 +145,7 @@ def main() -> None:
         else:
             failed.append(df.name)
 
-    print(f"\nResults:")
+    print("\nResults:")
     print(f"  {len(rendered)} rendered successfully")
     if failed:
         print(f"  {len(failed)} failed: {', '.join(failed)}")
