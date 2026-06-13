@@ -96,7 +96,9 @@ jobs:
   prepare:
     name: prepare
     runs-on: ubuntu-24.04
-    environment: ${{ inputs.environment }}
+    environment:
+      name: ${{ inputs.environment }}
+      deployment: false
     outputs:
       matrix: ${{ steps.generate_matrix.outputs.matrix }}
     steps:
@@ -137,7 +139,9 @@ jobs:
   test:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os || 'ubuntu-24.04' }}
-    environment: ${{ inputs.environment }}
+    environment:
+      name: ${{ inputs.environment }}
+      deployment: false
     needs:
       - prepare
     defaults:
@@ -249,7 +253,7 @@ jobs:
       - name: Upload coverage data to codecov.io
         id: upload-coverage
         if: ${{ !cancelled() && hashFiles('**/coverage.xml') != '' }}
-        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
+        uses: codecov/codecov-action@8cad3ba95e5920c42f44492e54bc9639cba47959 # v6.0.2
         with:
           name: ${{ matrix.name }}
           fail_ci_if_error: true
@@ -264,7 +268,7 @@ jobs:
       - name: Upload test results to codecov.io
         id: upload-test-results
         if: ${{ !cancelled() && hashFiles('junit.xml') != '' }}
-        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
+        uses: codecov/codecov-action@8cad3ba95e5920c42f44492e54bc9639cba47959 # v6.0.2
         with:
           fail_ci_if_error: true
           name: ${{ matrix.name }}
@@ -293,7 +297,9 @@ jobs:
 
   check:
     if: always()
-    environment: ${{ inputs.environment }}
+    environment:
+      name: ${{ inputs.environment }}
+      deployment: false
     needs:
       - test
     runs-on: ubuntu-24.04
