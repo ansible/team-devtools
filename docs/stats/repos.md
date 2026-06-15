@@ -4,7 +4,7 @@
 
 ## actions
 
-[![tox](https://github.com/ansible/actions/actions/workflows/tox.yml/badge.svg?event=schedule)](https://github.com/ansible/actions/actions/workflows/tox.yml?query=event%3Aschedule)
+[![tox](https://github.com/ansible/actions/actions/workflows/test.yml/badge.svg?event=schedule)](https://github.com/ansible/actions/actions/workflows/test.yml?query=event%3Aschedule)
 [![codecov](https://codecov.io/github/ansible/actions/graph/badge.svg?token=QZKqxsNNsL)](https://codecov.io/github/ansible/actions)
 [![GitHub Issues or Pull Requests](https://img.shields.io/github/issues-pr/ansible/actions)](https://github.com/ansible/actions/pulls?q=sort%3Aupdated-desc+is%3Apr+is%3Aopen+-is%3Adraft)
 
@@ -16,7 +16,7 @@
 
 ## ansible-content-actions
 
-[![ci](https://github.com/ansible/ansible-content-actions/actions/workflows/ci.yml/badge.svg?event=schedule)](https://github.com/ansible/ansible-content-actions/actions/workflows/ci.yml?query=event%3Aschedule)
+[![ci](https://github.com/ansible/ansible-content-actions/actions/workflows/ci.yaml/badge.svg?event=schedule)](https://github.com/ansible/ansible-content-actions/actions/workflows/ci.yaml?query=event%3Aschedule)
 [![GitHub Issues or Pull Requests](https://img.shields.io/github/issues-pr/ansible/ansible-content-actions)](https://github.com/ansible/ansible-content-actions/pulls?q=sort%3Aupdated-desc+is%3Apr+is%3Aopen+-is%3Adraft)
 
 
