@@ -19,6 +19,11 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 try:
+    from audit_models import (  # pylint: disable=import-error
+        Finding,
+        FindingCategory,
+        RiskLevel,
+    )
     from cache_utils import (  # pylint: disable=import-error
         get_all_cached_checks,
         get_all_cached_commits,
@@ -31,13 +36,13 @@ try:
         read_manifest,
         write_findings,
     )
-    from audit_models import (  # pylint: disable=import-error
+except ImportError:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from audit_models import (
         Finding,
         FindingCategory,
         RiskLevel,
     )
-except ImportError:
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
     from cache_utils import (
         get_all_cached_checks,
         get_all_cached_commits,
@@ -49,11 +54,6 @@ except ImportError:
         get_all_cached_vulns,
         read_manifest,
         write_findings,
-    )
-    from audit_models import (
-        Finding,
-        FindingCategory,
-        RiskLevel,
     )
 
 GITHUB_NOREPLY_EMAILS = {"noreply@github.com", "github@users.noreply.github.com"}

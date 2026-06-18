@@ -21,6 +21,12 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 try:
+    from audit_models import (  # pylint: disable=import-error
+        CheckSuite,
+        Commit,
+        DepChange,
+        PullRequest,
+    )
     from cache_utils import (  # pylint: disable=import-error
         GITHUB_ORG,
         TARGET_REPOS,
@@ -31,16 +37,16 @@ try:
         write_cache_file,
         write_manifest,
     )
-    from audit_models import (  # pylint: disable=import-error
+except ImportError:
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from audit_models import (
         CheckSuite,
         Commit,
         DepChange,
         PullRequest,
     )
-except ImportError:
-    from pathlib import Path
-
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
     from cache_utils import (
         GITHUB_ORG,
         TARGET_REPOS,
@@ -50,12 +56,6 @@ except ImportError:
         read_cache_file,
         write_cache_file,
         write_manifest,
-    )
-    from audit_models import (
-        CheckSuite,
-        Commit,
-        DepChange,
-        PullRequest,
     )
 
 if TYPE_CHECKING:
