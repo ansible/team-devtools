@@ -18,7 +18,7 @@ import time
 import urllib.error
 import urllib.request
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from pathlib import Path
 
 try:
     from audit_models import (  # pylint: disable=import-error
@@ -38,8 +38,6 @@ try:
         write_manifest,
     )
 except ImportError:
-    from pathlib import Path
-
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from audit_models import (
         CheckSuite,
@@ -57,9 +55,6 @@ except ImportError:
         write_cache_file,
         write_manifest,
     )
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 
 RATE_LIMIT_SLEEP = 0.5
