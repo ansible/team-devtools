@@ -17,6 +17,16 @@ jobs:
           gpg_private_key: ${{ secrets.BOT_GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.BOT_GPG_PASSPHRASE }}
 
+      - name: Remove old GPG keys from bot account
+        env:
+          GH_TOKEN: ${{ secrets.BOT_PAT }}
+        run: |
+          EXISTING=$(gh api user/gpg_keys --jq '.[].id' 2>/dev/null || true)
+          for KEY_ID in $EXISTING; do
+            echo "Removing old GPG key: $KEY_ID"
+            gh api -X DELETE "user/gpg_keys/$KEY_ID"
+          done
+
       - name: Upload GPG public key to bot GitHub account
         env:
           GH_TOKEN: ${{ secrets.BOT_PAT }}
@@ -30,8 +40,9 @@ jobs:
           KEY_ID=$(echo "$RESPONSE" | jq -r '.id')
           echo "GPG public key uploaded successfully (key ID: $KEY_ID)"
 
-          echo "## Verifying upload" >> "$GITHUB_STEP_SUMMARY"
           WHOAMI=$(gh api user --jq '.login')
           KEYS=$(gh api "users/${WHOAMI}/gpg_keys" --jq '.[].key_id')
-          echo "Bot account: $WHOAMI" >> "$GITHUB_STEP_SUMMARY"
-          echo "GPG keys on account: $KEYS" >> "$GITHUB_STEP_SUMMARY"
+          echo "## GPG Key Setup Complete" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Bot account: $WHOAMI" >> "$GITHUB_STEP_SUMMARY"
+          echo "- GPG keys on account: $KEYS" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Fingerprint: $GPG_FINGERPRINT" >> "$GITHUB_STEP_SUMMARY"
