@@ -59,8 +59,7 @@ def check_prerequisites(renderer: str) -> bool:
             print("  Mermaid CLI (mmdc) found.")
             return True
         print(
-            "ERROR: Mermaid rendering requires mermaid-cli (mmdc).\n"
-            "Install: npm install -g @mermaid-js/mermaid-cli",
+            "ERROR: Mermaid rendering requires mermaid-cli (mmdc).\nInstall: npm install -g @mermaid-js/mermaid-cli",
             file=sys.stderr,
         )
         return False

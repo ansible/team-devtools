@@ -27,7 +27,8 @@ def get_pypi_release_dates(package_name: str) -> dict[str, str]:
     try:
         url = f"https://pypi.org/pypi/{package_name}/json"
         req = urllib.request.Request(  # noqa: S310
-            url, headers={"User-Agent": "supply-chain-audit/1.0"},
+            url,
+            headers={"User-Agent": "supply-chain-audit/1.0"},
         )
         with urllib.request.urlopen(req, timeout=15) as resp:  # noqa: S310
             data = json.loads(resp.read())
@@ -50,7 +51,8 @@ def get_npm_release_dates(package_name: str) -> dict[str, str]:
     try:
         url = f"https://registry.npmjs.org/{package_name}"
         req = urllib.request.Request(  # noqa: S310
-            url, headers={"User-Agent": "supply-chain-audit/1.0"},
+            url,
+            headers={"User-Agent": "supply-chain-audit/1.0"},
         )
         with urllib.request.urlopen(req, timeout=15) as resp:  # noqa: S310
             data = json.loads(resp.read())
@@ -90,9 +92,7 @@ def analyze_package_impact(
             version_release = release_dates.get(version, "unknown")
 
             is_after_compromise = commit_date >= compromise_date
-            version_released_after = (
-                version_release != "unknown" and version_release >= compromise_date
-            )
+            version_released_after = version_release != "unknown" and version_release >= compromise_date
 
             is_pinned = _is_version_pinned(dep)
 
@@ -120,9 +120,7 @@ def analyze_package_impact(
             else:
                 safe_repos.append(entry)
 
-    potentially_exposed = [
-        r for r in affected_repos if r["risk_assessment"] in ("critical", "high")
-    ]
+    potentially_exposed = [r for r in affected_repos if r["risk_assessment"] in ("critical", "high")]
 
     return {
         "package_name": package_name,
@@ -184,10 +182,7 @@ def _build_timeline(
         {
             "date": entry["commit_date"],
             "event": "dep_change",
-            "description": (
-                f"{entry['repo']}: {entry['change_type']} "
-                f"v{entry['version']} ({entry['file_path']})"
-            ),
+            "description": (f"{entry['repo']}: {entry['change_type']} v{entry['version']} ({entry['file_path']})"),
             "repo": entry["repo"],
             "risk": entry.get("risk_assessment", "unknown"),
         }
@@ -204,7 +199,9 @@ def main() -> None:
         description="Package/CVE focused supply chain analysis",
     )
     parser.add_argument(
-        "--cache-dir", required=True, help="Cache directory from collect.py",
+        "--cache-dir",
+        required=True,
+        help="Cache directory from collect.py",
     )
     parser.add_argument("--package", required=True, help="Package name to investigate")
     parser.add_argument(
@@ -236,7 +233,8 @@ def main() -> None:
                 break
         else:
             print(
-                "ERROR: No manifest.json found. Run collect.py first.", file=sys.stderr,
+                "ERROR: No manifest.json found. Run collect.py first.",
+                file=sys.stderr,
             )
             sys.exit(1)
 
@@ -260,7 +258,10 @@ def main() -> None:
 
     print("\nAnalyzing impact...")
     results = analyze_package_impact(
-        args.package, args.compromise_date, deps, release_dates,
+        args.package,
+        args.compromise_date,
+        deps,
+        release_dates,
     )
 
     write_package_focus(cache_dir, results)
@@ -278,8 +279,7 @@ def main() -> None:
         for entry in results["affected_entries"]:
             risk = entry["risk_assessment"].upper()
             print(
-                f"    [{risk}] {entry['repo']}: v{entry['version']} "
-                f"({entry['change_type']} on {entry['commit_date']})",
+                f"    [{risk}] {entry['repo']}: v{entry['version']} ({entry['change_type']} on {entry['commit_date']})",
             )
 
     print(f"\n  Results written to: {cache_dir / 'package_focus.json'}")

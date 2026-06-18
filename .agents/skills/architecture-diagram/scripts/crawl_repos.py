@@ -122,7 +122,9 @@ def _find_containerfiles(repo_dir: Path) -> list[Path]:
 
 
 def _parse_containerfile(
-    cf: Path, repo_slug: str, repo_dir: Path,
+    cf: Path,
+    repo_slug: str,
+    repo_dir: Path,
 ) -> ContainerArtifact | None:
     """Extract base image and notable contents from a Containerfile."""
     try:
@@ -166,7 +168,8 @@ def _parse_containerfile(
 
 
 def _scan_workflow_container_builds(
-    repo_dir: Path, repo_slug: str,
+    repo_dir: Path,
+    repo_slug: str,
 ) -> list[ContainerArtifact]:
     """Scan GitHub Actions workflows and build scripts for container image builds/pushes."""
     artifacts: list[ContainerArtifact] = []
@@ -219,7 +222,8 @@ def _scan_workflow_container_builds(
 
 
 def _scan_workflow_reusable(
-    repo_dir: Path, repo_slug: str,
+    repo_dir: Path,
+    repo_slug: str,
 ) -> list[DiscoveredRelationship]:
     """Discover reusable workflow references to other ADT repos."""
     rels: list[DiscoveredRelationship] = []
@@ -283,11 +287,7 @@ def _crawl_vscode_ansible(repo_dir: Path, result: CrawlResult) -> None:  # noqa:
             text = f.read_text(errors="ignore")
         except OSError:
             continue
-        if (
-            "LanguageClient" in text
-            or "createConnection" in text
-            or "LanguageServer" in text
-        ):
+        if "LanguageClient" in text or "createConnection" in text or "LanguageServer" in text:
             result.components.append(
                 DiscoveredComponent(
                     name="Ansible Language Server",
@@ -340,9 +340,7 @@ def _crawl_vscode_ansible(repo_dir: Path, result: CrawlResult) -> None:  # noqa:
                 text = f.read_text(errors="ignore")
             except OSError:
                 continue
-            if "mcp" in text.lower() and (
-                "server" in text.lower() or "McpServer" in text or "MCP" in text
-            ):
+            if "mcp" in text.lower() and ("server" in text.lower() or "McpServer" in text or "MCP" in text):
                 result.components.append(
                     DiscoveredComponent(
                         name="Ansible MCP Server",
@@ -392,9 +390,7 @@ def _crawl_abbenay(repo_dir: Path, result: CrawlResult) -> None:
                 desc = desc or "Generated TypeScript proto stubs"
             result.components.append(
                 DiscoveredComponent(
-                    name=f"@abbenay/{name}"
-                    if name != "python"
-                    else "abbenay-python-client",
+                    name=f"@abbenay/{name}" if name != "python" else "abbenay-python-client",
                     repo_slug=slug,
                     component_type=ctype,
                     technology=tech,

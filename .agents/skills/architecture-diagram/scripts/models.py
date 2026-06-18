@@ -61,9 +61,7 @@ class DiscoveredComponent:
 
     name: str
     repo_slug: str
-    component_type: (
-        str  # "library", "cli", "server", "extension", "container", "frontend", "proxy"
-    )
+    component_type: str  # "library", "cli", "server", "extension", "container", "frontend", "proxy"
     technology: str
     description: str
 

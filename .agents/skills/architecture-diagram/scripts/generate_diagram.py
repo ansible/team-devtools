@@ -30,14 +30,7 @@ PROVENANCE = (
 
 def _safe_var(name: str) -> str:
     """Turn a repo slug or component name into a valid Python variable."""
-    result = (
-        name.replace("/", "_")
-        .replace("-", "_")
-        .replace(".", "_")
-        .replace("@", "")
-        .replace(" ", "_")
-        .lower()
-    )
+    result = name.replace("/", "_").replace("-", "_").replace(".", "_").replace("@", "").replace(" ", "_").lower()
     result = re.sub(r"[^a-z0-9_]", "", result)
     result = re.sub(r"_+", "_", result).strip("_")
     if result and result[0].isdigit():
@@ -56,16 +49,10 @@ def generate_system_context(result: CrawlResult, output_dir: Path) -> Path:
 
     # Group repos into logical systems
     adt_repos = [
-        s
-        for s, e in result.repos.items()
-        if e.tier in (RepoTier.PRIMARY, RepoTier.EXPERIMENTAL, RepoTier.COMMUNITY)
+        s for s, e in result.repos.items() if e.tier in (RepoTier.PRIMARY, RepoTier.EXPERIMENTAL, RepoTier.COMMUNITY)
     ]
-    container_repos = [
-        s for s, e in result.repos.items() if e.tier == RepoTier.CONTAINER
-    ]
-    ai_platform_repos = [
-        s for s, e in result.repos.items() if e.tier == RepoTier.AI_PLATFORM
-    ]
+    container_repos = [s for s, e in result.repos.items() if e.tier == RepoTier.CONTAINER]
+    ai_platform_repos = [s for s, e in result.repos.items() if e.tier == RepoTier.AI_PLATFORM]
     adjacent_repos = [s for s, e in result.repos.items() if e.tier == RepoTier.ADJACENT]
 
     lines = [
@@ -236,13 +223,11 @@ def generate_container_diagram(result: CrawlResult, output_dir: Path) -> Path:  
 
             if tier == RepoTier.CONTAINER:
                 lines.append(
-                    f'        {var} = Container("{short_name}", '
-                    f'"{desc}", technology="Container Image", alias="{var}")',
+                    f'        {var} = Container("{short_name}", "{desc}", technology="Container Image", alias="{var}")',
                 )
             else:
                 lines.append(
-                    f'        {var} = Container("{short_name}", '
-                    f'"{desc}", technology="{tech}", alias="{var}")',
+                    f'        {var} = Container("{short_name}", "{desc}", technology="{tech}", alias="{var}")',
                 )
         lines.append("")
 
@@ -255,8 +240,7 @@ def generate_container_diagram(result: CrawlResult, output_dir: Path) -> Path:  
         desc = comp.description.replace('"', '\\"')
         tech = comp.technology.replace('"', '\\"')
         lines.append(
-            f'    {var} = Container("{comp.name}", '
-            f'"{desc}", technology="{tech}", alias="{var}")',
+            f'    {var} = Container("{comp.name}", "{desc}", technology="{tech}", alias="{var}")',
         )
 
     lines.append("")
@@ -329,8 +313,7 @@ def generate_container_diagram(result: CrawlResult, output_dir: Path) -> Path:  
     # Relationships from crawl data
     lines.append("    # --- Relationships (discovered from actual repos) ---")
     lines.append(
-        '    content_author >> Rel("Develops with") >> '
-        + var_map.get("ansible/ansible-dev-tools", "adt"),
+        '    content_author >> Rel("Develops with") >> ' + var_map.get("ansible/ansible-dev-tools", "adt"),
     )
     lines.append("")
 
@@ -373,7 +356,9 @@ def generate_container_diagram(result: CrawlResult, output_dir: Path) -> Path:  
 
 
 def generate_component_diagram(
-    result: CrawlResult, repo_slug: str, output_dir: Path,
+    result: CrawlResult,
+    repo_slug: str,
+    output_dir: Path,
 ) -> Path | None:
     """Generate an L3 Component diagram for a single repo."""
     entry = result.repos.get(repo_slug)
@@ -406,16 +391,13 @@ def generate_component_diagram(
         desc = comp.description.replace('"', '\\"')
         tech = comp.technology.replace('"', '\\"')
         lines.append(
-            f'        {var} = Component("{comp.name}", '
-            f'"{desc}", technology="{tech}", alias="{var}")',
+            f'        {var} = Component("{comp.name}", "{desc}", technology="{tech}", alias="{var}")',
         )
 
     lines.append("")
 
     # Collect relationships involving this repo's components
-    repo_rels = [
-        r for r in result.relationships if r.source in var_map or r.target in var_map
-    ]
+    repo_rels = [r for r in result.relationships if r.source in var_map or r.target in var_map]
 
     # Identify external targets/sources that need ComponentExt definitions
     ext_vars: dict[str, str] = {}
@@ -425,14 +407,9 @@ def generate_component_diagram(
                 var = _safe_var(endpoint) + "_ext"
                 ext_vars[endpoint] = var
                 short_name = endpoint.split("/")[-1] if "/" in endpoint else endpoint
-                ext_desc = (
-                    result.repos[endpoint].description.replace('"', '\\"')
-                    if endpoint in result.repos
-                    else ""
-                )
+                ext_desc = result.repos[endpoint].description.replace('"', '\\"') if endpoint in result.repos else ""
                 lines.append(
-                    f'    {var} = ComponentExt("{short_name}", '
-                    f'"{ext_desc}", alias="{var}")',
+                    f'    {var} = ComponentExt("{short_name}", "{ext_desc}", alias="{var}")',
                 )
 
     if ext_vars:

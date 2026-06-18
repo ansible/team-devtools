@@ -131,8 +131,7 @@ def get_gh_version() -> str:
 def collect_commits(repo: str, start_date: str, end_date: str) -> list[dict]:
     """Fetch all commits for a repo in the time window."""
     endpoint = (
-        f"repos/{GITHUB_ORG}/{repo}/commits"
-        f"?since={start_date}T00:00:00Z&until={end_date}T23:59:59Z&per_page={PER_PAGE}"
+        f"repos/{GITHUB_ORG}/{repo}/commits?since={start_date}T00:00:00Z&until={end_date}T23:59:59Z&per_page={PER_PAGE}"
     )
     data = gh_api(endpoint, paginate=True)
     if not data or not isinstance(data, list):
@@ -200,9 +199,7 @@ def collect_pr_commits_and_reviews(repo: str, prs: list[dict]) -> list[dict]:
         pr_num = pr["number"]
 
         # Get all commits on the PR branch
-        commits_endpoint = (
-            f"repos/{GITHUB_ORG}/{repo}/pulls/{pr_num}/commits?per_page=100"
-        )
+        commits_endpoint = f"repos/{GITHUB_ORG}/{repo}/pulls/{pr_num}/commits?per_page=100"
         pr_commits = gh_api(commits_endpoint)
         time.sleep(RATE_LIMIT_SLEEP)
 
@@ -405,7 +402,10 @@ def _parse_release_age(age_str: str | int | None) -> int | None:
 
 
 def collect_dep_changes(
-    repo: str, _start_date: str, end_date: str, commits: list[dict],
+    repo: str,
+    _start_date: str,
+    end_date: str,
+    commits: list[dict],
 ) -> list[dict]:
     """Identify dependency file changes by examining commits that touch dep files."""
     if not commits:
@@ -535,7 +535,8 @@ def parse_dep_patch(
 
 
 def _parse_npm_patch(
-    patch: str, basename: str,
+    patch: str,
+    basename: str,
 ) -> tuple[dict[str, str], dict[str, str]]:
     """Parse npm ecosystem diff lines for package names and versions."""
     added_deps: dict[str, str] = {}
@@ -690,10 +691,12 @@ def enrich_dep_release_info(dep: dict) -> None:
         if ecosystem == "pypi":
             url = f"https://pypi.org/pypi/{pkg}/{version}/json"
             req = urllib.request.Request(  # noqa: S310
-                url, headers={"User-Agent": "supply-chain-audit/1.0"},
+                url,
+                headers={"User-Agent": "supply-chain-audit/1.0"},
             )
             with urllib.request.urlopen(  # noqa: S310
-                req, timeout=REGISTRY_REQUEST_TIMEOUT_SECONDS,
+                req,
+                timeout=REGISTRY_REQUEST_TIMEOUT_SECONDS,
             ) as resp:
                 data = json.loads(resp.read())
                 urls = data.get("urls", [])
@@ -706,10 +709,12 @@ def enrich_dep_release_info(dep: dict) -> None:
         elif ecosystem == "npm":
             url = f"https://registry.npmjs.org/{pkg}"
             req = urllib.request.Request(  # noqa: S310
-                url, headers={"User-Agent": "supply-chain-audit/1.0"},
+                url,
+                headers={"User-Agent": "supply-chain-audit/1.0"},
             )
             with urllib.request.urlopen(  # noqa: S310
-                req, timeout=REGISTRY_REQUEST_TIMEOUT_SECONDS,
+                req,
+                timeout=REGISTRY_REQUEST_TIMEOUT_SECONDS,
             ) as resp:
                 data = json.loads(resp.read())
                 time_map = data.get("time", {})
@@ -747,9 +752,7 @@ def collect_package_inventory(repo: str) -> list[dict]:
             try:
                 content = base64.b64decode(data["content"]).decode("utf-8")
                 pkgs = _parse_toml_lock_inventory(content, lock_file)
-                packages.extend(
-                    {"name": p[0], "version": p[1], "ecosystem": "PyPI"} for p in pkgs
-                )
+                packages.extend({"name": p[0], "version": p[1], "ecosystem": "PyPI"} for p in pkgs)
             except (ValueError, UnicodeDecodeError):
                 pass
             break
@@ -825,7 +828,8 @@ def scan_osv_batch(packages: list[dict]) -> list[dict]:
 
         try:
             with urllib.request.urlopen(  # noqa: S310
-                req, timeout=OSV_REQUEST_TIMEOUT_SECONDS,
+                req,
+                timeout=OSV_REQUEST_TIMEOUT_SECONDS,
             ) as resp:
                 data = json.loads(resp.read())
                 batch_results = data.get("results", [])
@@ -1100,7 +1104,10 @@ def _write_repo_cache_files(cache_dir: Path, repo: str, artifacts: dict) -> None
     write_cache_file(cache_dir, "deps", f"{repo}.json", artifacts["deps"])
     write_cache_file(cache_dir, "pr_audits", f"{repo}.json", artifacts["pr_audits"])
     write_cache_file(
-        cache_dir, "renovate", f"{repo}.json", artifacts["renovate_config"],
+        cache_dir,
+        "renovate",
+        f"{repo}.json",
+        artifacts["renovate_config"],
     )
     write_cache_file(cache_dir, "vulns", f"{repo}.json", artifacts["vuln_results"])
     write_cache_file(
@@ -1149,13 +1156,19 @@ def main() -> None:
     parser.add_argument("--start", required=True, help="Start date (YYYY-MM-DD)")
     parser.add_argument("--end", required=True, help="End date (YYYY-MM-DD)")
     parser.add_argument(
-        "--cache-dir", default=".supply-chain-audit/cache", help="Cache directory",
+        "--cache-dir",
+        default=".supply-chain-audit/cache",
+        help="Cache directory",
     )
     parser.add_argument(
-        "--force", action="store_true", help="Force re-collection even if cached",
+        "--force",
+        action="store_true",
+        help="Force re-collection even if cached",
     )
     parser.add_argument(
-        "--repos", nargs="*", help="Specific repos to collect (default: all)",
+        "--repos",
+        nargs="*",
+        help="Specific repos to collect (default: all)",
     )
     args = parser.parse_args()
 
@@ -1193,7 +1206,13 @@ def main() -> None:
         total_prs += p
 
     write_manifest(
-        cache_dir, args.start, args.end, repos, gh_version, total_commits, total_prs,
+        cache_dir,
+        args.start,
+        args.end,
+        repos,
+        gh_version,
+        total_commits,
+        total_prs,
     )
 
     print(f"\n{'=' * 60}")

@@ -90,11 +90,7 @@ def detect_github_web_signed(commits: list[dict], prs: list[dict]) -> list[Findi
     to be signed by web-flow. Only flag commits signed by GitHub that cannot
     be attributed to a PR merge operation (i.e., direct web UI edits).
     """
-    pr_merge_shas = {
-        pr.get("merge_commit_sha")
-        for pr in prs
-        if pr.get("merged") and pr.get("merge_commit_sha")
-    }
+    pr_merge_shas = {pr.get("merge_commit_sha") for pr in prs if pr.get("merged") and pr.get("merge_commit_sha")}
 
     findings = []
     for commit in commits:
@@ -151,9 +147,7 @@ def detect_github_web_signed(commits: list[dict], prs: list[dict]) -> list[Findi
 
 def detect_orphan_commits(commits: list[dict], prs: list[dict]) -> list[Finding]:
     """Detect commits with no associated pull request."""
-    pr_merge_shas = {
-        pr.get("merge_commit_sha") for pr in prs if pr.get("merge_commit_sha")
-    }
+    pr_merge_shas = {pr.get("merge_commit_sha") for pr in prs if pr.get("merge_commit_sha")}
 
     findings = []
     for commit in commits:
@@ -456,7 +450,8 @@ def detect_replicated_messages(commits: list[dict]) -> list[Finding]:
 
 
 def detect_suspicious_dep_timing(
-    deps: list[dict], renovate_configs: dict[str, dict],
+    deps: list[dict],
+    renovate_configs: dict[str, dict],
 ) -> list[Finding]:
     """Detect dependencies that violate the configured renovate cooldown period.
 
@@ -485,9 +480,7 @@ def detect_suspicious_dep_timing(
             new_major = new_ver.split(".")[0] if "." in new_ver else new_ver
             is_major = old_major != new_major
 
-        effective_cooldown = (
-            major_cooldown if is_major and major_cooldown else default_cooldown
-        )
+        effective_cooldown = major_cooldown if is_major and major_cooldown else default_cooldown
 
         if effective_cooldown is not None and days < effective_cooldown:
             # Policy violation — adopted before configured cooldown
@@ -497,8 +490,7 @@ def detect_suspicious_dep_timing(
                     risk_level=RiskLevel.CRITICAL,
                     repo=repo,
                     summary=(
-                        f"'{dep['package_name']}' adopted {days}d after release "
-                        f"(cooldown: {effective_cooldown}d)"
+                        f"'{dep['package_name']}' adopted {days}d after release (cooldown: {effective_cooldown}d)"
                     ),
                     details=(
                         f"Package '{dep['package_name']}' {new_ver} was released on "
@@ -528,9 +520,7 @@ def detect_suspicious_dep_timing(
                     category=FindingCategory.SUSPICIOUS_DEP_TIMING,
                     risk_level=RiskLevel.LOW,
                     repo=repo,
-                    summary=(
-                        f"'{dep['package_name']}' adopted {days}d after release (no cooldown configured)"
-                    ),
+                    summary=(f"'{dep['package_name']}' adopted {days}d after release (no cooldown configured)"),
                     details=(
                         f"Package '{dep['package_name']}' {new_ver} was released on "
                         f"{dep.get('release_date')} and adopted {days} day(s) later. "
@@ -617,14 +607,11 @@ def detect_post_approval_commits(pr_audits: list[dict]) -> list[Finding]:
         approver_logins = {a["user"] for a in approvals}
 
         # Categorize post-approval commits by author relationship
-        from_pr_author = [
-            c for c in post_approval if c.get("author_login", "") == pr_author
-        ]
+        from_pr_author = [c for c in post_approval if c.get("author_login", "") == pr_author]
         from_approver = [
             c
             for c in post_approval
-            if c.get("author_login", "") in approver_logins
-            and c.get("author_login", "") != pr_author
+            if c.get("author_login", "") in approver_logins and c.get("author_login", "") != pr_author
         ]
         from_unknown_third_party = [
             c
@@ -649,8 +636,7 @@ def detect_post_approval_commits(pr_audits: list[dict]) -> list[Finding]:
         else:
             risk = RiskLevel.HIGH
             summary = (
-                f"PR #{pr_num}: {len(from_pr_author)} commit(s) pushed by PR "
-                f"author after approval by {last_approver}"
+                f"PR #{pr_num}: {len(from_pr_author)} commit(s) pushed by PR author after approval by {last_approver}"
             )
 
         details_parts = [
@@ -794,28 +780,18 @@ def detect_bot_only_approval(pr_audits: list[dict], prs: list[dict]) -> list[Fin
 
         # Determine risk based on PR characteristics
         is_bot_pr = _is_bot_account(pr_author)
-        is_dep_only = any(
-            kw in pr_title.lower()
-            for kw in ("chore(deps)", "bump ", "update dependency", "lock file")
-        )
+        is_dep_only = any(kw in pr_title.lower() for kw in ("chore(deps)", "bump ", "update dependency", "lock file"))
 
         if is_bot_pr and is_dep_only:
             risk = RiskLevel.LOW
-            summary = (
-                f"PR #{pr_num}: bot-to-bot approval for dependency update "
-                f"(approved by {', '.join(bot_names)})"
-            )
+            summary = f"PR #{pr_num}: bot-to-bot approval for dependency update (approved by {', '.join(bot_names)})"
         elif is_bot_pr:
             risk = RiskLevel.MEDIUM
-            summary = (
-                f"PR #{pr_num}: bot PR approved only by bot(s) "
-                f"({', '.join(bot_names)}), no human review"
-            )
+            summary = f"PR #{pr_num}: bot PR approved only by bot(s) ({', '.join(bot_names)}), no human review"
         else:
             risk = RiskLevel.HIGH
             summary = (
-                f"PR #{pr_num}: human-authored PR approved only by bot(s) "
-                f"({', '.join(bot_names)}), no human review"
+                f"PR #{pr_num}: human-authored PR approved only by bot(s) ({', '.join(bot_names)}), no human review"
             )
 
         findings.append(
@@ -900,10 +876,7 @@ def detect_self_approval(pr_audits: list[dict]) -> list[Finding]:
                     category=FindingCategory.SELF_APPROVED,
                     risk_level=RiskLevel.LOW,
                     repo=repo,
-                    summary=(
-                        f"PR #{pr_num}: author {pr_author} self-approved "
-                        f"(also reviewed by {', '.join(others)})"
-                    ),
+                    summary=(f"PR #{pr_num}: author {pr_author} self-approved (also reviewed by {', '.join(others)})"),
                     details=(
                         f"PR #{pr_num} in {repo} was approved by its author {pr_author} "
                         f"in addition to independent reviewer(s): {', '.join(others)}. "
@@ -941,12 +914,10 @@ def _print_cache_stats(
     print(f"  Dep changes: {len(deps)}")
     print(f"  Repos with protection data: {len(protection)}")
     print(
-        f"  Repos with renovate config: "
-        f"{sum(1 for c in renovate_configs.values() if c.get('source') != 'none')}",
+        f"  Repos with renovate config: {sum(1 for c in renovate_configs.values() if c.get('source') != 'none')}",
     )
     print(
-        f"  Repos with vulnerability data: {len(vulns)} "
-        f"({sum(len(v) for v in vulns.values())} affected packages)",
+        f"  Repos with vulnerability data: {len(vulns)} ({sum(len(v) for v in vulns.values())} affected packages)",
     )
 
 
@@ -976,9 +947,7 @@ def _run_detection_passes(
     """Execute all detection passes and return combined findings."""
     print("\nRunning detection passes...")
 
-    pass_specs: list[
-        tuple[str, str, Callable[[], list[Finding]], Callable[[list[Finding]], str]]
-    ] = [
+    pass_specs: list[tuple[str, str, Callable[[], list[Finding]], Callable[[list[Finding]], str]]] = [
         (
             "[1/12]",
             "Unsigned commits",
@@ -989,9 +958,7 @@ def _run_detection_passes(
             "[2/12]",
             "GitHub-web-signed commits (excluding PR merges)",
             lambda: detect_github_web_signed(commits, prs),
-            lambda findings: (
-                f"Found {len(findings)} GitHub-web-signed commits (non-merge)"
-            ),
+            lambda findings: f"Found {len(findings)} GitHub-web-signed commits (non-merge)",
         ),
         (
             "[3/12]",
@@ -1100,11 +1067,25 @@ def run_analysis(cache_dir: Path) -> list[Finding]:
     vulns = get_all_cached_vulns(cache_dir)
 
     _print_cache_stats(
-        commits, prs, checks, deps, protection, pr_audits, renovate_configs, vulns,
+        commits,
+        prs,
+        checks,
+        deps,
+        protection,
+        pr_audits,
+        renovate_configs,
+        vulns,
     )
 
     all_findings = _run_detection_passes(
-        commits, prs, checks, deps, protection, pr_audits, renovate_configs, vulns,
+        commits,
+        prs,
+        checks,
+        deps,
+        protection,
+        pr_audits,
+        renovate_configs,
+        vulns,
     )
     _print_risk_summary(all_findings)
 
@@ -1168,7 +1149,8 @@ def _build_findings_summary(findings: list[dict], manifest: dict) -> dict:
             },
         )
     repo_breakdown.sort(
-        key=lambda x: (x["critical"], x["high"], x["total"]), reverse=True,
+        key=lambda x: (x["critical"], x["high"], x["total"]),
+        reverse=True,
     )
 
     return {
@@ -1185,7 +1167,9 @@ def main() -> None:
     """Entry point for anomaly analysis."""
     parser = argparse.ArgumentParser(description="Supply chain anomaly analyzer")
     parser.add_argument(
-        "--cache-dir", required=True, help="Cache directory from collect.py",
+        "--cache-dir",
+        required=True,
+        help="Cache directory from collect.py",
     )
     args = parser.parse_args()
 

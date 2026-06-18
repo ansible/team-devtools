@@ -93,9 +93,7 @@ def _linkify_advisory_ids(text: str) -> str:
             url = f"https://github.com/advisories/{vuln_id}"
         else:
             url = f"https://osv.dev/vulnerability/{vuln_id}"
-        return (
-            f'<a href="{url}" target="_blank" rel="noopener noreferrer">{vuln_id}</a>'
-        )
+        return f'<a href="{url}" target="_blank" rel="noopener noreferrer">{vuln_id}</a>'
 
     return _ADVISORY_PATTERN.sub(_make_link, text)
 
@@ -138,10 +136,7 @@ def _count_signature_stats(repo_commits: list[dict]) -> tuple[int, int, int]:
         v = c.get("verification", {})
         if v.get("verified"):
             committer = c.get("committer_login", "")
-            if (
-                committer == "web-flow"
-                or "github" in c.get("committer_email", "").lower()
-            ):
+            if committer == "web-flow" or "github" in c.get("committer_email", "").lower():
                 signed_github += 1
             else:
                 signed_personal += 1
@@ -171,11 +166,7 @@ def _build_repo_summary_row(
     num_findings: int,
 ) -> str:
     """Build a single per-repo summary table row."""
-    findings_str = (
-        str(num_findings)
-        if num_findings == 0
-        else (f'<span class="badge badge-high">{num_findings}</span>')
-    )
+    findings_str = str(num_findings) if num_findings == 0 else (f'<span class="badge badge-high">{num_findings}</span>')
     repo_url = f"https://github.com/ansible/{repo}"
     repo_link = f'<a href="{repo_url}" target="_blank" rel="noopener noreferrer">{esc(repo)}</a>'
     return (
@@ -416,7 +407,10 @@ def _append_timeline_commits(
 
 
 def generate_timeline_svg(
-    commits: list[dict], findings: list[dict], start_date: str, end_date: str,
+    commits: list[dict],
+    findings: list[dict],
+    start_date: str,
+    end_date: str,
 ) -> str:
     """Generate an SVG timeline visualization."""
     width = 900
@@ -438,10 +432,7 @@ def generate_timeline_svg(
     if not repos:
         return '<p class="no-data">No commits to visualize</p>'
 
-    repo_y = {
-        repo: margin_top + (i * plot_height // max(len(repos) - 1, 1))
-        for i, repo in enumerate(repos)
-    }
+    repo_y = {repo: margin_top + (i * plot_height // max(len(repos) - 1, 1)) for i, repo in enumerate(repos)}
 
     svg_parts = [
         f'<svg class="timeline-svg" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">',
@@ -569,9 +560,7 @@ def generate_commit_integrity_section(commits: list[dict], findings: list[dict])
 def generate_dep_section(deps: list[dict], prs: list[dict]) -> str:
     """Generate the dependency changes section."""
     if not deps:
-        return (
-            '<p class="no-data">No dependency changes detected in the audit window.</p>'
-        )
+        return '<p class="no-data">No dependency changes detected in the audit window.</p>'
 
     # Build a map of merge_commit_sha -> PR number for linking
     sha_to_pr: dict[str, tuple[str, int]] = {}
@@ -649,7 +638,8 @@ def generate_dep_section(deps: list[dict], prs: list[dict]) -> str:
 
 
 def generate_renovate_config_table(
-    renovate_configs: dict[str, dict], repos: list[str],
+    renovate_configs: dict[str, dict],
+    repos: list[str],
 ) -> str:
     """Generate a table showing each repo's configured renovate cooldown."""
     rows = []
@@ -669,12 +659,7 @@ def generate_renovate_config_table(
             major_str = f"{major_cd} days" if major_cd else "(inherits default)"
 
         rows.append(
-            f"<tr>"
-            f"<td>{esc(repo)}</td>"
-            f"<td>{default_str}</td>"
-            f"<td>{major_str}</td>"
-            f"<td>{source_display}</td>"
-            f"</tr>",
+            f"<tr><td>{esc(repo)}</td><td>{default_str}</td><td>{major_str}</td><td>{source_display}</td></tr>",
         )
 
     return (
@@ -755,10 +740,7 @@ def generate_findings_details(findings: list[dict]) -> str:
         )
         sections.append(section)
 
-    return (
-        "<h2>Anomaly Details</h2>"
-        "<p>Expand each category to see individual findings.</p>" + "\n".join(sections)
-    )
+    return "<h2>Anomaly Details</h2><p>Expand each category to see individual findings.</p>" + "\n".join(sections)
 
 
 def render_recommendations_html(recommendations: list[dict[str, str]]) -> str:
@@ -784,8 +766,7 @@ def render_recommendations_html(recommendations: list[dict[str, str]]) -> str:
 
     return (
         "<h2>Security Recommendations</h2>"
-        "<p>Prioritized actions based on this audit's findings, ordered by impact.</p>"
-        + "".join(items)
+        "<p>Prioritized actions based on this audit's findings, ordered by impact.</p>" + "".join(items)
     )
 
 
@@ -826,9 +807,7 @@ def generate_package_focus_section(package_data: dict | None) -> str:
             "</table>"
         )
     else:
-        table_html = (
-            '<div class="no-data">No affected entries found in the audit window</div>'
-        )
+        table_html = '<div class="no-data">No affected entries found in the audit window</div>'
 
     return (
         f"<h2>Package Focus: {esc(pkg)}</h2>"
@@ -918,13 +897,19 @@ def _generate_report_sections(data: dict) -> dict[str, str]:
     return {
         "verdict_section": generate_verdict(findings, len(commits), total_prs),
         "repo_summary_rows": generate_repo_summary_rows(
-            commits, prs, deps, findings, protection, repos,
+            commits,
+            prs,
+            deps,
+            findings,
+            protection,
+            repos,
         ),
         "findings_summary_section": generate_findings_summary(findings),
         "repo_cards": generate_repo_cards(findings, repos),
         "timeline_svg": generate_timeline_svg(commits, findings, start_date, end_date),
         "commit_integrity_section": generate_commit_integrity_section(
-            commits, findings,
+            commits,
+            findings,
         ),
         "dep_section": generate_dep_section(deps, prs),
         "renovate_section": generate_renovate_config_table(renovate_configs, repos),
@@ -934,7 +919,9 @@ def _generate_report_sections(data: dict) -> dict[str, str]:
 
 
 def _build_replacements(
-    data: dict, sections: dict[str, str], recommendations_section: str,
+    data: dict,
+    sections: dict[str, str],
+    recommendations_section: str,
 ) -> dict[str, str]:
     """Build template placeholder replacements for the report."""
     manifest = data["manifest"]
@@ -1015,7 +1002,9 @@ def main() -> None:
         description="Supply chain audit HTML report generator",
     )
     parser.add_argument(
-        "--cache-dir", required=True, help="Cache directory with audit data",
+        "--cache-dir",
+        required=True,
+        help="Cache directory with audit data",
     )
     parser.add_argument(
         "--output",
@@ -1034,7 +1023,8 @@ def main() -> None:
                 break
         else:
             print(
-                "ERROR: No manifest.json found. Run collect.py first.", file=sys.stderr,
+                "ERROR: No manifest.json found. Run collect.py first.",
+                file=sys.stderr,
             )
             sys.exit(1)
 
