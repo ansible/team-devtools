@@ -20,7 +20,7 @@ from pathlib import Path
 # Allow importing sibling module when run as a script.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from models import (  # noqa: E402
+from models import (
     ADT_PACKAGE_MAP,
     PYTHON_CLI_TOOLS,
     REPO_MANIFEST,
