@@ -29,7 +29,15 @@ PROVENANCE = (
 
 
 def _safe_var(name: str) -> str:
-    """Turn a repo slug or component name into a valid Python variable."""
+    """Turn a repo slug or component name into a valid Python variable.
+
+    Args:
+        name: Repo slug or component name.
+
+    Returns:
+        Valid Python identifier.
+
+    """
     result = name.replace("/", "_").replace("-", "_").replace(".", "_").replace("@", "").replace(" ", "_").lower()
     result = re.sub(r"[^a-z0-9_]", "", result)
     result = re.sub(r"_+", "_", result).strip("_")
@@ -44,7 +52,16 @@ def _safe_var(name: str) -> str:
 
 
 def generate_system_context(result: CrawlResult, output_dir: Path) -> Path:
-    """Generate the L1 System Context diagram."""
+    """Generate the L1 System Context diagram.
+
+    Args:
+        result: Crawl result data.
+        output_dir: Directory to write the diagram file.
+
+    Returns:
+        Path to the generated diagram file.
+
+    """
     out = output_dir / "l1_system_context.py"
 
     # Group repos into logical systems
@@ -172,7 +189,16 @@ def generate_system_context(result: CrawlResult, output_dir: Path) -> Path:
 
 
 def generate_container_diagram(result: CrawlResult, output_dir: Path) -> Path:  # noqa: PLR0912, PLR0915
-    """Generate the L2 Container diagram showing individual projects."""
+    """Generate the L2 Container diagram showing individual projects.
+
+    Args:
+        result: Crawl result data.
+        output_dir: Directory to write the diagram file.
+
+    Returns:
+        Path to the generated diagram file.
+
+    """
     out = output_dir / "l2_container.py"
 
     lines = [
@@ -360,7 +386,17 @@ def generate_component_diagram(
     repo_slug: str,
     output_dir: Path,
 ) -> Path | None:
-    """Generate an L3 Component diagram for a single repo."""
+    """Generate an L3 Component diagram for a single repo.
+
+    Args:
+        result: Crawl result data.
+        repo_slug: Repository slug to generate diagram for.
+        output_dir: Directory to write the diagram file.
+
+    Returns:
+        Path to the generated diagram file, or ``None`` on failure.
+
+    """
     entry = result.repos.get(repo_slug)
     if not entry:
         print(f"  Unknown repo: {repo_slug}", file=sys.stderr)
@@ -433,6 +469,7 @@ def generate_component_diagram(
 
 
 def main() -> None:
+    """Generate C4 diagram files from crawled dependency data."""
     parser = argparse.ArgumentParser(
         description="Generate C4 diagram files from crawl data",
     )

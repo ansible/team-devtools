@@ -23,7 +23,15 @@ from cache_utils import (
 
 
 def get_pypi_release_dates(package_name: str) -> dict[str, str]:
-    """Fetch all release dates for a package from PyPI."""
+    """Fetch all release dates for a package from PyPI.
+
+    Args:
+        package_name: PyPI package name.
+
+    Returns:
+        Mapping of version string to release date (YYYY-MM-DD).
+
+    """
     try:
         url = f"https://pypi.org/pypi/{package_name}/json"
         req = urllib.request.Request(  # noqa: S310
@@ -47,7 +55,15 @@ def get_pypi_release_dates(package_name: str) -> dict[str, str]:
 
 
 def get_npm_release_dates(package_name: str) -> dict[str, str]:
-    """Fetch all release dates for a package from npm."""
+    """Fetch all release dates for a package from npm.
+
+    Args:
+        package_name: npm package name.
+
+    Returns:
+        Mapping of version string to release date (YYYY-MM-DD).
+
+    """
     try:
         url = f"https://registry.npmjs.org/{package_name}"
         req = urllib.request.Request(  # noqa: S310
@@ -74,7 +90,18 @@ def analyze_package_impact(
     deps: list[dict],
     release_dates: dict[str, str],
 ) -> dict:
-    """Analyze how a compromised package affected the ecosystem."""
+    """Analyze how a compromised package affected the ecosystem.
+
+    Args:
+        package_name: Name of the suspected package.
+        compromise_date: Suspected compromise date (YYYY-MM-DD).
+        deps: All cached dependency changes.
+        release_dates: Version-to-date mapping from registry.
+
+    Returns:
+        Impact analysis results dict.
+
+    """
     affected_repos: list[dict] = []
     safe_repos: list[dict] = []
 
@@ -135,7 +162,15 @@ def analyze_package_impact(
 
 
 def _is_version_pinned(dep: dict) -> bool:
-    """Check whether the dependency specifies a pinned (exact) version."""
+    """Check whether the dependency specifies a pinned (exact) version.
+
+    Args:
+        dep: Dependency change dict.
+
+    Returns:
+        ``True`` if the version spec contains no range operators.
+
+    """
     version = dep.get("new_version", "")
     if not version:
         return False
@@ -149,7 +184,18 @@ def _assess_risk(
     is_pinned: bool,
     change_type: str,
 ) -> str:
-    """Classify the risk level for a specific dep entry."""
+    """Classify the risk level for a specific dep entry.
+
+    Args:
+        adopted_after: Whether adoption occurred after compromise date.
+        released_after: Whether the version was released after compromise.
+        is_pinned: Whether the version is an exact pin.
+        change_type: Type of dependency change (added, updated, etc.).
+
+    Returns:
+        Risk level string (critical, high, medium, or low).
+
+    """
     if adopted_after and released_after:
         return "critical"
     if adopted_after and not is_pinned:
@@ -166,7 +212,17 @@ def _build_timeline(
     safe: list[dict],
     compromise_date: str,
 ) -> list[dict]:
-    """Build a chronological timeline of events."""
+    """Build a chronological timeline of events.
+
+    Args:
+        affected: Entries flagged as potentially affected.
+        safe: Entries considered safe.
+        compromise_date: Suspected compromise date (YYYY-MM-DD).
+
+    Returns:
+        Chronologically sorted event dicts.
+
+    """
     events: list[dict] = []
 
     events.append(

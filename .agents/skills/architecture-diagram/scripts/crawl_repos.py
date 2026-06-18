@@ -41,8 +41,14 @@ from models import (
 def clone_all(clone_dir: Path) -> dict[str, Path]:
     """Shallow-clone every manifest repo into *clone_dir*.
 
-    Returns a mapping of repo slug -> local path.
     Skips repos that fail to clone (prints a warning).
+
+    Args:
+        clone_dir: Directory to clone repos into (will be recreated).
+
+    Returns:
+        Mapping of repo slug to local clone path.
+
     """
     if clone_dir.exists():
         shutil.rmtree(clone_dir)
@@ -72,7 +78,15 @@ def clone_all(clone_dir: Path) -> dict[str, Path]:
 
 
 def _read_toml_deps(pyproject: Path) -> list[str]:
-    """Extract dependency names from pyproject.toml without a TOML library."""
+    """Extract dependency names from pyproject.toml without a TOML library.
+
+    Args:
+        pyproject: Path to pyproject.toml file.
+
+    Returns:
+        Lowercased dependency package names.
+
+    """
     text = pyproject.read_text(encoding="utf-8")
     deps: list[str] = []
     in_deps = False
@@ -101,7 +115,15 @@ def _read_toml_deps(pyproject: Path) -> list[str]:
 
 
 def _read_package_json_deps(pkg_json: Path) -> list[str]:
-    """Extract dependency names from package.json."""
+    """Extract dependency names from package.json.
+
+    Args:
+        pkg_json: Path to package.json file.
+
+    Returns:
+        Dependency package names.
+
+    """
     try:
         data = json.loads(pkg_json.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
@@ -113,7 +135,15 @@ def _read_package_json_deps(pkg_json: Path) -> list[str]:
 
 
 def _find_containerfiles(repo_dir: Path) -> list[Path]:
-    """Find Containerfile / Dockerfile variants."""
+    """Find Containerfile / Dockerfile variants.
+
+    Args:
+        repo_dir: Root directory of the cloned repository.
+
+    Returns:
+        Paths to discovered container definition files.
+
+    """
     candidates = ["Containerfile", "Dockerfile"]
     found: list[Path] = [p for name in candidates for p in repo_dir.rglob(name)]
     found.extend(repo_dir.rglob("*.containerfile"))
@@ -126,7 +156,17 @@ def _parse_containerfile(
     repo_slug: str,
     repo_dir: Path,
 ) -> ContainerArtifact | None:
-    """Extract base image and notable contents from a Containerfile."""
+    """Extract base image and notable contents from a Containerfile.
+
+    Args:
+        cf: Path to the Containerfile.
+        repo_slug: Repository slug (e.g. ``ansible/ansible-lint``).
+        repo_dir: Root directory of the cloned repository.
+
+    Returns:
+        Parsed container artifact, or ``None`` if unparseable.
+
+    """
     try:
         text = cf.read_text(encoding="utf-8")
     except OSError:
@@ -171,7 +211,16 @@ def _scan_workflow_container_builds(
     repo_dir: Path,
     repo_slug: str,
 ) -> list[ContainerArtifact]:
-    """Scan GitHub Actions workflows and build scripts for container image builds/pushes."""
+    """Scan GitHub Actions workflows and build scripts for container image builds/pushes.
+
+    Args:
+        repo_dir: Root directory of the cloned repository.
+        repo_slug: Repository slug.
+
+    Returns:
+        Container artifacts found in workflows.
+
+    """
     artifacts: list[ContainerArtifact] = []
     seen_images: set[str] = set()
 
@@ -225,7 +274,16 @@ def _scan_workflow_reusable(
     repo_dir: Path,
     repo_slug: str,
 ) -> list[DiscoveredRelationship]:
-    """Discover reusable workflow references to other ADT repos."""
+    """Discover reusable workflow references to other ADT repos.
+
+    Args:
+        repo_dir: Root directory of the cloned repository.
+        repo_slug: Repository slug.
+
+    Returns:
+        Relationships for reusable workflow references.
+
+    """
     rels: list[DiscoveredRelationship] = []
     wf_dir = repo_dir / ".github" / "workflows"
     if not wf_dir.is_dir():
@@ -256,7 +314,13 @@ def _scan_workflow_reusable(
 
 
 def _crawl_vscode_ansible(repo_dir: Path, result: CrawlResult) -> None:  # noqa: PLR0912
-    """Deep crawl vscode-ansible for language server, MCP, and Python CLI spawns."""
+    """Deep crawl vscode-ansible for language server, MCP, and Python CLI spawns.
+
+    Args:
+        repo_dir: Root directory of the cloned repository.
+        result: Accumulator for discovered components and relationships.
+
+    """
     slug = "ansible/vscode-ansible"
 
     # Scan extension source (src/) for Python CLI tool references
@@ -354,7 +418,13 @@ def _crawl_vscode_ansible(repo_dir: Path, result: CrawlResult) -> None:  # noqa:
 
 
 def _crawl_abbenay(repo_dir: Path, result: CrawlResult) -> None:
-    """Crawl abbenay monorepo for sub-packages and Containerfile."""
+    """Crawl abbenay monorepo for sub-packages and Containerfile.
+
+    Args:
+        repo_dir: Root directory of the cloned repository.
+        result: Accumulator for discovered components and relationships.
+
+    """
     slug = "redhat-developer/abbenay"
     packages_dir = repo_dir / "packages"
     if packages_dir.is_dir():
@@ -405,7 +475,14 @@ def _crawl_abbenay(repo_dir: Path, result: CrawlResult) -> None:
 
 
 def crawl_repo(entry: RepoManifestEntry, repo_dir: Path, result: CrawlResult) -> None:  # noqa: PLR0912, PLR0915
-    """Introspect a single cloned repo and add findings to *result*."""
+    """Introspect a single cloned repo and add findings to *result*.
+
+    Args:
+        entry: Manifest entry for the repository.
+        repo_dir: Root directory of the cloned repository.
+        result: Accumulator for discovered components and relationships.
+
+    """
     slug = entry.slug
 
     # --- Python dependencies ---
@@ -517,7 +594,15 @@ def crawl_repo(entry: RepoManifestEntry, repo_dir: Path, result: CrawlResult) ->
 def deduplicate_relationships(
     rels: list[DiscoveredRelationship],
 ) -> list[DiscoveredRelationship]:
-    """Remove duplicate relationships (same source, target, type)."""
+    """Remove duplicate relationships (same source, target, type).
+
+    Args:
+        rels: Relationships to deduplicate.
+
+    Returns:
+        Unique relationships.
+
+    """
     seen: set[tuple[str, str, str]] = set()
     unique: list[DiscoveredRelationship] = []
     for r in rels:
@@ -534,6 +619,7 @@ def deduplicate_relationships(
 
 
 def main() -> None:
+    """Clone and crawl ADT repos for C4 diagram generation."""
     parser = argparse.ArgumentParser(
         description="Clone and crawl ADT repos for C4 diagrams",
     )

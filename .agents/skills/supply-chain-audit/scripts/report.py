@@ -56,18 +56,39 @@ CATEGORY_LABELS = {
 
 
 def load_template() -> str:
-    """Load the HTML template."""
+    """Load the HTML template.
+
+    Returns:
+        Template content.
+
+    """
     with TEMPLATE_PATH.open(encoding="utf-8") as f:
         return f.read()
 
 
 def _parse_date_yyyy_mm_dd(date_str: str) -> datetime:
-    """Parse a YYYY-MM-DD date string as UTC-aware datetime."""
+    """Parse a YYYY-MM-DD date string as UTC-aware datetime.
+
+    Args:
+        date_str: Date string in ``YYYY-MM-DD`` format.
+
+    Returns:
+        UTC-aware datetime.
+
+    """
     return datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=UTC)
 
 
 def esc(text: str | None) -> str:
-    """HTML-escape a string."""
+    """HTML-escape a string.
+
+    Args:
+        text: Raw text to escape.
+
+    Returns:
+        HTML-safe string.
+
+    """
     if text is None:
         return ""
     return html.escape(str(text))
@@ -85,7 +106,15 @@ RISK_PRIORITY = ["critical", "high", "medium", "low", "info"]
 
 
 def _linkify_advisory_ids(text: str) -> str:
-    """Turn advisory IDs (GHSA-*, PYSEC-*, CVE-*) into clickable links."""
+    """Turn advisory IDs (GHSA-*, PYSEC-*, CVE-*) into clickable links.
+
+    Args:
+        text: Text potentially containing advisory IDs.
+
+    Returns:
+        Text with advisory IDs wrapped in anchor tags.
+
+    """
 
     def _make_link(m: _re.Match) -> str:
         vuln_id = m.group(1)
@@ -99,7 +128,17 @@ def _linkify_advisory_ids(text: str) -> str:
 
 
 def generate_verdict(findings: list[dict], total_commits: int, total_prs: int) -> str:
-    """Generate the top-level verdict banner."""
+    """Generate the top-level verdict banner.
+
+    Args:
+        findings: All audit findings.
+        total_commits: Total commits audited.
+        total_prs: Total PRs audited.
+
+    Returns:
+        Verdict HTML string.
+
+    """
     if not findings:
         return (
             '<div class="verdict verdict-clean">'
@@ -128,7 +167,15 @@ def generate_verdict(findings: list[dict], total_commits: int, total_prs: int) -
 
 
 def _count_signature_stats(repo_commits: list[dict]) -> tuple[int, int, int]:
-    """Return (signed_github, signed_personal, unsigned) counts for a repo."""
+    """Return (signed_github, signed_personal, unsigned) counts for a repo.
+
+    Args:
+        repo_commits: Commits for a single repository.
+
+    Returns:
+        Tuple of (signed_github, signed_personal, unsigned) counts.
+
+    """
     signed_github = 0
     signed_personal = 0
     unsigned = 0
@@ -146,7 +193,15 @@ def _count_signature_stats(repo_commits: list[dict]) -> tuple[int, int, int]:
 
 
 def _format_protection_checks(repo_prot: dict) -> str:
-    """Format branch protection required checks for display."""
+    """Format branch protection required checks for display.
+
+    Args:
+        repo_prot: Branch protection rules dict.
+
+    Returns:
+        Formatted HTML string.
+
+    """
     required_checks = repo_prot.get("required_checks", [])
     prot_source = repo_prot.get("source", "none")
     if required_checks:
@@ -165,7 +220,23 @@ def _build_repo_summary_row(
     checks_str: str,
     num_findings: int,
 ) -> str:
-    """Build a single per-repo summary table row."""
+    """Build a single per-repo summary table row.
+
+    Args:
+        repo: Repository name.
+        num_commits: Total commits.
+        num_prs: Total merged PRs.
+        signed_github: GitHub-signed commit count.
+        signed_personal: Personally-signed commit count.
+        unsigned: Unsigned commit count.
+        num_deps: Dependency change count.
+        checks_str: Pre-formatted CI checks string.
+        num_findings: Finding count.
+
+    Returns:
+        HTML table row string.
+
+    """
     findings_str = str(num_findings) if num_findings == 0 else (f'<span class="badge badge-high">{num_findings}</span>')
     repo_url = f"https://github.com/ansible/{repo}"
     repo_link = f'<a href="{repo_url}" target="_blank" rel="noopener noreferrer">{esc(repo)}</a>'
@@ -192,7 +263,20 @@ def generate_repo_summary_rows(
     protection: dict,
     repos: list[str],
 ) -> str:
-    """Generate per-repo summary table rows."""
+    """Generate per-repo summary table rows.
+
+    Args:
+        commits: All audited commits.
+        prs: All audited PRs.
+        deps: All dependency changes.
+        findings: All audit findings.
+        protection: Branch protection data keyed by repo.
+        repos: Repository names.
+
+    Returns:
+        Concatenated HTML table rows.
+
+    """
     commits_by_repo: dict[str, list[dict]] = {r: [] for r in repos}
     for c in commits:
         repo = c.get("repo", "")
@@ -241,7 +325,15 @@ def generate_repo_summary_rows(
 
 
 def generate_findings_summary(findings: list[dict]) -> str:
-    """Generate findings summary with risk breakdown."""
+    """Generate findings summary with risk breakdown.
+
+    Args:
+        findings: All audit findings.
+
+    Returns:
+        HTML summary cards.
+
+    """
     if not findings:
         return (
             '<div class="verdict verdict-clean" style="margin: 1rem 0;">'
@@ -269,7 +361,16 @@ def generate_findings_summary(findings: list[dict]) -> str:
 
 
 def generate_repo_cards(findings: list[dict], repos: list[str]) -> str:
-    """Generate repo status cards with traffic lights."""
+    """Generate repo status cards with traffic lights.
+
+    Args:
+        findings: All audit findings.
+        repos: Repository names.
+
+    Returns:
+        HTML cards string.
+
+    """
     repo_findings: dict[str, list[dict]] = {r: [] for r in repos}
     for f in findings:
         repo = f.get("repo", "")
@@ -302,7 +403,15 @@ def generate_repo_cards(findings: list[dict], repos: list[str]) -> str:
 
 
 def _collect_finding_shas(findings: list[dict]) -> dict[str, str]:
-    """Map commit SHAs to their highest-priority risk level."""
+    """Map commit SHAs to their highest-priority risk level.
+
+    Args:
+        findings: All audit findings.
+
+    Returns:
+        Mapping of SHA to risk level.
+
+    """
     finding_shas: dict[str, str] = {}
     for f in findings:
         sha = f.get("commit_sha", "")
@@ -321,7 +430,16 @@ def _append_timeline_repo_labels(
     width: int,
     margin_right: int,
 ) -> None:
-    """Append repo label rows to the timeline SVG."""
+    """Append repo label rows to the timeline SVG.
+
+    Args:
+        svg_parts: SVG element accumulator.
+        repo_y: Mapping of repo name to Y coordinate.
+        margin_left: Left margin in pixels.
+        width: Total SVG width.
+        margin_right: Right margin in pixels.
+
+    """
     for repo, y in repo_y.items():
         short_name = repo[:14]
         svg_parts.append(
@@ -345,7 +463,19 @@ def _append_timeline_ticks(
     height: int,
     margin_bottom: int,
 ) -> None:
-    """Append date tick marks to the timeline SVG."""
+    """Append date tick marks to the timeline SVG.
+
+    Args:
+        svg_parts: SVG element accumulator.
+        start_dt: Start of the audit window.
+        total_days: Span of the audit window in days.
+        margin_left: Left margin in pixels.
+        plot_width: Usable plot width.
+        margin_top: Top margin in pixels.
+        height: Total SVG height.
+        margin_bottom: Bottom margin in pixels.
+
+    """
     num_ticks = min(total_days, 10)
     for i in range(num_ticks + 1):
         x = margin_left + (i * plot_width // num_ticks)
@@ -373,7 +503,19 @@ def _append_timeline_commits(
     margin_left: int,
     plot_width: int,
 ) -> None:
-    """Append commit dots to the timeline SVG."""
+    """Append commit dots to the timeline SVG.
+
+    Args:
+        svg_parts: SVG element accumulator.
+        commits: All audited commits.
+        repo_y: Mapping of repo name to Y coordinate.
+        finding_shas: SHA-to-risk mapping from findings.
+        start_dt: Start of the audit window.
+        total_days: Span of the audit window in days.
+        margin_left: Left margin in pixels.
+        plot_width: Usable plot width.
+
+    """
     for commit in commits:
         date_str = commit.get("date", "")[:10]
         repo = commit.get("repo", "")
@@ -412,7 +554,18 @@ def generate_timeline_svg(
     start_date: str,
     end_date: str,
 ) -> str:
-    """Generate an SVG timeline visualization."""
+    """Generate an SVG timeline visualization.
+
+    Args:
+        commits: All audited commits.
+        findings: All audit findings.
+        start_date: Audit window start (YYYY-MM-DD).
+        end_date: Audit window end (YYYY-MM-DD).
+
+    Returns:
+        SVG markup string.
+
+    """
     width = 900
     height = 200
     margin_left = 60
@@ -466,7 +619,16 @@ def generate_timeline_svg(
 
 
 def generate_commit_integrity_section(commits: list[dict], findings: list[dict]) -> str:
-    """Generate commit integrity table, only if there are flagged commits."""
+    """Generate commit integrity table, only if there are flagged commits.
+
+    Args:
+        commits: All audited commits.
+        findings: All audit findings.
+
+    Returns:
+        HTML section string, or empty string if no flagged commits.
+
+    """
     commit_findings = [f for f in findings if f.get("commit_sha")]
     if not commit_findings:
         return ""
@@ -558,7 +720,16 @@ def generate_commit_integrity_section(commits: list[dict], findings: list[dict])
 
 
 def generate_dep_section(deps: list[dict], prs: list[dict]) -> str:
-    """Generate the dependency changes section."""
+    """Generate the dependency changes section.
+
+    Args:
+        deps: All dependency changes.
+        prs: All audited PRs.
+
+    Returns:
+        HTML section string.
+
+    """
     if not deps:
         return '<p class="no-data">No dependency changes detected in the audit window.</p>'
 
@@ -641,7 +812,16 @@ def generate_renovate_config_table(
     renovate_configs: dict[str, dict],
     repos: list[str],
 ) -> str:
-    """Generate a table showing each repo's configured renovate cooldown."""
+    """Generate a table showing each repo's configured renovate cooldown.
+
+    Args:
+        renovate_configs: Renovate configs keyed by repo name.
+        repos: Repository names.
+
+    Returns:
+        HTML table string.
+
+    """
     rows = []
     for repo in sorted(repos):
         config = renovate_configs.get(repo, {})
@@ -679,7 +859,15 @@ def generate_renovate_config_table(
 
 
 def generate_findings_details(findings: list[dict]) -> str:
-    """Generate collapsible findings detail sections."""
+    """Generate collapsible findings detail sections.
+
+    Args:
+        findings: All audit findings.
+
+    Returns:
+        HTML sections string.
+
+    """
     if not findings:
         return ""
 
@@ -748,6 +936,13 @@ def render_recommendations_html(recommendations: list[dict[str, str]]) -> str:
 
     Each recommendation is a dict with keys: title, detail, priority (optional).
     The agent writes these based on its analysis of findings.
+
+    Args:
+        recommendations: Ordered list of recommendation dicts.
+
+    Returns:
+        HTML section string, or empty string if none.
+
     """
     if not recommendations:
         return ""
@@ -771,7 +966,15 @@ def render_recommendations_html(recommendations: list[dict[str, str]]) -> str:
 
 
 def generate_package_focus_section(package_data: dict | None) -> str:
-    """Generate the Phase 2 package focus section if data exists."""
+    """Generate the Phase 2 package focus section if data exists.
+
+    Args:
+        package_data: Package focus analysis results, or ``None``.
+
+    Returns:
+        HTML section string, or empty string if no data.
+
+    """
     if not package_data:
         return ""
 
@@ -827,7 +1030,15 @@ def generate_package_focus_section(package_data: dict | None) -> str:
 
 
 def _load_report_data(cache_dir: Path) -> dict:
-    """Load all cached audit data needed for report generation."""
+    """Load all cached audit data needed for report generation.
+
+    Args:
+        cache_dir: Cache directory with audit data.
+
+    Returns:
+        Dict containing all loaded audit datasets.
+
+    """
     manifest = read_manifest(cache_dir)
     if not manifest:
         print("ERROR: No manifest found", file=sys.stderr)
@@ -865,7 +1076,15 @@ def _load_report_data(cache_dir: Path) -> dict:
 
 
 def _load_recommendations_section(cache_dir: Path) -> str:
-    """Load agent-authored recommendations or return a placeholder."""
+    """Load agent-authored recommendations or return a placeholder.
+
+    Args:
+        cache_dir: Cache directory with audit data.
+
+    Returns:
+        HTML recommendations section.
+
+    """
     recommendations_path = cache_dir / "recommendations.json"
     if recommendations_path.exists():
         with recommendations_path.open(encoding="utf-8") as fh:
@@ -879,7 +1098,15 @@ def _load_recommendations_section(cache_dir: Path) -> str:
 
 
 def _generate_report_sections(data: dict) -> dict[str, str]:
-    """Generate all HTML sections for the report."""
+    """Generate all HTML sections for the report.
+
+    Args:
+        data: Loaded audit data from ``_load_report_data``.
+
+    Returns:
+        Mapping of section name to HTML content.
+
+    """
     manifest = data["manifest"]
     commits = data["commits"]
     prs = data["prs"]
@@ -923,7 +1150,17 @@ def _build_replacements(
     sections: dict[str, str],
     recommendations_section: str,
 ) -> dict[str, str]:
-    """Build template placeholder replacements for the report."""
+    """Build template placeholder replacements for the report.
+
+    Args:
+        data: Loaded audit data.
+        sections: Generated HTML sections.
+        recommendations_section: Recommendations HTML.
+
+    Returns:
+        Mapping of placeholder to replacement value.
+
+    """
     manifest = data["manifest"]
     commits = data["commits"]
     deps = data["deps"]
@@ -956,7 +1193,17 @@ def _print_report_summary(
     total_check_suites: int,
     deps: list[dict],
 ) -> None:
-    """Print summary statistics after report generation."""
+    """Print summary statistics after report generation.
+
+    Args:
+        output_path: Path to the generated report.
+        findings: All audit findings.
+        commits: All audited commits.
+        total_prs: Total merged PR count.
+        total_check_suites: Total check suite count.
+        deps: All dependency changes.
+
+    """
     print(f"\nReport generated: {output_path}")
     print(f"  Size: {output_path.stat().st_size / 1024:.1f} KB")
     print(f"  Findings: {len(findings)} total")
@@ -967,7 +1214,13 @@ def _print_report_summary(
 
 
 def generate_report(cache_dir: Path, output_path: Path) -> None:
-    """Generate the complete HTML report."""
+    """Generate the complete HTML report.
+
+    Args:
+        cache_dir: Cache directory with audit data.
+        output_path: Destination path for the HTML report.
+
+    """
     print("Loading data...")
     data = _load_report_data(cache_dir)
 

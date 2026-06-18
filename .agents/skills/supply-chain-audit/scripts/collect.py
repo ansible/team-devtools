@@ -80,7 +80,16 @@ DEP_FILE_PATTERNS = re.compile(
 
 
 def gh_api(endpoint: str, *, paginate: bool = False) -> list | dict | None:
-    """Call GitHub API via gh CLI. Returns parsed JSON or None on error."""
+    """Call GitHub API via gh CLI.
+
+    Args:
+        endpoint: API endpoint path.
+        paginate: Whether to follow pagination.
+
+    Returns:
+        Parsed JSON, or ``None`` on error.
+
+    """
     cmd = ["gh", "api", endpoint, "--header", "Accept: application/vnd.github+json"]
     if paginate:
         cmd.append("--paginate")
@@ -114,7 +123,12 @@ def gh_api(endpoint: str, *, paginate: bool = False) -> list | dict | None:
 
 
 def get_gh_version() -> str:
-    """Get the installed gh CLI version string."""
+    """Get the installed gh CLI version string.
+
+    Returns:
+        Version string or ``"unknown"``.
+
+    """
     try:
         result = subprocess.run(
             ["gh", "--version"],
@@ -129,7 +143,17 @@ def get_gh_version() -> str:
 
 
 def collect_commits(repo: str, start_date: str, end_date: str) -> list[dict]:
-    """Fetch all commits for a repo in the time window."""
+    """Fetch all commits for a repo in the time window.
+
+    Args:
+        repo: Repository name.
+        start_date: Audit window start (YYYY-MM-DD).
+        end_date: Audit window end (YYYY-MM-DD).
+
+    Returns:
+        Serialized commit dicts.
+
+    """
     endpoint = (
         f"repos/{GITHUB_ORG}/{repo}/commits?since={start_date}T00:00:00Z&until={end_date}T23:59:59Z&per_page={PER_PAGE}"
     )
@@ -146,7 +170,16 @@ def collect_commits(repo: str, start_date: str, end_date: str) -> list[dict]:
 
 
 def collect_prs_for_commits(repo: str, commits: list[dict]) -> list[dict]:
-    """Fetch associated PRs for each commit and PR details."""
+    """Fetch associated PRs for each commit and PR details.
+
+    Args:
+        repo: Repository name.
+        commits: Commit dicts (mutated in place to add ``associated_prs``).
+
+    Returns:
+        Serialized PR dicts.
+
+    """
     prs_seen: set[int] = set()
     prs: list[dict] = []
 
@@ -189,6 +222,14 @@ def collect_pr_commits_and_reviews(repo: str, prs: list[dict]) -> list[dict]:
     - All individual commits on the PR branch
     - All reviews (approvals) with their timestamps
     - Detects commits pushed after the last approval
+
+    Args:
+        repo: Repository name.
+        prs: Serialized PR dicts.
+
+    Returns:
+        PR audit data dicts.
+
     """
     pr_audit_data: list[dict] = []
 
@@ -256,7 +297,16 @@ def collect_pr_commits_and_reviews(repo: str, prs: list[dict]) -> list[dict]:
 
 
 def collect_check_suites(repo: str, commits: list[dict]) -> dict[str, list[dict]]:
-    """Fetch check suites for each commit."""
+    """Fetch check suites for each commit.
+
+    Args:
+        repo: Repository name.
+        commits: Commit dicts.
+
+    Returns:
+        Check suites keyed by commit SHA.
+
+    """
     checks_by_sha: dict[str, list[dict]] = {}
 
     for commit_data in commits:
@@ -277,7 +327,15 @@ def collect_check_suites(repo: str, commits: list[dict]) -> dict[str, list[dict]
 
 
 def _decode_github_file_content(data: dict) -> dict | None:
-    """Decode base64 GitHub contents API response to JSON."""
+    """Decode base64 GitHub contents API response to JSON.
+
+    Args:
+        data: GitHub contents API response dict.
+
+    Returns:
+        Parsed JSON content, or ``None`` on failure.
+
+    """
     if not data.get("content"):
         return None
     try:
@@ -288,7 +346,15 @@ def _decode_github_file_content(data: dict) -> dict | None:
 
 
 def _load_renovate_config_at_paths(config_paths: list[str]) -> dict | None:
-    """Try loading renovate config from a list of GitHub contents API paths."""
+    """Try loading renovate config from a list of GitHub contents API paths.
+
+    Args:
+        config_paths: GitHub contents API paths to try.
+
+    Returns:
+        Parsed renovate config, or ``None`` if not found.
+
+    """
     for path in config_paths:
         data = gh_api(path)
         if data and isinstance(data, dict):
@@ -299,7 +365,15 @@ def _load_renovate_config_at_paths(config_paths: list[str]) -> dict | None:
 
 
 def _fetch_shared_renovate_config(extends: list) -> tuple[dict, str | None]:
-    """Resolve shared renovate preset referenced in extends list."""
+    """Resolve shared renovate preset referenced in extends list.
+
+    Args:
+        extends: Renovate ``extends`` list entries.
+
+    Returns:
+        Tuple of (resolved config dict, source label or ``None``).
+
+    """
     for ext in extends:
         if not ext.startswith("github>"):
             continue
@@ -319,7 +393,16 @@ def _fetch_shared_renovate_config(extends: list) -> tuple[dict, str | None]:
 
 
 def _resolve_major_cooldown(raw: dict, shared_config: dict) -> int | None:
-    """Extract major-update cooldown days from renovate packageRules."""
+    """Extract major-update cooldown days from renovate packageRules.
+
+    Args:
+        raw: Local renovate config.
+        shared_config: Resolved shared preset config.
+
+    Returns:
+        Cooldown in days, or ``None`` if not configured.
+
+    """
     for rules_source in (raw, shared_config):
         for rule in rules_source.get("packageRules", []):
             update_types = rule.get("matchUpdateTypes", [])
@@ -333,11 +416,13 @@ def _resolve_major_cooldown(raw: dict, shared_config: dict) -> int | None:
 def collect_renovate_config(repo: str) -> dict:
     """Fetch and resolve the renovate config for a repo, including shared presets.
 
-    Returns a dict with:
-      - default_cooldown_days: default minimumReleaseAge in days
-      - major_cooldown_days: minimumReleaseAge for major updates (if different)
-      - source: where the config comes from (local, shared preset, or none)
-      - raw_config: the merged effective config values
+    Args:
+        repo: Repository name.
+
+    Returns:
+        Dict with ``default_cooldown_days``, ``major_cooldown_days``,
+        ``source``, and ``raw_config`` keys.
+
     """
     config: dict = {
         "source": "none",
@@ -381,6 +466,13 @@ def _parse_release_age(age_str: str | int | None) -> int | None:
     """Parse renovate minimumReleaseAge string to days.
 
     Supports: '2 days', '7 days', '1 day', '24 hours', integer (days).
+
+    Args:
+        age_str: Raw age value from renovate config.
+
+    Returns:
+        Age in days, or ``None`` if unparseable.
+
     """
     if age_str is None:
         return None
@@ -407,7 +499,18 @@ def collect_dep_changes(
     end_date: str,
     commits: list[dict],
 ) -> list[dict]:
-    """Identify dependency file changes by examining commits that touch dep files."""
+    """Identify dependency file changes by examining commits that touch dep files.
+
+    Args:
+        repo: Repository name.
+        _start_date: Audit window start (unused, kept for API consistency).
+        end_date: Audit window end (YYYY-MM-DD).
+        commits: Commit dicts for this repo.
+
+    Returns:
+        Deduplicated and enriched dependency change dicts.
+
+    """
     if not commits:
         return []
 
@@ -488,7 +591,21 @@ def parse_dep_patch(
     commit_sha: str,
     commit_date: str,
 ) -> list[dict]:
-    """Parse a unified diff patch to extract dependency additions/updates."""
+    """Parse a unified diff patch to extract dependency additions/updates.
+
+    Args:
+        patch: Unified diff text.
+        file_path: Path to the dependency file.
+        repo: Repository name.
+        ecosystem: Package ecosystem (``pypi`` or ``npm``).
+        is_direct: Whether this is a direct (non-lock) dependency file.
+        commit_sha: SHA of the commit introducing the change.
+        commit_date: Date of the commit (YYYY-MM-DD).
+
+    Returns:
+        Serialized dependency change dicts.
+
+    """
     changes: list[dict] = []
     basename = file_path.rsplit("/", maxsplit=1)[-1] if "/" in file_path else file_path
 
@@ -538,7 +655,16 @@ def _parse_npm_patch(
     patch: str,
     basename: str,
 ) -> tuple[dict[str, str], dict[str, str]]:
-    """Parse npm ecosystem diff lines for package names and versions."""
+    """Parse npm ecosystem diff lines for package names and versions.
+
+    Args:
+        patch: Unified diff text.
+        basename: Filename of the dependency file.
+
+    Returns:
+        Tuple of (added_deps, removed_deps) mappings.
+
+    """
     added_deps: dict[str, str] = {}
     removed_deps: dict[str, str] = {}
 
@@ -603,10 +729,15 @@ def _parse_npm_patch(
 def _parse_toml_lock_patch(patch: str) -> tuple[dict[str, str], dict[str, str]]:
     """Parse uv.lock / poetry.lock / pdm.lock diffs.
 
-    These are TOML files with [[package]] sections containing name and version fields:
-        [[package]]
-        name = "idna"
-        version = "3.16"
+    These are TOML files with ``[[package]]`` sections containing name and
+    version fields.
+
+    Args:
+        patch: Unified diff text.
+
+    Returns:
+        Tuple of (added_deps, removed_deps) mappings.
+
     """
     added_deps: dict[str, str] = {}
     removed_deps: dict[str, str] = {}
@@ -648,7 +779,15 @@ def _parse_toml_lock_patch(patch: str) -> tuple[dict[str, str], dict[str, str]]:
 
 
 def _parse_python_patch(patch: str) -> tuple[dict[str, str], dict[str, str]]:
-    """Parse Python ecosystem diff lines for package names and versions."""
+    """Parse Python ecosystem diff lines for package names and versions.
+
+    Args:
+        patch: Unified diff text.
+
+    Returns:
+        Tuple of (added_deps, removed_deps) mappings.
+
+    """
     added_deps: dict[str, str] = {}
     removed_deps: dict[str, str] = {}
 
@@ -679,7 +818,12 @@ def _parse_python_patch(patch: str) -> tuple[dict[str, str], dict[str, str]]:
 
 
 def enrich_dep_release_info(dep: dict) -> None:
-    """Query PyPI or npm for release date of a dependency version."""
+    """Query PyPI or npm for release date of a dependency version.
+
+    Args:
+        dep: Dependency change dict (mutated in place).
+
+    """
     if dep.get("new_version") is None:
         return
 
@@ -741,6 +885,13 @@ def collect_package_inventory(repo: str) -> list[dict]:
 
     Reads lock files (uv.lock, poetry.lock, package-lock.json) to get a
     full list of installed packages and their pinned versions.
+
+    Args:
+        repo: Repository name.
+
+    Returns:
+        List of ``{name, version, ecosystem}`` dicts.
+
     """
     packages: list[dict] = []
 
@@ -781,7 +932,16 @@ def collect_package_inventory(repo: str) -> list[dict]:
 
 
 def _parse_toml_lock_inventory(content: str, _filename: str) -> list[tuple[str, str]]:
-    """Extract (name, version) pairs from a TOML-based lock file."""
+    """Extract (name, version) pairs from a TOML-based lock file.
+
+    Args:
+        content: Full text of the lock file.
+        _filename: Filename (unused, kept for API consistency).
+
+    Returns:
+        List of (package_name, version) tuples.
+
+    """
     packages = []
     name_pattern = re.compile(r'^name\s*=\s*"([\w][\w.-]*)"', re.MULTILINE)
     version_pattern = re.compile(r'^version\s*=\s*"(\d+[\d.]*\w*)"', re.MULTILINE)
@@ -801,7 +961,13 @@ def scan_osv_batch(packages: list[dict]) -> list[dict]:
     """Query OSV.dev batch endpoint for known vulnerabilities.
 
     Sends up to 100 packages per request.
-    Returns list of {package, version, ecosystem, vulns: [...]} entries.
+
+    Args:
+        packages: List of ``{name, version, ecosystem}`` dicts.
+
+    Returns:
+        Entries with known vulnerabilities.
+
     """
     results = []
 
@@ -867,7 +1033,15 @@ def scan_osv_batch(packages: list[dict]) -> list[dict]:
 
 
 def _extract_osv_severity(vuln: dict) -> str:
-    """Extract severity from OSV vulnerability entry."""
+    """Extract severity from OSV vulnerability entry.
+
+    Args:
+        vuln: OSV vulnerability dict.
+
+    Returns:
+        Severity string (critical, high, medium, low, or unknown).
+
+    """
     severity_list = vuln.get("severity", [])
     for s in severity_list:
         if s.get("type") == "CVSS_V3":
@@ -898,7 +1072,15 @@ def _extract_osv_severity(vuln: dict) -> str:
 
 
 def _parse_legacy_protection_checks(data: dict) -> list[str]:
-    """Extract required status check names from legacy branch protection."""
+    """Extract required status check names from legacy branch protection.
+
+    Args:
+        data: Legacy branch protection API response.
+
+    Returns:
+        Required check context names.
+
+    """
     rsc = data.get("required_status_checks", {})
     if not rsc:
         return []
@@ -907,7 +1089,15 @@ def _parse_legacy_protection_checks(data: dict) -> list[str]:
 
 
 def _legacy_branch_protection_result(data: dict) -> dict:
-    """Build protection result dict from legacy branch protection API."""
+    """Build protection result dict from legacy branch protection API.
+
+    Args:
+        data: Legacy branch protection API response.
+
+    Returns:
+        Normalized protection result dict.
+
+    """
     return {
         "required_checks": _parse_legacy_protection_checks(data),
         "source": "branch_protection",
@@ -924,7 +1114,15 @@ def _legacy_branch_protection_result(data: dict) -> dict:
 
 
 def _collect_ruleset_required_checks(repo: str) -> list[str]:
-    """Collect required status checks from active branch rulesets."""
+    """Collect required status checks from active branch rulesets.
+
+    Args:
+        repo: Repository name.
+
+    Returns:
+        Required check context names.
+
+    """
     required_checks: list[str] = []
     rulesets = gh_api(f"repos/{GITHUB_ORG}/{repo}/rulesets")
     if not rulesets or not isinstance(rulesets, list):
@@ -956,6 +1154,13 @@ def collect_branch_protection(repo: str) -> dict:
 
     Checks both legacy branch protection API and the newer rulesets API,
     since repos may use either or both.
+
+    Args:
+        repo: Repository name.
+
+    Returns:
+        Normalized protection result dict.
+
     """
     endpoint = f"repos/{GITHUB_ORG}/{repo}/branches/main/protection"
     data = gh_api(endpoint)
@@ -978,7 +1183,17 @@ def collect_branch_protection(repo: str) -> dict:
 
 
 def collect_protection_changes(repo: str, start_date: str, end_date: str) -> list[dict]:
-    """Fetch branch protection modification events from repo activity API."""
+    """Fetch branch protection modification events from repo activity API.
+
+    Args:
+        repo: Repository name.
+        start_date: Audit window start (YYYY-MM-DD).
+        end_date: Audit window end (YYYY-MM-DD).
+
+    Returns:
+        Protection change event dicts.
+
+    """
     endpoint = f"repos/{GITHUB_ORG}/{repo}/activity"
     data = gh_api(endpoint, paginate=True)
     if not data or not isinstance(data, list):
@@ -1009,14 +1224,29 @@ def collect_protection_changes(repo: str, start_date: str, end_date: str) -> lis
 
 
 def _load_cached_repo_counts(cache_dir: Path, repo: str) -> tuple[int, int]:
-    """Return commit and PR counts from cached repo data."""
+    """Return commit and PR counts from cached repo data.
+
+    Args:
+        cache_dir: Root cache directory.
+        repo: Repository name.
+
+    Returns:
+        Tuple of (commit_count, pr_count).
+
+    """
     commits = read_cache_file(cache_dir, "commits", f"{repo}.json") or []
     prs = read_cache_file(cache_dir, "prs", f"{repo}.json") or []
     return len(commits), len(prs)
 
 
 def _report_osv_scan_results(inventory: list[dict], vuln_results: list[dict]) -> None:
-    """Print OSV vulnerability scan summary."""
+    """Print OSV vulnerability scan summary.
+
+    Args:
+        inventory: Package inventory dicts.
+        vuln_results: OSV scan result dicts.
+
+    """
     if not inventory:
         print("  No lock files found, skipping OSV scan")
         return
@@ -1031,7 +1261,15 @@ def _report_osv_scan_results(inventory: list[dict], vuln_results: list[dict]) ->
 
 
 def _scan_osv_for_repo(repo: str) -> list[dict]:
-    """Scan package inventory for known vulnerabilities via OSV.dev."""
+    """Scan package inventory for known vulnerabilities via OSV.dev.
+
+    Args:
+        repo: Repository name.
+
+    Returns:
+        Vulnerability scan results.
+
+    """
     print("  Scanning package inventory against OSV.dev...")
     inventory = collect_package_inventory(repo)
     vuln_results = scan_osv_batch(inventory) if inventory else []
@@ -1040,7 +1278,17 @@ def _scan_osv_for_repo(repo: str) -> list[dict]:
 
 
 def _collect_repo_artifacts(repo: str, start_date: str, end_date: str) -> dict:
-    """Collect all audit artifacts for a single repo."""
+    """Collect all audit artifacts for a single repo.
+
+    Args:
+        repo: Repository name.
+        start_date: Audit window start (YYYY-MM-DD).
+        end_date: Audit window end (YYYY-MM-DD).
+
+    Returns:
+        Dict of collected artifact categories.
+
+    """
     print(f"  Fetching commits ({start_date} to {end_date})...")
     commits = collect_commits(repo, start_date, end_date)
     print(f"  Found {len(commits)} commits")
@@ -1097,7 +1345,14 @@ def _collect_repo_artifacts(repo: str, start_date: str, end_date: str) -> dict:
 
 
 def _write_repo_cache_files(cache_dir: Path, repo: str, artifacts: dict) -> None:
-    """Persist collected repo artifacts to the cache directory."""
+    """Persist collected repo artifacts to the cache directory.
+
+    Args:
+        cache_dir: Root cache directory.
+        repo: Repository name.
+        artifacts: Collected artifact categories from ``_collect_repo_artifacts``.
+
+    """
     write_cache_file(cache_dir, "commits", f"{repo}.json", artifacts["commits"])
     write_cache_file(cache_dir, "prs", f"{repo}.json", artifacts["prs"])
     write_cache_file(cache_dir, "checks", f"{repo}.json", artifacts["checks"])
@@ -1129,7 +1384,19 @@ def collect_repo(
     *,
     force: bool = False,
 ) -> tuple[int, int]:
-    """Collect all data for a single repo. Returns (commit_count, pr_count)."""
+    """Collect all data for a single repo.
+
+    Args:
+        repo: Repository name.
+        start_date: Audit window start (YYYY-MM-DD).
+        end_date: Audit window end (YYYY-MM-DD).
+        cache_dir: Root cache directory.
+        force: Re-collect even if cached data exists.
+
+    Returns:
+        Tuple of (commit_count, pr_count).
+
+    """
     print(f"\n{'=' * 60}")
     print(f"  Collecting: {GITHUB_ORG}/{repo}")
     print(f"{'=' * 60}")

@@ -65,7 +65,16 @@ class Commit:
 
     @classmethod
     def from_api(cls, data: dict[str, Any], repo: str) -> Commit:
-        """Construct from GitHub API commit response."""
+        """Construct from GitHub API commit response.
+
+        Args:
+            data: Raw GitHub API JSON dict.
+            repo: Repository name.
+
+        Returns:
+            Parsed commit.
+
+        """
         commit_data = data.get("commit", {})
         author = data.get("author") or {}
         committer = data.get("committer") or {}
@@ -91,7 +100,12 @@ class Commit:
         )
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialize to dict for JSON storage."""
+        """Serialize to dict for JSON storage.
+
+        Returns:
+            JSON-serializable dict.
+
+        """
         return {
             "sha": self.sha,
             "repo": self.repo,
@@ -114,7 +128,15 @@ class Commit:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Commit:
-        """Deserialize from dict."""
+        """Deserialize from dict.
+
+        Args:
+            data: Previously serialized dict.
+
+        Returns:
+            Reconstructed commit.
+
+        """
         v = data.get("verification", {})
         return cls(
             sha=data["sha"],
@@ -155,7 +177,16 @@ class PullRequest:
 
     @classmethod
     def from_api(cls, data: dict[str, Any], repo: str) -> PullRequest:
-        """Construct from GitHub API PR response."""
+        """Construct from GitHub API PR response.
+
+        Args:
+            data: Raw GitHub API JSON dict.
+            repo: Repository name.
+
+        Returns:
+            Parsed pull request.
+
+        """
         user = data.get("user") or {}
         base = data.get("base") or {}
         head = data.get("head") or {}
@@ -174,7 +205,12 @@ class PullRequest:
         )
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialize to dict for JSON storage."""
+        """Serialize to dict for JSON storage.
+
+        Returns:
+            JSON-serializable dict.
+
+        """
         return {
             "number": self.number,
             "repo": self.repo,
@@ -191,7 +227,15 @@ class PullRequest:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> PullRequest:
-        """Deserialize from dict."""
+        """Deserialize from dict.
+
+        Args:
+            data: Previously serialized dict.
+
+        Returns:
+            Reconstructed pull request.
+
+        """
         return cls(
             number=data["number"],
             repo=data["repo"],
@@ -220,7 +264,17 @@ class CheckSuite:
 
     @classmethod
     def from_api(cls, data: dict[str, Any], repo: str, commit_sha: str) -> CheckSuite:
-        """Construct from GitHub API check-suite response."""
+        """Construct from GitHub API check-suite response.
+
+        Args:
+            data: Raw GitHub API JSON dict.
+            repo: Repository name.
+            commit_sha: SHA of the commit this suite belongs to.
+
+        Returns:
+            Parsed check suite.
+
+        """
         app = data.get("app") or {}
         return cls(
             commit_sha=commit_sha,
@@ -232,7 +286,12 @@ class CheckSuite:
         )
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialize to dict for JSON storage."""
+        """Serialize to dict for JSON storage.
+
+        Returns:
+            JSON-serializable dict.
+
+        """
         return {
             "commit_sha": self.commit_sha,
             "repo": self.repo,
@@ -244,7 +303,15 @@ class CheckSuite:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> CheckSuite:
-        """Deserialize from dict."""
+        """Deserialize from dict.
+
+        Args:
+            data: Previously serialized dict.
+
+        Returns:
+            Reconstructed check suite.
+
+        """
         return cls(
             commit_sha=data["commit_sha"],
             repo=data["repo"],
@@ -274,7 +341,12 @@ class DepChange:
     yanked: bool = False
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialize to dict for JSON storage."""
+        """Serialize to dict for JSON storage.
+
+        Returns:
+            JSON-serializable dict.
+
+        """
         return {
             "repo": self.repo,
             "file_path": self.file_path,
@@ -293,7 +365,15 @@ class DepChange:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> DepChange:
-        """Deserialize from dict."""
+        """Deserialize from dict.
+
+        Args:
+            data: Previously serialized dict.
+
+        Returns:
+            Reconstructed dependency change.
+
+        """
         return cls(
             repo=data["repo"],
             file_path=data.get("file_path", ""),
@@ -326,7 +406,12 @@ class Finding:
     evidence: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialize to dict for JSON storage."""
+        """Serialize to dict for JSON storage.
+
+        Returns:
+            JSON-serializable dict.
+
+        """
         return {
             "category": self.category.value,
             "risk_level": self.risk_level.value,
@@ -341,7 +426,15 @@ class Finding:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Finding:
-        """Deserialize from dict."""
+        """Deserialize from dict.
+
+        Args:
+            data: Previously serialized dict.
+
+        Returns:
+            Reconstructed finding.
+
+        """
         return cls(
             category=FindingCategory(data["category"]),
             risk_level=RiskLevel(data["risk_level"]),
@@ -370,7 +463,12 @@ class AuditManifest:
     total_findings: int = 0
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialize to dict for JSON storage."""
+        """Serialize to dict for JSON storage.
+
+        Returns:
+            JSON-serializable dict.
+
+        """
         return {
             "start_date": self.start_date,
             "end_date": self.end_date,
@@ -385,7 +483,15 @@ class AuditManifest:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> AuditManifest:
-        """Deserialize from dict."""
+        """Deserialize from dict.
+
+        Args:
+            data: Previously serialized dict.
+
+        Returns:
+            Reconstructed audit manifest.
+
+        """
         return cls(
             start_date=data["start_date"],
             end_date=data["end_date"],

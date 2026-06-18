@@ -13,6 +13,8 @@ from pathlib import Path
 
 
 class RepoTier(str, Enum):
+    """Repository tier classification."""
+
     PRIMARY = "primary"
     EXPERIMENTAL = "experimental"
     COMMUNITY = "community"
@@ -23,6 +25,8 @@ class RepoTier(str, Enum):
 
 
 class RepoLanguage(str, Enum):
+    """Primary language of a repository."""
+
     PYTHON = "Python"
     TYPESCRIPT = "TypeScript"
     MIXED = "Mixed"
@@ -30,6 +34,8 @@ class RepoLanguage(str, Enum):
 
 
 class RelationshipType(str, Enum):
+    """Type of dependency relationship between components."""
+
     DEPENDS = "depends on"
     SPAWNS = "spawns CLI"
     PACKAGES = "packages into image"
@@ -100,7 +106,12 @@ class CrawlResult:
     crawl_errors: list[str] = field(default_factory=list)
 
     def to_json(self, path: Path) -> None:
-        """Serialize to JSON for agent review."""
+        """Serialize to JSON for agent review.
+
+        Args:
+            path: Output file path.
+
+        """
 
         def _default(o: object) -> object:
             if isinstance(o, Enum):
@@ -116,7 +127,15 @@ class CrawlResult:
 
     @classmethod
     def from_json(cls, path: Path) -> CrawlResult:
-        """Deserialize from JSON."""
+        """Deserialize from JSON.
+
+        Args:
+            path: Input JSON file path.
+
+        Returns:
+            Deserialized crawl result.
+
+        """
         with path.open() as f:
             data = json.load(f)
         result = cls()

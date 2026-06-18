@@ -18,7 +18,12 @@ from pathlib import Path
 
 
 def _find_plantuml_jar() -> str | None:
-    """Look for plantuml.jar in common locations."""
+    """Look for plantuml.jar in common locations.
+
+    Returns:
+        Absolute path to plantuml.jar, or ``None`` if not found.
+
+    """
     candidates = [
         Path.home() / ".local" / "lib" / "plantuml.jar",
         Path("/usr/share/java/plantuml.jar"),
@@ -31,7 +36,15 @@ def _find_plantuml_jar() -> str | None:
 
 
 def check_prerequisites(renderer: str) -> bool:
-    """Verify that the rendering backend is available."""
+    """Verify that the rendering backend is available.
+
+    Args:
+        renderer: Backend name (``plantuml`` or ``mermaid``).
+
+    Returns:
+        ``True`` if the backend is usable.
+
+    """
     if renderer == "plantuml":
         if shutil.which("plantuml"):
             print("  PlantUML CLI found.")
@@ -67,7 +80,17 @@ def check_prerequisites(renderer: str) -> bool:
 
 
 def render_diagram(diagram_py: Path, output_dir: Path, renderer: str) -> Path | None:
-    """Run `c4 export` on a single diagram file and return the PNG path."""
+    """Run ``c4 export`` on a single diagram file and return the PNG path.
+
+    Args:
+        diagram_py: Path to the diagram Python file.
+        output_dir: Directory for the rendered PNG output.
+        renderer: Backend name (``plantuml`` or ``mermaid``).
+
+    Returns:
+        Path to the rendered PNG, or ``None`` on failure.
+
+    """
     png_path = output_dir / (diagram_py.stem + ".png")
 
     cmd = ["c4", "export"]
@@ -106,6 +129,7 @@ def render_diagram(diagram_py: Path, output_dir: Path, renderer: str) -> Path | 
 
 
 def main() -> None:
+    """Render C4 diagram files to PNG via CLI."""
     parser = argparse.ArgumentParser(description="Render C4 diagram .py files to PNG")
     parser.add_argument(
         "--input-dir",
