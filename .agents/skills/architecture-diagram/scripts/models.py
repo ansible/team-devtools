@@ -13,7 +13,18 @@ from pathlib import Path
 
 
 class RepoTier(str, Enum):
-    """Repository tier classification."""
+    """Repository tier classification.
+
+    Attributes:
+        PRIMARY: Primary tier repositories.
+        EXPERIMENTAL: Experimental repositories.
+        COMMUNITY: Community-maintained repositories.
+        CONTAINER: Container image repositories.
+        AI_PLATFORM: AI platform repositories.
+        ADJACENT: Adjacent ecosystem repositories.
+        EXTERNAL: External third-party repositories.
+
+    """
 
     PRIMARY = "primary"
     EXPERIMENTAL = "experimental"
@@ -25,7 +36,15 @@ class RepoTier(str, Enum):
 
 
 class RepoLanguage(str, Enum):
-    """Primary language of a repository."""
+    """Primary language of a repository.
+
+    Attributes:
+        PYTHON: Python language.
+        TYPESCRIPT: TypeScript language.
+        MIXED: Multiple languages.
+        YAML: YAML-only content.
+
+    """
 
     PYTHON = "Python"
     TYPESCRIPT = "TypeScript"
@@ -34,7 +53,22 @@ class RepoLanguage(str, Enum):
 
 
 class RelationshipType(str, Enum):
-    """Type of dependency relationship between components."""
+    """Type of dependency relationship between components.
+
+    Attributes:
+        DEPENDS: Direct dependency relationship.
+        SPAWNS: Spawns a CLI subprocess.
+        PACKAGES: Packages into container image.
+        CONSUMES_API: Consumes a remote API.
+        EXTENDS: Extends or inherits from.
+        TESTS_WITH: Uses for testing.
+        BUILDS: Builds an artifact.
+        OPTIONAL: Optional soft dependency.
+        CONTAINS: Contains as sub-component.
+        ESCALATES_TO: Escalates processing to.
+        USES_WORKFLOW: Uses a reusable workflow.
+
+    """
 
     DEPENDS = "depends on"
     SPAWNS = "spawns CLI"
@@ -51,7 +85,17 @@ class RelationshipType(str, Enum):
 
 @dataclass
 class RepoManifestEntry:
-    """A repository to clone and introspect."""
+    """A repository to clone and introspect.
+
+    Attributes:
+        slug: GitHub org/repo identifier.
+        clone_url: URL for cloning the repo.
+        language: Primary programming language.
+        tier: Repository tier classification.
+        description: Short repo description.
+        special_handling: Custom crawl logic key.
+
+    """
 
     slug: str
     clone_url: str
@@ -63,7 +107,16 @@ class RepoManifestEntry:
 
 @dataclass
 class DiscoveredComponent:
-    """A component discovered inside a repository."""
+    """A component discovered inside a repository.
+
+    Attributes:
+        name: Component display name.
+        repo_slug: Owning repository slug.
+        component_type: Kind of component.
+        technology: Primary technology used.
+        description: Short component description.
+
+    """
 
     name: str
     repo_slug: str
@@ -74,7 +127,16 @@ class DiscoveredComponent:
 
 @dataclass
 class DiscoveredRelationship:
-    """A dependency relationship discovered between components."""
+    """A dependency relationship discovered between components.
+
+    Attributes:
+        source: Source repo or component name.
+        target: Target repo or component name.
+        relationship_type: Kind of relationship.
+        label: Human-readable edge label.
+        discovered_from: File path where found.
+
+    """
 
     source: str  # repo slug or component name
     target: str  # repo slug or component name
@@ -85,7 +147,17 @@ class DiscoveredRelationship:
 
 @dataclass
 class ContainerArtifact:
-    """A container image built by a repo."""
+    """A container image built by a repo.
+
+    Attributes:
+        repo_slug: Owning repository slug.
+        image_name: Published container image name.
+        containerfile_path: Path to Containerfile.
+        base_image: Base image reference.
+        contents: Packages installed in image.
+        published_in_workflow: CI workflow that builds it.
+
+    """
 
     repo_slug: str
     image_name: str
@@ -97,7 +169,16 @@ class ContainerArtifact:
 
 @dataclass
 class CrawlResult:
-    """Aggregated output from crawling all repos."""
+    """Aggregated output from crawling all repos.
+
+    Attributes:
+        repos: Map of slug to manifest entry.
+        components: Discovered components list.
+        relationships: Discovered relationships list.
+        containers: Container artifacts found.
+        crawl_errors: Errors encountered during crawl.
+
+    """
 
     repos: dict[str, RepoManifestEntry] = field(default_factory=dict)
     components: list[DiscoveredComponent] = field(default_factory=list)

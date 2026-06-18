@@ -471,7 +471,7 @@ def _parse_release_age(age_str: str | int | None) -> int | None:
         age_str: Raw age value from renovate config.
 
     Returns:
-        Age in days, or ``None`` if unparseable.
+        Age in days, or ``None`` if unparsable.
 
     """
     if age_str is None:

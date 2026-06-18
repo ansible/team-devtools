@@ -8,7 +8,16 @@ from typing import Any
 
 
 class RiskLevel(enum.Enum):
-    """Risk classification for findings."""
+    """Risk classification for findings.
+
+    Attributes:
+        CRITICAL: Critical severity risk.
+        HIGH: High severity risk.
+        MEDIUM: Medium severity risk.
+        LOW: Low severity risk.
+        INFO: Informational finding only.
+
+    """
 
     CRITICAL = "critical"
     HIGH = "high"
@@ -18,7 +27,25 @@ class RiskLevel(enum.Enum):
 
 
 class FindingCategory(enum.Enum):
-    """Categories of supply chain anomalies."""
+    """Categories of supply chain anomalies.
+
+    Attributes:
+        UNSIGNED_COMMIT: Commit lacks cryptographic signature.
+        GITHUB_WEB_SIGNED: Signed only via GitHub web UI.
+        ORPHAN_COMMIT: Commit not linked to any PR.
+        BYPASSED_CI: Merged without passing CI checks.
+        POST_MERGE_PUSH: Push directly after merge.
+        REPLICATED_MESSAGE: Duplicated commit message detected.
+        SUSPICIOUS_DEP_TIMING: Dependency updated suspiciously fast.
+        YANKED_VERSION: Depends on a yanked release.
+        PROTECTION_CHANGED: Branch protection was modified.
+        POST_APPROVAL_COMMIT: Commit added after approval.
+        BOT_ONLY_APPROVAL: PR approved only by bots.
+        COOLDOWN_VIOLATED: Merged before cooldown elapsed.
+        KNOWN_VULNERABILITY: Known CVE in dependency.
+        SELF_APPROVED: Author approved their own PR.
+
+    """
 
     UNSIGNED_COMMIT = "unsigned_commit"
     GITHUB_WEB_SIGNED = "github_web_signed"
@@ -38,7 +65,16 @@ class FindingCategory(enum.Enum):
 
 @dataclass
 class CommitVerification:
-    """GPG/SSH signature verification details."""
+    """GPG/SSH signature verification details.
+
+    Attributes:
+        verified: Whether signature is valid.
+        reason: Verification status reason.
+        signature: Raw signature string.
+        signer_login: GitHub login of signer.
+        signer_email: Email of the signer.
+
+    """
 
     verified: bool
     reason: str
@@ -49,7 +85,22 @@ class CommitVerification:
 
 @dataclass
 class Commit:
-    """A git commit with verification and PR linkage metadata."""
+    """A git commit with verification and PR linkage metadata.
+
+    Attributes:
+        sha: Full commit SHA hash.
+        repo: Repository name (org/repo).
+        author_login: GitHub login of author.
+        author_email: Email of the author.
+        committer_login: GitHub login of committer.
+        committer_email: Email of the committer.
+        message: Commit message text.
+        date: ISO 8601 commit timestamp.
+        verification: Signature verification details.
+        associated_prs: Linked pull request numbers.
+        url: GitHub web URL for commit.
+
+    """
 
     sha: str
     repo: str
@@ -161,7 +212,22 @@ class Commit:
 
 @dataclass
 class PullRequest:
-    """A pull request with merge and review metadata."""
+    """A pull request with merge and review metadata.
+
+    Attributes:
+        number: PR number in the repository.
+        repo: Repository name (org/repo).
+        title: Pull request title.
+        state: Current state (open/closed).
+        merged: Whether the PR was merged.
+        merged_at: ISO 8601 merge timestamp.
+        merge_commit_sha: SHA of merge commit.
+        author_login: GitHub login of PR author.
+        base_ref: Target branch name.
+        head_ref: Source branch name.
+        url: GitHub web URL for PR.
+
+    """
 
     number: int
     repo: str
@@ -253,7 +319,17 @@ class PullRequest:
 
 @dataclass
 class CheckSuite:
-    """CI check suite status for a commit."""
+    """CI check suite status for a commit.
+
+    Attributes:
+        commit_sha: SHA of the checked commit.
+        repo: Repository name (org/repo).
+        status: Suite execution status.
+        conclusion: Final suite conclusion.
+        app_name: GitHub App that ran checks.
+        url: GitHub API URL for suite.
+
+    """
 
     commit_sha: str
     repo: str
@@ -324,7 +400,24 @@ class CheckSuite:
 
 @dataclass
 class DepChange:
-    """A dependency change detected in a commit or comparison."""
+    """A dependency change detected in a commit or comparison.
+
+    Attributes:
+        repo: Repository name (org/repo).
+        file_path: Path to dependency file.
+        package_name: Name of the package.
+        old_version: Previous version string.
+        new_version: Updated version string.
+        change_type: Kind of change (added/removed/updated).
+        commit_sha: SHA introducing the change.
+        commit_date: ISO 8601 commit timestamp.
+        ecosystem: Package ecosystem (pypi/npm).
+        is_direct: Whether a direct dependency.
+        release_date: Package release date.
+        days_since_release: Days since upstream release.
+        yanked: Whether version was yanked.
+
+    """
 
     repo: str
     file_path: str
@@ -393,7 +486,20 @@ class DepChange:
 
 @dataclass
 class Finding:
-    """An anomaly detected during analysis."""
+    """An anomaly detected during analysis.
+
+    Attributes:
+        category: Type of anomaly found.
+        risk_level: Severity classification.
+        repo: Repository name (org/repo).
+        summary: One-line finding summary.
+        details: Extended description of finding.
+        commit_sha: Related commit SHA if any.
+        pr_number: Related PR number if any.
+        date: ISO 8601 timestamp of event.
+        evidence: Supporting data dictionary.
+
+    """
 
     category: FindingCategory
     risk_level: RiskLevel
@@ -450,7 +556,20 @@ class Finding:
 
 @dataclass
 class AuditManifest:
-    """Metadata about a cached audit run."""
+    """Metadata about a cached audit run.
+
+    Attributes:
+        start_date: Audit window start date.
+        end_date: Audit window end date.
+        repos: List of audited repo slugs.
+        cache_key: Unique key for cached data.
+        collected_at: ISO 8601 collection timestamp.
+        gh_version: GitHub CLI version used.
+        total_commits: Number of commits analyzed.
+        total_prs: Number of PRs analyzed.
+        total_findings: Number of findings produced.
+
+    """
 
     start_date: str
     end_date: str
