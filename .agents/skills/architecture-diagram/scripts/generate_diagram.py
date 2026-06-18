@@ -193,7 +193,7 @@ def generate_system_context(result: CrawlResult, output_dir: Path) -> Path:
 # ---------------------------------------------------------------------------
 
 
-def generate_container_diagram(result: CrawlResult, output_dir: Path) -> Path:  # noqa: PLR0912, PLR0915
+def generate_container_diagram(result: CrawlResult, output_dir: Path) -> Path:  # noqa: PLR0912
     """Generate the L2 Container diagram showing individual projects.
 
     Args:

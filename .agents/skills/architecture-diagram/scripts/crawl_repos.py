@@ -486,7 +486,7 @@ def _crawl_abbenay(repo_dir: Path, result: CrawlResult) -> None:
 # ---------------------------------------------------------------------------
 
 
-def crawl_repo(entry: RepoManifestEntry, repo_dir: Path, result: CrawlResult) -> None:  # noqa: PLR0912, PLR0915
+def crawl_repo(entry: RepoManifestEntry, repo_dir: Path, result: CrawlResult) -> None:  # noqa: PLR0912
     """Introspect a single cloned repo and add findings to *result*.
 
     Args:
