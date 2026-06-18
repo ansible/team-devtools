@@ -50,8 +50,8 @@ jobs:
           passphrase: ${{ secrets.BOT_GPG_PASSPHRASE }}
           git_user_signingkey: true
           git_commit_gpgsign: true
-          git_committer_name: "Ansible Bot"
-          git_committer_email: "devtools@ansible.com"
+          git_committer_name: "ansibuddy"
+          git_committer_email: "107943535+ansibuddy@users.noreply.github.com"
           workdir: target
 
       - name: Sync skills to target repo
