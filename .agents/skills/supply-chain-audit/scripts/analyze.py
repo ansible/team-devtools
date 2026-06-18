@@ -14,7 +14,6 @@ from collections import Counter
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -32,7 +31,6 @@ from cache_utils import (
 )
 from models import Finding, FindingCategory, RiskLevel
 
-
 GITHUB_NOREPLY_EMAILS = {"noreply@github.com", "github@users.noreply.github.com"}
 JACCARD_THRESHOLD = 0.95
 MIN_COMMIT_MESSAGE_LENGTH = 20
@@ -41,7 +39,7 @@ FALLBACK_COOLDOWN_DAYS = 3
 
 
 def tokenize(text: str) -> set[str]:
-    """Simple word tokenizer for Jaccard similarity."""
+    """Tokenize text into a set of lowercase words."""
     return set(text.lower().split())
 
 
@@ -80,7 +78,7 @@ def detect_unsigned_commits(commits: list[dict]) -> list[Finding]:
                         "author": commit.get("author_login"),
                         "reason": verification.get("reason"),
                     },
-                )
+                ),
             )
     return findings
 
@@ -146,7 +144,7 @@ def detect_github_web_signed(commits: list[dict], prs: list[dict]) -> list[Findi
                     "committer_email": committer_email,
                     "is_pr_merge": False,
                 },
-            )
+            ),
         )
     return findings
 
@@ -181,7 +179,7 @@ def detect_orphan_commits(commits: list[dict], prs: list[dict]) -> list[Finding]
                         "author": commit.get("author_login"),
                         "message_preview": msg_first_line,
                     },
-                )
+                ),
             )
     return findings
 
@@ -209,7 +207,7 @@ def detect_bypassed_ci(
         repo = pr["repo"]
         repo_protection = protection.get(repo, {})
         required_checks = set(
-            repo_protection.get("rules", {}).get("required_checks", [])
+            repo_protection.get("rules", {}).get("required_checks", []),
         )
 
         suites = checks.get(merge_sha, [])
@@ -264,7 +262,7 @@ def detect_bypassed_ci(
                         "failed_advisory": failed_advisory,
                         "required_checks_configured": list(required_checks),
                     },
-                )
+                ),
             )
         # If no required checks configured, don't flag individual PRs — there's
         # no gate to bypass. The weak posture is reported separately in
@@ -320,7 +318,7 @@ def detect_protection_changes(protection: dict[str, dict]) -> list[Finding]:
                         f"which could mask malicious commits."
                     ),
                     evidence={"allow_force_pushes": True},
-                )
+                ),
             )
 
         required_checks = rules.get("required_checks", [])
@@ -339,7 +337,7 @@ def detect_protection_changes(protection: dict[str, dict]) -> list[Finding]:
                         f"with failing tests or security scans."
                     ),
                     evidence={"required_checks": [], "has_protection": True},
-                )
+                ),
             )
 
     return findings
@@ -368,7 +366,7 @@ def detect_post_merge_pushes(commits: list[dict], prs: list[dict]) -> list[Findi
                 continue
 
             if commit_date > merged_at and commit["sha"] != matching_pr.get(
-                "merge_commit_sha"
+                "merge_commit_sha",
             ):
                 findings.append(
                     Finding(
@@ -392,7 +390,7 @@ def detect_post_merge_pushes(commits: list[dict], prs: list[dict]) -> list[Findi
                             "commit_date": commit_date,
                             "author": commit.get("author_login"),
                         },
-                    )
+                    ),
                 )
     return findings
 
@@ -450,7 +448,7 @@ def detect_replicated_messages(commits: list[dict]) -> list[Finding]:
                                 "original_author": earlier.get("author_login"),
                                 "new_author": commit.get("author_login"),
                             },
-                        )
+                        ),
                     )
                     break
 
@@ -458,7 +456,7 @@ def detect_replicated_messages(commits: list[dict]) -> list[Finding]:
 
 
 def detect_suspicious_dep_timing(
-    deps: list[dict], renovate_configs: dict[str, dict]
+    deps: list[dict], renovate_configs: dict[str, dict],
 ) -> list[Finding]:
     """Detect dependencies that violate the configured renovate cooldown period.
 
@@ -521,7 +519,7 @@ def detect_suspicious_dep_timing(
                         "is_major": is_major,
                         "config_source": config.get("source"),
                     },
-                )
+                ),
             )
         elif effective_cooldown is None and days < FALLBACK_COOLDOWN_DAYS:
             # No cooldown configured — fallback heuristic for very rapid adoption
@@ -548,7 +546,7 @@ def detect_suspicious_dep_timing(
                         "days_since_release": days,
                         "configured_cooldown": None,
                     },
-                )
+                ),
             )
 
     return findings
@@ -664,7 +662,7 @@ def detect_post_approval_commits(pr_audits: list[dict]) -> list[Finding]:
             author = c.get("author_login", "unknown")
             msg = c.get("message", "").split("\n")[0][:60]
             details_parts.append(
-                f"  - {c['sha'][:8]} by {author}: '{msg}' ({c.get('date', '')[:16]})"
+                f"  - {c['sha'][:8]} by {author}: '{msg}' ({c.get('date', '')[:16]})",
             )
 
         findings.append(
@@ -692,7 +690,7 @@ def detect_post_approval_commits(pr_audits: list[dict]) -> list[Finding]:
                     "from_approver": len(from_approver),
                     "from_unknown_third_party": len(from_unknown_third_party),
                 },
-            )
+            ),
         )
 
     return findings
@@ -739,7 +737,7 @@ def detect_known_vulnerabilities(vulns: dict[str, list[dict]]) -> list[Finding]:
                             "severity": severity,
                             "aliases": aliases,
                         },
-                    )
+                    ),
                 )
 
     return findings
@@ -841,7 +839,7 @@ def detect_bot_only_approval(pr_audits: list[dict], prs: list[dict]) -> list[Fin
                     "is_dep_only": is_dep_only,
                     "commit_count": audit.get("commit_count", 0),
                 },
-            )
+            ),
         )
 
     return findings
@@ -892,7 +890,7 @@ def detect_self_approval(pr_audits: list[dict]) -> list[Finding]:
                         "approvers": approver_logins,
                         "human_approvers": human_approvers,
                     },
-                )
+                ),
             )
         elif pr_author in human_approvers and len(human_approvers) > 1:
             # Author approved alongside others — informational only
@@ -919,7 +917,7 @@ def detect_self_approval(pr_audits: list[dict]) -> list[Finding]:
                         "human_approvers": human_approvers,
                         "independent_reviewers": others,
                     },
-                )
+                ),
             )
 
     return findings
@@ -944,11 +942,11 @@ def _print_cache_stats(
     print(f"  Repos with protection data: {len(protection)}")
     print(
         f"  Repos with renovate config: "
-        f"{sum(1 for c in renovate_configs.values() if c.get('source') != 'none')}"
+        f"{sum(1 for c in renovate_configs.values() if c.get('source') != 'none')}",
     )
     print(
         f"  Repos with vulnerability data: {len(vulns)} "
-        f"({sum(len(v) for v in vulns.values())} affected packages)"
+        f"({sum(len(v) for v in vulns.values())} affected packages)",
     )
 
 
@@ -1071,7 +1069,7 @@ def _run_detection_passes(
     all_findings: list[Finding] = []
     for step, description, detector, result_message in pass_specs:
         all_findings.extend(
-            _run_detection_pass(step, description, detector, result_message)
+            _run_detection_pass(step, description, detector, result_message),
         )
 
     return all_findings
@@ -1102,11 +1100,11 @@ def run_analysis(cache_dir: Path) -> list[Finding]:
     vulns = get_all_cached_vulns(cache_dir)
 
     _print_cache_stats(
-        commits, prs, checks, deps, protection, pr_audits, renovate_configs, vulns
+        commits, prs, checks, deps, protection, pr_audits, renovate_configs, vulns,
     )
 
     all_findings = _run_detection_passes(
-        commits, prs, checks, deps, protection, pr_audits, renovate_configs, vulns
+        commits, prs, checks, deps, protection, pr_audits, renovate_configs, vulns,
     )
     _print_risk_summary(all_findings)
 
@@ -1115,7 +1113,6 @@ def run_analysis(cache_dir: Path) -> list[Finding]:
 
 def _build_findings_summary(findings: list[dict], manifest: dict) -> dict:
     """Build a compact summary of findings for the agent to reason about."""
-
     by_category: dict[str, list[dict]] = {}
     for f in findings:
         by_category.setdefault(f["category"], []).append(f)
@@ -1154,7 +1151,7 @@ def _build_findings_summary(findings: list[dict], manifest: dict) -> dict:
                         ].index(x.get("risk_level", "info")),
                     )[:5]
                 ],
-            }
+            },
         )
 
     repo_breakdown = []
@@ -1168,10 +1165,10 @@ def _build_findings_summary(findings: list[dict], manifest: dict) -> dict:
                 "high": counts.get("high", 0),
                 "medium": counts.get("medium", 0),
                 "low": counts.get("low", 0),
-            }
+            },
         )
     repo_breakdown.sort(
-        key=lambda x: (x["critical"], x["high"], x["total"]), reverse=True
+        key=lambda x: (x["critical"], x["high"], x["total"]), reverse=True,
     )
 
     return {
@@ -1188,7 +1185,7 @@ def main() -> None:
     """Entry point for anomaly analysis."""
     parser = argparse.ArgumentParser(description="Supply chain anomaly analyzer")
     parser.add_argument(
-        "--cache-dir", required=True, help="Cache directory from collect.py"
+        "--cache-dir", required=True, help="Cache directory from collect.py",
     )
     args = parser.parse_args()
 
@@ -1211,7 +1208,7 @@ def main() -> None:
 
     manifest = read_manifest(cache_dir)
     print(
-        f"Analyzing audit data for: {manifest['start_date']} to {manifest['end_date']}"
+        f"Analyzing audit data for: {manifest['start_date']} to {manifest['end_date']}",
     )
     print(f"Repos: {', '.join(manifest.get('repos', []))}")
 

@@ -1,0 +1,20 @@
+line-length = 120
+
+[lint]
+select = ["ALL"]
+ignore = [
+  "C901",    # complex-structure — utility scripts have inherently complex crawlers
+  "D203",    # incorrect-blank-line-before-class (incompatible with D211)
+  "D213",    # multi-line-summary-second-line (incompatible with D212)
+  "D100",    # undocumented-public-module
+  "D101",    # undocumented-public-class
+  "D103",    # undocumented-public-function
+  "DOC201",  # return not documented in docstring
+  "INP001",  # implicit-namespace-package — standalone scripts, not packages
+  "PLR0913", # too-many-arguments
+  "S404",    # subprocess module import
+  "S603",    # subprocess-without-shell-equals-true
+  "S607",    # start-process-with-partial-path
+  "T201",    # print found — these are CLI scripts
+  "UP042",   # replace-str-enum — StrEnum requires Python 3.11+
+]

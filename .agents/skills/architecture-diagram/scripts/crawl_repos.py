@@ -17,7 +17,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 # Allow importing sibling module when run as a script.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -33,7 +32,6 @@ from models import (
     RepoLanguage,
     RepoManifestEntry,
 )
-
 
 # ---------------------------------------------------------------------------
 # Cloning
@@ -75,14 +73,14 @@ def clone_all(clone_dir: Path) -> dict[str, Path]:
 
 def _read_toml_deps(pyproject: Path) -> list[str]:
     """Extract dependency names from pyproject.toml without a TOML library."""
-    text = pyproject.read_text()
+    text = pyproject.read_text(encoding="utf-8")
     deps: list[str] = []
     in_deps = False
     in_optional = False
     for line in text.splitlines():
         stripped = line.strip()
         if stripped == "[project.dependencies]" or stripped.startswith(
-            "dependencies = ["
+            "dependencies = [",
         ):
             in_deps = True
             continue
@@ -90,7 +88,7 @@ def _read_toml_deps(pyproject: Path) -> list[str]:
             in_optional = True
             continue
         if stripped.startswith("[") and not stripped.startswith(
-            "[project.optional-dependencies"
+            "[project.optional-dependencies",
         ):
             in_deps = False
             in_optional = False
@@ -105,7 +103,7 @@ def _read_toml_deps(pyproject: Path) -> list[str]:
 def _read_package_json_deps(pkg_json: Path) -> list[str]:
     """Extract dependency names from package.json."""
     try:
-        data = json.loads(pkg_json.read_text())
+        data = json.loads(pkg_json.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return []
     names: list[str] = []
@@ -124,11 +122,11 @@ def _find_containerfiles(repo_dir: Path) -> list[Path]:
 
 
 def _parse_containerfile(
-    cf: Path, repo_slug: str, repo_dir: Path
+    cf: Path, repo_slug: str, repo_dir: Path,
 ) -> ContainerArtifact | None:
     """Extract base image and notable contents from a Containerfile."""
     try:
-        text = cf.read_text()
+        text = cf.read_text(encoding="utf-8")
     except OSError:
         return None
     base_image = ""
@@ -168,7 +166,7 @@ def _parse_containerfile(
 
 
 def _scan_workflow_container_builds(
-    repo_dir: Path, repo_slug: str
+    repo_dir: Path, repo_slug: str,
 ) -> list[ContainerArtifact]:
     """Scan GitHub Actions workflows and build scripts for container image builds/pushes."""
     artifacts: list[ContainerArtifact] = []
@@ -187,7 +185,7 @@ def _scan_workflow_container_builds(
 
     for scan_path, source_label in scan_files:
         try:
-            text = scan_path.read_text()
+            text = scan_path.read_text(encoding="utf-8")
         except OSError:
             continue
         if any(
@@ -214,14 +212,14 @@ def _scan_workflow_container_builds(
                             containerfile_path="(workflow/script)",
                             base_image="(from workflow)",
                             published_in_workflow=source_label,
-                        )
+                        ),
                     )
 
     return artifacts
 
 
 def _scan_workflow_reusable(
-    repo_dir: Path, repo_slug: str
+    repo_dir: Path, repo_slug: str,
 ) -> list[DiscoveredRelationship]:
     """Discover reusable workflow references to other ADT repos."""
     rels: list[DiscoveredRelationship] = []
@@ -230,7 +228,7 @@ def _scan_workflow_reusable(
         return rels
     for yml in wf_dir.glob("*.yml"):
         try:
-            text = yml.read_text()
+            text = yml.read_text(encoding="utf-8")
         except OSError:
             continue
         for m in re.finditer(r"uses:\s+([a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+)/", text):
@@ -243,7 +241,7 @@ def _scan_workflow_reusable(
                         relationship_type=RelationshipType.USES_WORKFLOW,
                         label="uses reusable workflow",
                         discovered_from=yml.name,
-                    )
+                    ),
                 )
     return rels
 
@@ -276,7 +274,7 @@ def _crawl_vscode_ansible(repo_dir: Path, result: CrawlResult) -> None:  # noqa:
                             relationship_type=RelationshipType.SPAWNS,
                             label=f"spawns {tool_name}",
                             discovered_from=str(f.relative_to(repo_dir)),
-                        )
+                        ),
                     )
 
     # Detect language server
@@ -297,7 +295,7 @@ def _crawl_vscode_ansible(repo_dir: Path, result: CrawlResult) -> None:  # noqa:
                     component_type="server",
                     technology="TypeScript (LSP)",
                     description="Integrated language server for Ansible content editing",
-                )
+                ),
             )
             break
 
@@ -313,7 +311,7 @@ def _crawl_vscode_ansible(repo_dir: Path, result: CrawlResult) -> None:  # noqa:
                 component_type="server",
                 technology="TypeScript (MCP)",
                 description="Model Context Protocol server exposing ADT CLI tools to AI agents",
-            )
+            ),
         )
         # Scan MCP server source for Python CLI tool dependencies
         mcp_src = mcp_dir / "src"
@@ -332,7 +330,7 @@ def _crawl_vscode_ansible(repo_dir: Path, result: CrawlResult) -> None:  # noqa:
                                 relationship_type=RelationshipType.SPAWNS,
                                 label=f"MCP tool: {tool_name}",
                                 discovered_from=f"packages/ansible-mcp-server/src/{f.relative_to(mcp_src)}",
-                            )
+                            ),
                         )
 
     if not mcp_found:
@@ -352,7 +350,7 @@ def _crawl_vscode_ansible(repo_dir: Path, result: CrawlResult) -> None:  # noqa:
                         component_type="server",
                         technology="TypeScript (MCP)",
                         description="Model Context Protocol server for AI tool integration",
-                    )
+                    ),
                 )
                 break
 
@@ -371,7 +369,7 @@ def _crawl_abbenay(repo_dir: Path, result: CrawlResult) -> None:
             ctype = "library"
             if pkg_json.exists():
                 try:
-                    data = json.loads(pkg_json.read_text())
+                    data = json.loads(pkg_json.read_text(encoding="utf-8"))
                     desc = data.get("description", "")
                 except (json.JSONDecodeError, OSError):
                     pass
@@ -401,7 +399,7 @@ def _crawl_abbenay(repo_dir: Path, result: CrawlResult) -> None:
                     component_type=ctype,
                     technology=tech,
                     description=desc,
-                )
+                ),
             )
 
 
@@ -427,7 +425,7 @@ def crawl_repo(entry: RepoManifestEntry, repo_dir: Path, result: CrawlResult) ->
                         relationship_type=RelationshipType.DEPENDS,
                         label=f"depends on {dep_name}",
                         discovered_from="pyproject.toml",
-                    )
+                    ),
                 )
 
     # --- Node dependencies ---
@@ -443,7 +441,7 @@ def crawl_repo(entry: RepoManifestEntry, repo_dir: Path, result: CrawlResult) ->
                         relationship_type=RelationshipType.DEPENDS,
                         label=f"depends on {dep_name}",
                         discovered_from="package.json",
-                    )
+                    ),
                 )
 
     # --- Python source: CLI tool spawns (catches runtime deps not in pyproject.toml) ---
@@ -466,7 +464,7 @@ def crawl_repo(entry: RepoManifestEntry, repo_dir: Path, result: CrawlResult) ->
                             relationship_type=RelationshipType.SPAWNS,
                             label=f"spawns {tool_name}",
                             discovered_from=str(f.relative_to(repo_dir)),
-                        )
+                        ),
                     )
 
     # --- Container artifacts (merge Containerfile builds with workflow registry names) ---
@@ -541,7 +539,7 @@ def deduplicate_relationships(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Clone and crawl ADT repos for C4 diagrams"
+        description="Clone and crawl ADT repos for C4 diagrams",
     )
     parser.add_argument(
         "--clone-dir",

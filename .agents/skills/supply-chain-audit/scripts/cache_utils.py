@@ -8,9 +8,8 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-
 
 TARGET_REPOS = [
     "ansible-builder",
@@ -31,7 +30,7 @@ GITHUB_ORG = "ansible"
 
 
 def compute_cache_key(
-    start_date: str, end_date: str, repos: list[str] | None = None
+    start_date: str, end_date: str, repos: list[str] | None = None,
 ) -> str:
     """Deterministic cache key from time frame and repo list."""
     if repos is None:
@@ -54,7 +53,7 @@ def ensure_cache_structure(cache_dir: Path) -> None:
 
 
 def read_cache_file(
-    cache_dir: Path, subdir: str, filename: str
+    cache_dir: Path, subdir: str, filename: str,
 ) -> dict[str, object] | list[object] | None:
     """Read a JSON file from cache. Returns None if not found."""
     path = cache_dir / subdir / filename
@@ -65,7 +64,7 @@ def read_cache_file(
 
 
 def write_cache_file(
-    cache_dir: Path, subdir: str, filename: str, data: dict[str, object] | list[object]
+    cache_dir: Path, subdir: str, filename: str, data: dict[str, object] | list[object],
 ) -> Path:
     """Write data as JSON to cache. Returns the file path."""
     (cache_dir / subdir).mkdir(parents=True, exist_ok=True)
@@ -106,7 +105,7 @@ def write_manifest(
         "end_date": end_date,
         "repos": repos,
         "cache_key": key,
-        "collected_at": datetime.now(timezone.utc).isoformat(),
+        "collected_at": datetime.now(UTC).isoformat(),
         "gh_version": gh_version,
         "total_commits": total_commits,
         "total_prs": total_prs,

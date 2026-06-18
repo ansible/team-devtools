@@ -12,7 +12,7 @@ import argparse
 import json
 import sys
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from cache_utils import (
@@ -27,7 +27,7 @@ def get_pypi_release_dates(package_name: str) -> dict[str, str]:
     try:
         url = f"https://pypi.org/pypi/{package_name}/json"
         req = urllib.request.Request(  # noqa: S310
-            url, headers={"User-Agent": "supply-chain-audit/1.0"}
+            url, headers={"User-Agent": "supply-chain-audit/1.0"},
         )
         with urllib.request.urlopen(req, timeout=15) as resp:  # noqa: S310
             data = json.loads(resp.read())
@@ -50,7 +50,7 @@ def get_npm_release_dates(package_name: str) -> dict[str, str]:
     try:
         url = f"https://registry.npmjs.org/{package_name}"
         req = urllib.request.Request(  # noqa: S310
-            url, headers={"User-Agent": "supply-chain-audit/1.0"}
+            url, headers={"User-Agent": "supply-chain-audit/1.0"},
         )
         with urllib.request.urlopen(req, timeout=15) as resp:  # noqa: S310
             data = json.loads(resp.read())
@@ -137,7 +137,7 @@ def analyze_package_impact(
 
 
 def _is_version_pinned(dep: dict) -> bool:
-    """Heuristic: is this a pinned (exact) version vs a range?"""
+    """Check whether the dependency specifies a pinned (exact) version."""
     version = dep.get("new_version", "")
     if not version:
         return False
@@ -177,7 +177,7 @@ def _build_timeline(
             "event": "compromise",
             "description": "Suspected compromise date",
             "repo": None,
-        }
+        },
     )
 
     events.extend(
@@ -201,10 +201,10 @@ def _build_timeline(
 def main() -> None:
     """Entry point for package focus analysis."""
     parser = argparse.ArgumentParser(
-        description="Package/CVE focused supply chain analysis"
+        description="Package/CVE focused supply chain analysis",
     )
     parser.add_argument(
-        "--cache-dir", required=True, help="Cache directory from collect.py"
+        "--cache-dir", required=True, help="Cache directory from collect.py",
     )
     parser.add_argument("--package", required=True, help="Package name to investigate")
     parser.add_argument(
@@ -221,7 +221,7 @@ def main() -> None:
     args = parser.parse_args()
 
     try:
-        datetime.strptime(args.compromise_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        datetime.strptime(args.compromise_date, "%Y-%m-%d").replace(tzinfo=UTC)
     except ValueError:
         print("ERROR: compromise-date must be YYYY-MM-DD", file=sys.stderr)
         sys.exit(1)
@@ -236,7 +236,7 @@ def main() -> None:
                 break
         else:
             print(
-                "ERROR: No manifest.json found. Run collect.py first.", file=sys.stderr
+                "ERROR: No manifest.json found. Run collect.py first.", file=sys.stderr,
             )
             sys.exit(1)
 
@@ -260,7 +260,7 @@ def main() -> None:
 
     print("\nAnalyzing impact...")
     results = analyze_package_impact(
-        args.package, args.compromise_date, deps, release_dates
+        args.package, args.compromise_date, deps, release_dates,
     )
 
     write_package_focus(cache_dir, results)
@@ -279,7 +279,7 @@ def main() -> None:
             risk = entry["risk_assessment"].upper()
             print(
                 f"    [{risk}] {entry['repo']}: v{entry['version']} "
-                f"({entry['change_type']} on {entry['commit_date']})"
+                f"({entry['change_type']} on {entry['commit_date']})",
             )
 
     print(f"\n  Results written to: {cache_dir / 'package_focus.json'}")

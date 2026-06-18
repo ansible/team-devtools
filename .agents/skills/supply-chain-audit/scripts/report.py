@@ -11,7 +11,7 @@ import html
 import json
 import re as _re
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from cache_utils import (
@@ -26,7 +26,6 @@ from cache_utils import (
     read_manifest,
     read_package_focus,
 )
-
 
 TEMPLATE_PATH = Path(__file__).parent / "html_templates" / "dashboard.html"
 
@@ -64,7 +63,7 @@ def load_template() -> str:
 
 def _parse_date_yyyy_mm_dd(date_str: str) -> datetime:
     """Parse a YYYY-MM-DD date string as UTC-aware datetime."""
-    return datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    return datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=UTC)
 
 
 def esc(text: str | None) -> str:
@@ -177,9 +176,11 @@ def _build_repo_summary_row(
         if num_findings == 0
         else (f'<span class="badge badge-high">{num_findings}</span>')
     )
+    repo_url = f"https://github.com/ansible/{repo}"
+    repo_link = f'<a href="{repo_url}" target="_blank" rel="noopener noreferrer">{esc(repo)}</a>'
     return (
         f"<tr>"
-        f'<td><a href="https://github.com/ansible/{repo}" target="_blank" rel="noopener noreferrer">{esc(repo)}</a></td>'
+        f"<td>{repo_link}</td>"
         f"<td>{num_commits}</td>"
         f"<td>{num_prs}</td>"
         f"<td>{signed_github}</td>"
@@ -242,7 +243,7 @@ def generate_repo_summary_rows(
                 deps_by_repo[repo],
                 checks_str,
                 findings_by_repo[repo],
-            )
+            ),
         )
 
     return "\n".join(rows)
@@ -270,7 +271,7 @@ def generate_findings_summary(findings: list[dict]) -> str:
                 f'<div class="summary-card risk-{risk}">'
                 f'<span class="number">{count}</span>'
                 f'<span class="label">{risk.title()}</span>'
-                f"</div>"
+                f"</div>",
             )
 
     return f'<div class="summary-grid">{"".join(cards)}</div>'
@@ -304,7 +305,7 @@ def generate_repo_cards(findings: list[dict], repos: list[str]) -> str:
             f'<div class="light {light_class}"></div>'
             f'<span class="repo-name">{esc(repo)}</span>'
             f'<span class="repo-count">{count_str}</span>'
-            f"</div>"
+            f"</div>",
         )
     return "\n".join(cards)
 
@@ -335,11 +336,11 @@ def _append_timeline_repo_labels(
         svg_parts.append(
             f'<text x="{margin_left - 5}" y="{y + 4}" '
             f'font-size="9" fill="#8b949e" text-anchor="end" font-family="sans-serif">'
-            f"{esc(short_name)}</text>"
+            f"{esc(short_name)}</text>",
         )
         svg_parts.append(
             f'<line x1="{margin_left}" y1="{y}" x2="{width - margin_right}" y2="{y}" '
-            f'stroke="#30363d" stroke-width="0.5"/>'
+            f'stroke="#30363d" stroke-width="0.5"/>',
         )
 
 
@@ -362,12 +363,12 @@ def _append_timeline_ticks(
         label = tick_date.strftime("%m/%d")
         svg_parts.append(
             f'<line x1="{x}" y1="{margin_top}" x2="{x}" y2="{height - margin_bottom}" '
-            f'stroke="#30363d" stroke-width="0.5" stroke-dasharray="2,4"/>'
+            f'stroke="#30363d" stroke-width="0.5" stroke-dasharray="2,4"/>',
         )
         svg_parts.append(
             f'<text x="{x}" y="{height - margin_bottom + 15}" '
             f'font-size="9" fill="#8b949e" text-anchor="middle" font-family="sans-serif">'
-            f"{label}</text>"
+            f"{label}</text>",
         )
 
 
@@ -410,12 +411,12 @@ def _append_timeline_commits(
         svg_parts.append(
             f'<circle cx="{x}" cy="{y}" r="{radius}" fill="{color}" opacity="0.8">'
             f"<title>{esc(repo)} {esc(sha[:8])} {esc(date_str)}</title>"
-            f"</circle>"
+            f"</circle>",
         )
 
 
 def generate_timeline_svg(
-    commits: list[dict], findings: list[dict], start_date: str, end_date: str
+    commits: list[dict], findings: list[dict], start_date: str, end_date: str,
 ) -> str:
     """Generate an SVG timeline visualization."""
     width = 900
@@ -521,7 +522,7 @@ def generate_commit_integrity_section(commits: list[dict], findings: list[dict])
             cat = f.get("category", "")
             label = CATEGORY_LABELS.get(cat, cat).split("(")[0].strip()
             flags.append(
-                f'<span class="badge badge-{f.get("risk_level", "info")}">{esc(label)}</span>'
+                f'<span class="badge badge-{f.get("risk_level", "info")}">{esc(label)}</span>',
             )
 
         row = (
@@ -648,7 +649,7 @@ def generate_dep_section(deps: list[dict], prs: list[dict]) -> str:
 
 
 def generate_renovate_config_table(
-    renovate_configs: dict[str, dict], repos: list[str]
+    renovate_configs: dict[str, dict], repos: list[str],
 ) -> str:
     """Generate a table showing each repo's configured renovate cooldown."""
     rows = []
@@ -673,7 +674,7 @@ def generate_renovate_config_table(
             f"<td>{default_str}</td>"
             f"<td>{major_str}</td>"
             f"<td>{source_display}</td>"
-            f"</tr>"
+            f"</tr>",
         )
 
     return (
@@ -710,7 +711,7 @@ def generate_findings_details(findings: list[dict]) -> str:
 
         # Sort findings within category: highest risk first
         cat_findings.sort(
-            key=lambda f: risk_priority.index(f.get("risk_level", "info"))
+            key=lambda f: risk_priority.index(f.get("risk_level", "info")),
         )
 
         max_risk = cat_findings[0].get("risk_level", "info") if cat_findings else "info"
@@ -733,11 +734,11 @@ def generate_findings_details(findings: list[dict]) -> str:
                 f"<strong>{esc(repo)}</strong>{pr_link} \u2014 {summary_html}"
                 f'<div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.3rem;">'
                 f"{details_html}</div>"
-                f"</div>"
+                f"</div>",
             )
         if count > MAX_FINDINGS_PER_CATEGORY:
             items_html.append(
-                f'<div class="no-data">... and {count - MAX_FINDINGS_PER_CATEGORY} more</div>'
+                f'<div class="no-data">... and {count - MAX_FINDINGS_PER_CATEGORY} more</div>',
             )
 
         section = (
@@ -778,7 +779,7 @@ def render_recommendations_html(recommendations: list[dict[str, str]]) -> str:
             f"<strong>{i}. {title}</strong>"
             f'<div style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.3rem;">'
             f"{detail}</div>"
-            f"</div>"
+            f"</div>",
         )
 
     return (
@@ -811,7 +812,7 @@ def generate_package_focus_section(package_data: dict | None) -> str:
             f"<td>{esc(entry.get('version_release_date', ''))}</td>"
             f"<td>{'Yes' if entry.get('is_pinned') else 'No (range)'}</td>"
             f'<td><span class="badge badge-{risk}">{risk}</span></td>'
-            f"</tr>"
+            f"</tr>",
         )
 
     table_html = ""
@@ -917,13 +918,13 @@ def _generate_report_sections(data: dict) -> dict[str, str]:
     return {
         "verdict_section": generate_verdict(findings, len(commits), total_prs),
         "repo_summary_rows": generate_repo_summary_rows(
-            commits, prs, deps, findings, protection, repos
+            commits, prs, deps, findings, protection, repos,
         ),
         "findings_summary_section": generate_findings_summary(findings),
         "repo_cards": generate_repo_cards(findings, repos),
         "timeline_svg": generate_timeline_svg(commits, findings, start_date, end_date),
         "commit_integrity_section": generate_commit_integrity_section(
-            commits, findings
+            commits, findings,
         ),
         "dep_section": generate_dep_section(deps, prs),
         "renovate_section": generate_renovate_config_table(renovate_configs, repos),
@@ -933,7 +934,7 @@ def _generate_report_sections(data: dict) -> dict[str, str]:
 
 
 def _build_replacements(
-    data: dict, sections: dict[str, str], recommendations_section: str
+    data: dict, sections: dict[str, str], recommendations_section: str,
 ) -> dict[str, str]:
     """Build template placeholder replacements for the report."""
     manifest = data["manifest"]
@@ -946,7 +947,7 @@ def _build_replacements(
     return {
         "{{start_date}}": manifest["start_date"],
         "{{end_date}}": manifest["end_date"],
-        "{{generated_at}}": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+        "{{generated_at}}": datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
         "{{repo_count}}": str(len(repos)),
         "{{gh_version}}": esc(gh_version),
         "{{total_commits}}": str(len(commits)),
@@ -1011,10 +1012,10 @@ def generate_report(cache_dir: Path, output_path: Path) -> None:
 def main() -> None:
     """Entry point for report generation."""
     parser = argparse.ArgumentParser(
-        description="Supply chain audit HTML report generator"
+        description="Supply chain audit HTML report generator",
     )
     parser.add_argument(
-        "--cache-dir", required=True, help="Cache directory with audit data"
+        "--cache-dir", required=True, help="Cache directory with audit data",
     )
     parser.add_argument(
         "--output",
@@ -1033,7 +1034,7 @@ def main() -> None:
                 break
         else:
             print(
-                "ERROR: No manifest.json found. Run collect.py first.", file=sys.stderr
+                "ERROR: No manifest.json found. Run collect.py first.", file=sys.stderr,
             )
             sys.exit(1)
 

@@ -31,7 +31,6 @@ from cache_utils import (
 )
 from models import CheckSuite, Commit, DepChange, PullRequest
 
-
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -76,7 +75,7 @@ DEP_FILES_NODE = {
 DEP_FILE_PATTERNS = re.compile(
     r"(requirements.*\.txt|constraints\.txt|pyproject\.toml|setup\.cfg|setup\.py|"
     r"Pipfile(\.lock)?|poetry\.lock|uv\.lock|pdm\.lock|"
-    r"package\.json|package-lock\.json|yarn\.lock|pnpm-lock\.yaml)"
+    r"package\.json|package-lock\.json|yarn\.lock|pnpm-lock\.yaml)",
 )
 
 
@@ -240,7 +239,7 @@ def collect_pr_commits_and_reviews(repo: str, prs: list[dict]) -> list[dict]:
                     "committer_login": committer.get("login", "unknown"),
                     "date": commit_data.get("author", {}).get("date", ""),
                     "message": commit_data.get("message", "")[:MAX_COMMIT_MSG_LEN],
-                }
+                },
             )
 
         pr_audit_data.append(
@@ -253,7 +252,7 @@ def collect_pr_commits_and_reviews(repo: str, prs: list[dict]) -> list[dict]:
                 "commits": commit_entries,
                 "approvals": approvals,
                 "commit_count": len(commit_entries),
-            }
+            },
         )
 
     return pr_audit_data
@@ -406,7 +405,7 @@ def _parse_release_age(age_str: str | int | None) -> int | None:
 
 
 def collect_dep_changes(
-    repo: str, _start_date: str, end_date: str, commits: list[dict]
+    repo: str, _start_date: str, end_date: str, commits: list[dict],
 ) -> list[dict]:
     """Identify dependency file changes by examining commits that touch dep files."""
     if not commits:
@@ -536,7 +535,7 @@ def parse_dep_patch(
 
 
 def _parse_npm_patch(
-    patch: str, basename: str
+    patch: str, basename: str,
 ) -> tuple[dict[str, str], dict[str, str]]:
     """Parse npm ecosystem diff lines for package names and versions."""
     added_deps: dict[str, str] = {}
@@ -655,7 +654,7 @@ def _parse_python_patch(patch: str) -> tuple[dict[str, str], dict[str, str]]:
     # Matches: package>=1.0.0, package==1.0.0, package~=1.0, "package[extra]>=1.0"
     version_pattern = re.compile(
         r'["\']?([\w][\w.-]*(?:\[[^\]]*\])?)["\']?\s*'
-        r"(?:[><=!~^]+\s*)?(\d+\.\d+[\w.*]*)"
+        r"(?:[><=!~^]+\s*)?(\d+\.\d+[\w.*]*)",
     )
 
     for line in patch.split("\n"):
@@ -691,10 +690,10 @@ def enrich_dep_release_info(dep: dict) -> None:
         if ecosystem == "pypi":
             url = f"https://pypi.org/pypi/{pkg}/{version}/json"
             req = urllib.request.Request(  # noqa: S310
-                url, headers={"User-Agent": "supply-chain-audit/1.0"}
+                url, headers={"User-Agent": "supply-chain-audit/1.0"},
             )
             with urllib.request.urlopen(  # noqa: S310
-                req, timeout=REGISTRY_REQUEST_TIMEOUT_SECONDS
+                req, timeout=REGISTRY_REQUEST_TIMEOUT_SECONDS,
             ) as resp:
                 data = json.loads(resp.read())
                 urls = data.get("urls", [])
@@ -707,10 +706,10 @@ def enrich_dep_release_info(dep: dict) -> None:
         elif ecosystem == "npm":
             url = f"https://registry.npmjs.org/{pkg}"
             req = urllib.request.Request(  # noqa: S310
-                url, headers={"User-Agent": "supply-chain-audit/1.0"}
+                url, headers={"User-Agent": "supply-chain-audit/1.0"},
             )
             with urllib.request.urlopen(  # noqa: S310
-                req, timeout=REGISTRY_REQUEST_TIMEOUT_SECONDS
+                req, timeout=REGISTRY_REQUEST_TIMEOUT_SECONDS,
             ) as resp:
                 data = json.loads(resp.read())
                 time_map = data.get("time", {})
@@ -770,7 +769,7 @@ def collect_package_inventory(repo: str) -> list[dict]:
                     ver = re.sub(r"^[~^>=<]*", "", ver_spec).strip()
                     if ver and re.match(r"\d", ver):
                         packages.append(
-                            {"name": name, "version": ver, "ecosystem": "npm"}
+                            {"name": name, "version": ver, "ecosystem": "npm"},
                         )
         except (json.JSONDecodeError, ValueError):
             pass
@@ -826,7 +825,7 @@ def scan_osv_batch(packages: list[dict]) -> list[dict]:
 
         try:
             with urllib.request.urlopen(  # noqa: S310
-                req, timeout=OSV_REQUEST_TIMEOUT_SECONDS
+                req, timeout=OSV_REQUEST_TIMEOUT_SECONDS,
             ) as resp:
                 data = json.loads(resp.read())
                 batch_results = data.get("results", [])
@@ -848,7 +847,7 @@ def scan_osv_batch(packages: list[dict]) -> list[dict]:
                                     }
                                     for v in vulns
                                 ],
-                            }
+                            },
                         )
         except (
             urllib.error.URLError,
@@ -911,10 +910,10 @@ def _legacy_branch_protection_result(data: dict) -> dict:
         "enforce_admins": bool(data.get("enforce_admins", {}).get("enabled", False)),
         "required_reviews": bool(data.get("required_pull_request_reviews")),
         "required_signatures": bool(
-            data.get("required_signatures", {}).get("enabled", False)
+            data.get("required_signatures", {}).get("enabled", False),
         ),
         "allow_force_pushes": bool(
-            data.get("allow_force_pushes", {}).get("enabled", False)
+            data.get("allow_force_pushes", {}).get("enabled", False),
         ),
         "allow_deletions": bool(data.get("allow_deletions", {}).get("enabled", False)),
     }
@@ -999,7 +998,7 @@ def collect_protection_changes(repo: str, start_date: str, end_date: str) -> lis
                 "actor_login": actor.get("login", "unknown"),
                 "actor_type": actor.get("type", "unknown"),
                 "ref": event.get("ref", ""),
-            }
+            },
         )
 
     return changes
@@ -1021,7 +1020,7 @@ def _report_osv_scan_results(inventory: list[dict], vuln_results: list[dict]) ->
     if vuln_results:
         total_vulns = sum(len(v["vulns"]) for v in vuln_results)
         print(
-            f"  \u26a0\ufe0f  {len(vuln_results)} packages with {total_vulns} known vulnerabilities"
+            f"  \u26a0\ufe0f  {len(vuln_results)} packages with {total_vulns} known vulnerabilities",
         )
     else:
         print("  \u2705 No known vulnerabilities found")
@@ -1061,14 +1060,14 @@ def _collect_repo_artifacts(repo: str, start_date: str, end_date: str) -> dict:
     cooldown = renovate_config.get("default_cooldown_days")
     major_cd = renovate_config.get("major_cooldown_days")
     print(
-        f"  Cooldown: {cooldown} days (major: {major_cd} days), source: {renovate_config['source']}"
+        f"  Cooldown: {cooldown} days (major: {major_cd} days), source: {renovate_config['source']}",
     )
 
     print("  Fetching PR commit histories and reviews...")
     pr_audits = collect_pr_commits_and_reviews(repo, prs)
     total_pr_commits = sum(a["commit_count"] for a in pr_audits)
     print(
-        f"  Collected {total_pr_commits} PR branch commits across {len(pr_audits)} PRs"
+        f"  Collected {total_pr_commits} PR branch commits across {len(pr_audits)} PRs",
     )
 
     print("  Fetching branch protection rules...")
@@ -1101,7 +1100,7 @@ def _write_repo_cache_files(cache_dir: Path, repo: str, artifacts: dict) -> None
     write_cache_file(cache_dir, "deps", f"{repo}.json", artifacts["deps"])
     write_cache_file(cache_dir, "pr_audits", f"{repo}.json", artifacts["pr_audits"])
     write_cache_file(
-        cache_dir, "renovate", f"{repo}.json", artifacts["renovate_config"]
+        cache_dir, "renovate", f"{repo}.json", artifacts["renovate_config"],
     )
     write_cache_file(cache_dir, "vulns", f"{repo}.json", artifacts["vuln_results"])
     write_cache_file(
@@ -1139,7 +1138,7 @@ def collect_repo(
     prs = artifacts["prs"]
     deps = artifacts["deps"]
     print(
-        f"  [done] {repo}: {len(commits)} commits, {len(prs)} PRs, {len(deps)} dep changes"
+        f"  [done] {repo}: {len(commits)} commits, {len(prs)} PRs, {len(deps)} dep changes",
     )
     return len(commits), len(prs)
 
@@ -1150,13 +1149,13 @@ def main() -> None:
     parser.add_argument("--start", required=True, help="Start date (YYYY-MM-DD)")
     parser.add_argument("--end", required=True, help="End date (YYYY-MM-DD)")
     parser.add_argument(
-        "--cache-dir", default=".supply-chain-audit/cache", help="Cache directory"
+        "--cache-dir", default=".supply-chain-audit/cache", help="Cache directory",
     )
     parser.add_argument(
-        "--force", action="store_true", help="Force re-collection even if cached"
+        "--force", action="store_true", help="Force re-collection even if cached",
     )
     parser.add_argument(
-        "--repos", nargs="*", help="Specific repos to collect (default: all)"
+        "--repos", nargs="*", help="Specific repos to collect (default: all)",
     )
     args = parser.parse_args()
 
@@ -1194,7 +1193,7 @@ def main() -> None:
         total_prs += p
 
     write_manifest(
-        cache_dir, args.start, args.end, repos, gh_version, total_commits, total_prs
+        cache_dir, args.start, args.end, repos, gh_version, total_commits, total_prs,
     )
 
     print(f"\n{'=' * 60}")
