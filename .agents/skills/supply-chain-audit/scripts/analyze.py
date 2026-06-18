@@ -4,6 +4,7 @@ Processes cached data to detect 13 categories of supply chain anomalies
 including commit integrity, CI integrity, dependency provenance, review
 integrity, and known vulnerabilities.
 """
+# pylint: disable=too-many-lines
 
 from __future__ import annotations
 
@@ -17,19 +18,43 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-from cache_utils import (
-    get_all_cached_checks,
-    get_all_cached_commits,
-    get_all_cached_deps,
-    get_all_cached_pr_audits,
-    get_all_cached_protection,
-    get_all_cached_prs,
-    get_all_cached_renovate,
-    get_all_cached_vulns,
-    read_manifest,
-    write_findings,
-)
-from models import Finding, FindingCategory, RiskLevel
+try:
+    from cache_utils import (  # pylint: disable=import-error
+        get_all_cached_checks,
+        get_all_cached_commits,
+        get_all_cached_deps,
+        get_all_cached_pr_audits,
+        get_all_cached_protection,
+        get_all_cached_prs,
+        get_all_cached_renovate,
+        get_all_cached_vulns,
+        read_manifest,
+        write_findings,
+    )
+    from audit_models import (  # pylint: disable=import-error
+        Finding,
+        FindingCategory,
+        RiskLevel,
+    )
+except ImportError:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from cache_utils import (
+        get_all_cached_checks,
+        get_all_cached_commits,
+        get_all_cached_deps,
+        get_all_cached_pr_audits,
+        get_all_cached_protection,
+        get_all_cached_prs,
+        get_all_cached_renovate,
+        get_all_cached_vulns,
+        read_manifest,
+        write_findings,
+    )
+    from audit_models import (
+        Finding,
+        FindingCategory,
+        RiskLevel,
+    )
 
 GITHUB_NOREPLY_EMAILS = {"noreply@github.com", "github@users.noreply.github.com"}
 JACCARD_THRESHOLD = 0.95
@@ -1027,7 +1052,7 @@ def detect_self_approval(pr_audits: list[dict]) -> list[Finding]:
     return findings
 
 
-def _print_cache_stats(
+def _print_cache_stats(  # pylint: disable=too-many-positional-arguments
     commits: list[dict],
     prs: list[dict],
     checks: dict[str, list[dict]],
@@ -1088,7 +1113,7 @@ def _run_detection_pass(
     return findings
 
 
-def _run_detection_passes(
+def _run_detection_passes(  # pylint: disable=too-many-positional-arguments
     commits: list[dict],
     prs: list[dict],
     checks: dict[str, list[dict]],
@@ -1366,9 +1391,9 @@ def main() -> None:
 
     cache_path = Path(args.cache_dir)
 
+    cache_dir = cache_path
     manifest_found = False
     if (cache_path / "manifest.json").exists():
-        cache_dir = cache_path
         manifest_found = True
     else:
         for subdir in sorted(cache_path.iterdir()):
@@ -1382,10 +1407,15 @@ def main() -> None:
         sys.exit(1)
 
     manifest = read_manifest(cache_dir)
+    if not manifest:
+        print("ERROR: Could not read manifest.", file=sys.stderr)
+        sys.exit(1)
     print(
         f"Analyzing audit data for: {manifest['start_date']} to {manifest['end_date']}",
     )
-    print(f"Repos: {', '.join(manifest.get('repos', []))}")
+    manifest_repos = manifest.get("repos", [])
+    repos_display = ", ".join(str(r) for r in manifest_repos) if isinstance(manifest_repos, list) else ""
+    print(f"Repos: {repos_display}")
 
     findings = run_analysis(cache_dir)
     serialized = [f.to_dict() for f in findings]

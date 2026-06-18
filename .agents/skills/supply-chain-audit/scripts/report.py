@@ -3,6 +3,7 @@
 Reads cached audit data and findings, produces a standalone HTML file
 with embedded CSS, JS, and SVG visualizations.
 """
+# pylint: disable=too-many-lines
 
 from __future__ import annotations
 
@@ -14,18 +15,33 @@ import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from cache_utils import (
-    get_all_cached_checks,
-    get_all_cached_commits,
-    get_all_cached_deps,
-    get_all_cached_pr_audits,
-    get_all_cached_protection,
-    get_all_cached_prs,
-    get_all_cached_renovate,
-    read_findings,
-    read_manifest,
-    read_package_focus,
-)
+try:
+    from cache_utils import (  # pylint: disable=import-error
+        get_all_cached_checks,
+        get_all_cached_commits,
+        get_all_cached_deps,
+        get_all_cached_pr_audits,
+        get_all_cached_protection,
+        get_all_cached_prs,
+        get_all_cached_renovate,
+        read_findings,
+        read_manifest,
+        read_package_focus,
+    )
+except ImportError:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from cache_utils import (
+        get_all_cached_checks,
+        get_all_cached_commits,
+        get_all_cached_deps,
+        get_all_cached_pr_audits,
+        get_all_cached_protection,
+        get_all_cached_prs,
+        get_all_cached_renovate,
+        read_findings,
+        read_manifest,
+        read_package_focus,
+    )
 
 TEMPLATE_PATH = Path(__file__).parent / "html_templates" / "dashboard.html"
 
@@ -209,7 +225,7 @@ def _format_protection_checks(repo_prot: dict) -> str:
     return '<span class="badge badge-medium">none</span>'
 
 
-def _build_repo_summary_row(
+def _build_repo_summary_row(  # pylint: disable=too-many-positional-arguments
     repo: str,
     num_commits: int,
     num_prs: int,
@@ -255,7 +271,7 @@ def _build_repo_summary_row(
     )
 
 
-def generate_repo_summary_rows(
+def generate_repo_summary_rows(  # pylint: disable=too-many-positional-arguments
     commits: list[dict],
     prs: list[dict],
     deps: list[dict],
@@ -453,7 +469,7 @@ def _append_timeline_repo_labels(
         )
 
 
-def _append_timeline_ticks(
+def _append_timeline_ticks(  # pylint: disable=too-many-positional-arguments
     svg_parts: list[str],
     start_dt: datetime,
     total_days: int,
@@ -493,7 +509,7 @@ def _append_timeline_ticks(
         )
 
 
-def _append_timeline_commits(
+def _append_timeline_commits(  # pylint: disable=too-many-positional-arguments
     svg_parts: list[str],
     commits: list[dict],
     repo_y: dict[str, int],
@@ -1185,7 +1201,7 @@ def _build_replacements(
     }
 
 
-def _print_report_summary(
+def _print_report_summary(  # pylint: disable=too-many-positional-arguments
     output_path: Path,
     findings: list[dict],
     commits: list[dict],

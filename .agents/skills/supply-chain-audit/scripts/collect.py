@@ -4,6 +4,7 @@ Fetches commits, PRs, check suites, and dependency file diffs for all
 target repos within a specified time window. Results are cached as JSON
 for idempotent re-runs.
 """
+# pylint: disable=too-many-lines
 
 from __future__ import annotations
 
@@ -19,17 +20,43 @@ import urllib.request
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
-from cache_utils import (
-    GITHUB_ORG,
-    TARGET_REPOS,
-    ensure_cache_structure,
-    get_cache_dir,
-    has_cached_data,
-    read_cache_file,
-    write_cache_file,
-    write_manifest,
-)
-from models import CheckSuite, Commit, DepChange, PullRequest
+try:
+    from cache_utils import (  # pylint: disable=import-error
+        GITHUB_ORG,
+        TARGET_REPOS,
+        ensure_cache_structure,
+        get_cache_dir,
+        has_cached_data,
+        read_cache_file,
+        write_cache_file,
+        write_manifest,
+    )
+    from audit_models import (  # pylint: disable=import-error
+        CheckSuite,
+        Commit,
+        DepChange,
+        PullRequest,
+    )
+except ImportError:
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from cache_utils import (
+        GITHUB_ORG,
+        TARGET_REPOS,
+        ensure_cache_structure,
+        get_cache_dir,
+        has_cached_data,
+        read_cache_file,
+        write_cache_file,
+        write_manifest,
+    )
+    from audit_models import (
+        CheckSuite,
+        Commit,
+        DepChange,
+        PullRequest,
+    )
 
 if TYPE_CHECKING:
     from pathlib import Path

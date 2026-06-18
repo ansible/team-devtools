@@ -15,11 +15,19 @@ import urllib.request
 from datetime import UTC, datetime
 from pathlib import Path
 
-from cache_utils import (
-    get_all_cached_deps,
-    read_manifest,
-    write_package_focus,
-)
+try:
+    from cache_utils import (  # pylint: disable=import-error
+        get_all_cached_deps,
+        read_manifest,
+        write_package_focus,
+    )
+except ImportError:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from cache_utils import (
+        get_all_cached_deps,
+        read_manifest,
+        write_package_focus,
+    )
 
 
 def get_pypi_release_dates(package_name: str) -> dict[str, str]:
@@ -116,7 +124,7 @@ def analyze_package_impact(
             commit_date = dep.get("commit_date", "")[:10]
             change_type = dep.get("change_type", "unknown")
 
-            version_release = release_dates.get(version, "unknown")
+            version_release = release_dates.get(version or "", "unknown")
 
             is_after_compromise = commit_date >= compromise_date
             version_released_after = version_release != "unknown" and version_release >= compromise_date
@@ -295,6 +303,9 @@ def main() -> None:
             sys.exit(1)
 
     manifest = read_manifest(cache_dir)
+    if not manifest:
+        print("ERROR: Could not read manifest.", file=sys.stderr)
+        sys.exit(1)
     print("Package Focus Analysis")
     print(f"  Package: {args.package}")
     print(f"  Compromise date: {args.compromise_date}")

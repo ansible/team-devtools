@@ -17,21 +17,33 @@ import subprocess
 import sys
 from pathlib import Path
 
-# Allow importing sibling module when run as a script.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-
-from models import (
-    ADT_PACKAGE_MAP,
-    PYTHON_CLI_TOOLS,
-    REPO_MANIFEST,
-    ContainerArtifact,
-    CrawlResult,
-    DiscoveredComponent,
-    DiscoveredRelationship,
-    RelationshipType,
-    RepoLanguage,
-    RepoManifestEntry,
-)
+try:
+    from arch_models import (  # pylint: disable=import-error
+        ADT_PACKAGE_MAP,
+        PYTHON_CLI_TOOLS,
+        REPO_MANIFEST,
+        ContainerArtifact,
+        CrawlResult,
+        DiscoveredComponent,
+        DiscoveredRelationship,
+        RelationshipType,
+        RepoLanguage,
+        RepoManifestEntry,
+    )
+except ImportError:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from arch_models import (
+        ADT_PACKAGE_MAP,
+        PYTHON_CLI_TOOLS,
+        REPO_MANIFEST,
+        ContainerArtifact,
+        CrawlResult,
+        DiscoveredComponent,
+        DiscoveredRelationship,
+        RelationshipType,
+        RepoLanguage,
+        RepoManifestEntry,
+    )
 
 # ---------------------------------------------------------------------------
 # Cloning

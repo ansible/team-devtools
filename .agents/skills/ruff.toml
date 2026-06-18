@@ -9,8 +9,6 @@ ignore = [
   "D100",  # undocumented-public-module
   "D101",  # undocumented-public-class
   "D103",  # undocumented-public-function
-  "D104",  # undocumented-public-package
-  "N999",  # invalid-module-name — parent dirs use hyphens
   "DOC201",  # return not documented in docstring
   "INP001",  # implicit-namespace-package — standalone scripts, not packages
   "PLR0913",  # too-many-arguments

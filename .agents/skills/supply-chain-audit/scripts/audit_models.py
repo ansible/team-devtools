@@ -84,7 +84,7 @@ class CommitVerification:
 
 
 @dataclass
-class Commit:
+class Commit:  # pylint: disable=too-many-instance-attributes
     """A git commit with verification and PR linkage metadata.
 
     Attributes:
@@ -211,7 +211,7 @@ class Commit:
 
 
 @dataclass
-class PullRequest:
+class PullRequest:  # pylint: disable=too-many-instance-attributes
     """A pull request with merge and review metadata.
 
     Attributes:
@@ -399,7 +399,7 @@ class CheckSuite:
 
 
 @dataclass
-class DepChange:
+class DepChange:  # pylint: disable=too-many-instance-attributes
     """A dependency change detected in a commit or comparison.
 
     Attributes:
@@ -485,7 +485,7 @@ class DepChange:
 
 
 @dataclass
-class Finding:
+class Finding:  # pylint: disable=too-many-instance-attributes
     """An anomaly detected during analysis.
 
     Attributes:
@@ -555,7 +555,7 @@ class Finding:
 
 
 @dataclass
-class AuditManifest:
+class AuditManifest:  # pylint: disable=too-many-instance-attributes
     """Metadata about a cached audit run.
 
     Attributes:
