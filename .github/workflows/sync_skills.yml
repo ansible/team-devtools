@@ -78,14 +78,17 @@ jobs:
           git push --force origin "${BRANCH}"
 
           # update existing PR or open a new one
-          if gh pr view "${BRANCH}" --repo "${REPO_NAME}" > /dev/null 2>&1; then
+          if gh pr list --repo "${REPO_NAME}" --head "${BRANCH}" --state open --json number --jq '.[0].number' | grep -q .; then
             echo "PR already exists for ${BRANCH}, force-pushed update."
           else
             gh pr create \
               --repo "${REPO_NAME}" \
               --head "${BRANCH}" \
               --title "chore: sync agent skills from team-devtools" \
-              --body "Automated sync of \`.agents/skills/\` from \`ansible/team-devtools\`.
+              --body "$(cat <<PREOF
+          Automated sync of \`.agents/skills/\` from \`ansible/team-devtools\`.
 
-          Source: ansible/team-devtools@${SOURCE_SHA}"
+          Source: ansible/team-devtools@${SOURCE_SHA}
+          PREOF
+          )"
           fi
