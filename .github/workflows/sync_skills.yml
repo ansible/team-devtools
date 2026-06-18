@@ -44,13 +44,14 @@ jobs:
           path: target
 
       - name: Import GPG Key
-        uses: crazy-max/ghaction-import-gpg@v6
+        uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7
         with:
           gpg_private_key: ${{ secrets.BOT_GPG_PRIVATE_KEY }}
-          gpg_passphrase: ${{ secrets.BOT_GPG_PASSPHRASE }}
+          passphrase: ${{ secrets.BOT_GPG_PASSPHRASE }}
           git_user_signingkey: true
           git_commit_gpgsign: true
-          git_config_global: true
+          git_committer_name: "Ansible Bot"
+          git_committer_email: "devtools@ansible.com"
           workdir: target
 
       - name: Sync skills to target repo
@@ -70,8 +71,6 @@ jobs:
           REPO_NAME="${{ matrix.repo }}"
           BRANCH="chore/sync-agent-skills"
 
-          git config user.name "Ansible Bot"
-          git config user.email "devtools@ansible.com"
           git checkout -B "${BRANCH}"
           git commit -S -m "chore: sync agent skills from team-devtools
 
