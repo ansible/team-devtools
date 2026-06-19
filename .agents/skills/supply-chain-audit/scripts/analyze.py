@@ -4,6 +4,7 @@ Processes cached data to detect 13 categories of supply chain anomalies
 including commit integrity, CI integrity, dependency provenance, review
 integrity, and known vulnerabilities.
 """
+# pylint: disable=too-many-lines
 
 from __future__ import annotations
 
@@ -14,24 +15,46 @@ from collections import Counter
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-from cache_utils import (
-    get_all_cached_checks,
-    get_all_cached_commits,
-    get_all_cached_deps,
-    get_all_cached_pr_audits,
-    get_all_cached_protection,
-    get_all_cached_prs,
-    get_all_cached_renovate,
-    get_all_cached_vulns,
-    read_manifest,
-    write_findings,
-)
-from models import Finding, FindingCategory, RiskLevel
-
+try:
+    from audit_models import (  # pylint: disable=import-error
+        Finding,
+        FindingCategory,
+        RiskLevel,
+    )
+    from cache_utils import (  # pylint: disable=import-error
+        get_all_cached_checks,
+        get_all_cached_commits,
+        get_all_cached_deps,
+        get_all_cached_pr_audits,
+        get_all_cached_protection,
+        get_all_cached_prs,
+        get_all_cached_renovate,
+        get_all_cached_vulns,
+        read_manifest,
+        write_findings,
+    )
+except ImportError:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from audit_models import (
+        Finding,
+        FindingCategory,
+        RiskLevel,
+    )
+    from cache_utils import (
+        get_all_cached_checks,
+        get_all_cached_commits,
+        get_all_cached_deps,
+        get_all_cached_pr_audits,
+        get_all_cached_protection,
+        get_all_cached_prs,
+        get_all_cached_renovate,
+        get_all_cached_vulns,
+        read_manifest,
+        write_findings,
+    )
 
 GITHUB_NOREPLY_EMAILS = {"noreply@github.com", "github@users.noreply.github.com"}
 JACCARD_THRESHOLD = 0.95
@@ -41,12 +64,29 @@ FALLBACK_COOLDOWN_DAYS = 3
 
 
 def tokenize(text: str) -> set[str]:
-    """Simple word tokenizer for Jaccard similarity."""
+    """Tokenize text into a set of lowercase words.
+
+    Args:
+        text: Input string.
+
+    Returns:
+        Set of lowercase word tokens.
+
+    """
     return set(text.lower().split())
 
 
 def jaccard_similarity(a: str, b: str) -> float:
-    """Compute Jaccard similarity between two strings."""
+    """Compute Jaccard similarity between two strings.
+
+    Args:
+        a: First string.
+        b: Second string.
+
+    Returns:
+        Jaccard coefficient (0.0 to 1.0).
+
+    """
     tokens_a = tokenize(a)
     tokens_b = tokenize(b)
     if not tokens_a or not tokens_b:
@@ -57,7 +97,15 @@ def jaccard_similarity(a: str, b: str) -> float:
 
 
 def detect_unsigned_commits(commits: list[dict]) -> list[Finding]:
-    """Detect commits without valid GPG/SSH signatures."""
+    """Detect commits without valid GPG/SSH signatures.
+
+    Args:
+        commits: All audited commits.
+
+    Returns:
+        Findings for unsigned commits.
+
+    """
     findings = []
     for commit in commits:
         verification = commit.get("verification", {})
@@ -80,7 +128,7 @@ def detect_unsigned_commits(commits: list[dict]) -> list[Finding]:
                         "author": commit.get("author_login"),
                         "reason": verification.get("reason"),
                     },
-                )
+                ),
             )
     return findings
 
@@ -91,12 +139,16 @@ def detect_github_web_signed(commits: list[dict], prs: list[dict]) -> list[Findi
     Squash merges and regular merges via the GitHub merge button are expected
     to be signed by web-flow. Only flag commits signed by GitHub that cannot
     be attributed to a PR merge operation (i.e., direct web UI edits).
+
+    Args:
+        commits: All audited commits.
+        prs: All audited PRs.
+
+    Returns:
+        Findings for non-merge GitHub-signed commits.
+
     """
-    pr_merge_shas = {
-        pr.get("merge_commit_sha")
-        for pr in prs
-        if pr.get("merged") and pr.get("merge_commit_sha")
-    }
+    pr_merge_shas = {pr.get("merge_commit_sha") for pr in prs if pr.get("merged") and pr.get("merge_commit_sha")}
 
     findings = []
     for commit in commits:
@@ -146,16 +198,23 @@ def detect_github_web_signed(commits: list[dict], prs: list[dict]) -> list[Findi
                     "committer_email": committer_email,
                     "is_pr_merge": False,
                 },
-            )
+            ),
         )
     return findings
 
 
 def detect_orphan_commits(commits: list[dict], prs: list[dict]) -> list[Finding]:
-    """Detect commits with no associated pull request."""
-    pr_merge_shas = {
-        pr.get("merge_commit_sha") for pr in prs if pr.get("merge_commit_sha")
-    }
+    """Detect commits with no associated pull request.
+
+    Args:
+        commits: All audited commits.
+        prs: All audited PRs.
+
+    Returns:
+        Findings for orphan commits.
+
+    """
+    pr_merge_shas = {pr.get("merge_commit_sha") for pr in prs if pr.get("merge_commit_sha")}
 
     findings = []
     for commit in commits:
@@ -181,7 +240,7 @@ def detect_orphan_commits(commits: list[dict], prs: list[dict]) -> list[Finding]
                         "author": commit.get("author_login"),
                         "message_preview": msg_first_line,
                     },
-                )
+                ),
             )
     return findings
 
@@ -197,6 +256,16 @@ def detect_bypassed_ci(
     Only flags failures of checks listed in the repo's branch protection
     required status checks. Non-required/advisory checks (SonarQube, Codecov
     when not required, etc.) are ignored.
+
+    Args:
+        _commits: All audited commits (unused, kept for API consistency).
+        prs: All audited PRs.
+        checks: Check suites keyed by commit SHA.
+        protection: Branch protection data keyed by repo.
+
+    Returns:
+        Findings for bypassed CI.
+
     """
     merged_prs = {pr["number"]: pr for pr in prs if pr.get("merged", False)}
 
@@ -209,7 +278,7 @@ def detect_bypassed_ci(
         repo = pr["repo"]
         repo_protection = protection.get(repo, {})
         required_checks = set(
-            repo_protection.get("rules", {}).get("required_checks", [])
+            repo_protection.get("rules", {}).get("required_checks", []),
         )
 
         suites = checks.get(merge_sha, [])
@@ -264,7 +333,7 @@ def detect_bypassed_ci(
                         "failed_advisory": failed_advisory,
                         "required_checks_configured": list(required_checks),
                     },
-                )
+                ),
             )
         # If no required checks configured, don't flag individual PRs — there's
         # no gate to bypass. The weak posture is reported separately in
@@ -273,7 +342,15 @@ def detect_bypassed_ci(
 
 
 def detect_protection_changes(protection: dict[str, dict]) -> list[Finding]:
-    """Detect branch protection rule modifications and weak posture."""
+    """Detect branch protection rule modifications and weak posture.
+
+    Args:
+        protection: Branch protection data keyed by repo.
+
+    Returns:
+        Findings for protection changes and weak posture.
+
+    """
     findings = []
     for repo, data in protection.items():
         changes = data.get("changes", [])
@@ -320,7 +397,7 @@ def detect_protection_changes(protection: dict[str, dict]) -> list[Finding]:
                         f"which could mask malicious commits."
                     ),
                     evidence={"allow_force_pushes": True},
-                )
+                ),
             )
 
         required_checks = rules.get("required_checks", [])
@@ -339,14 +416,23 @@ def detect_protection_changes(protection: dict[str, dict]) -> list[Finding]:
                         f"with failing tests or security scans."
                     ),
                     evidence={"required_checks": [], "has_protection": True},
-                )
+                ),
             )
 
     return findings
 
 
 def detect_post_merge_pushes(commits: list[dict], prs: list[dict]) -> list[Finding]:
-    """Detect commits pushed to branches after their PR was merged/closed."""
+    """Detect commits pushed to branches after their PR was merged/closed.
+
+    Args:
+        commits: All audited commits.
+        prs: All audited PRs.
+
+    Returns:
+        Findings for post-merge pushes.
+
+    """
     pr_index: dict[tuple[str, int], dict] = {}
     for pr in prs:
         if pr.get("merged") or pr.get("state") == "closed":
@@ -368,7 +454,7 @@ def detect_post_merge_pushes(commits: list[dict], prs: list[dict]) -> list[Findi
                 continue
 
             if commit_date > merged_at and commit["sha"] != matching_pr.get(
-                "merge_commit_sha"
+                "merge_commit_sha",
             ):
                 findings.append(
                     Finding(
@@ -392,13 +478,21 @@ def detect_post_merge_pushes(commits: list[dict], prs: list[dict]) -> list[Findi
                             "commit_date": commit_date,
                             "author": commit.get("author_login"),
                         },
-                    )
+                    ),
                 )
     return findings
 
 
 def detect_replicated_messages(commits: list[dict]) -> list[Finding]:
-    """Detect commit messages that are near-duplicates of earlier commits."""
+    """Detect commit messages that are near-duplicates of earlier commits.
+
+    Args:
+        commits: All audited commits.
+
+    Returns:
+        Findings for replicated messages.
+
+    """
     findings = []
 
     commits_by_repo: dict[str, list[dict]] = {}
@@ -450,7 +544,7 @@ def detect_replicated_messages(commits: list[dict]) -> list[Finding]:
                                 "original_author": earlier.get("author_login"),
                                 "new_author": commit.get("author_login"),
                             },
-                        )
+                        ),
                     )
                     break
 
@@ -458,13 +552,22 @@ def detect_replicated_messages(commits: list[dict]) -> list[Finding]:
 
 
 def detect_suspicious_dep_timing(
-    deps: list[dict], renovate_configs: dict[str, dict]
+    deps: list[dict],
+    renovate_configs: dict[str, dict],
 ) -> list[Finding]:
     """Detect dependencies that violate the configured renovate cooldown period.
 
     Compares each dep's days_since_release against the repo's configured
     minimumReleaseAge. Violations are CRITICAL (policy breach). Deps with no
     configured cooldown fall back to a 3-day heuristic at LOW severity.
+
+    Args:
+        deps: All dependency changes.
+        renovate_configs: Renovate configs keyed by repo.
+
+    Returns:
+        Findings for cooldown violations and suspicious timing.
+
     """
     findings = []
     for dep in deps:
@@ -487,9 +590,7 @@ def detect_suspicious_dep_timing(
             new_major = new_ver.split(".")[0] if "." in new_ver else new_ver
             is_major = old_major != new_major
 
-        effective_cooldown = (
-            major_cooldown if is_major and major_cooldown else default_cooldown
-        )
+        effective_cooldown = major_cooldown if is_major and major_cooldown else default_cooldown
 
         if effective_cooldown is not None and days < effective_cooldown:
             # Policy violation — adopted before configured cooldown
@@ -499,8 +600,7 @@ def detect_suspicious_dep_timing(
                     risk_level=RiskLevel.CRITICAL,
                     repo=repo,
                     summary=(
-                        f"'{dep['package_name']}' adopted {days}d after release "
-                        f"(cooldown: {effective_cooldown}d)"
+                        f"'{dep['package_name']}' adopted {days}d after release (cooldown: {effective_cooldown}d)"
                     ),
                     details=(
                         f"Package '{dep['package_name']}' {new_ver} was released on "
@@ -521,7 +621,7 @@ def detect_suspicious_dep_timing(
                         "is_major": is_major,
                         "config_source": config.get("source"),
                     },
-                )
+                ),
             )
         elif effective_cooldown is None and days < FALLBACK_COOLDOWN_DAYS:
             # No cooldown configured — fallback heuristic for very rapid adoption
@@ -530,9 +630,7 @@ def detect_suspicious_dep_timing(
                     category=FindingCategory.SUSPICIOUS_DEP_TIMING,
                     risk_level=RiskLevel.LOW,
                     repo=repo,
-                    summary=(
-                        f"'{dep['package_name']}' adopted {days}d after release (no cooldown configured)"
-                    ),
+                    summary=(f"'{dep['package_name']}' adopted {days}d after release (no cooldown configured)"),
                     details=(
                         f"Package '{dep['package_name']}' {new_ver} was released on "
                         f"{dep.get('release_date')} and adopted {days} day(s) later. "
@@ -548,14 +646,22 @@ def detect_suspicious_dep_timing(
                         "days_since_release": days,
                         "configured_cooldown": None,
                     },
-                )
+                ),
             )
 
     return findings
 
 
 def detect_yanked_versions(deps: list[dict]) -> list[Finding]:
-    """Detect dependencies using yanked or deleted versions."""
+    """Detect dependencies using yanked or deleted versions.
+
+    Args:
+        deps: All dependency changes.
+
+    Returns:
+        Findings for yanked versions.
+
+    """
     return [
         Finding(
             category=FindingCategory.YANKED_VERSION,
@@ -589,6 +695,13 @@ def detect_post_approval_commits(pr_audits: list[dict]) -> list[Finding]:
     Attack scenario: PR gets approved, attacker pushes additional commit
     before merge. If 'require last push approval' is off, the PR merges
     with unapproved code.
+
+    Args:
+        pr_audits: PR audit data (commits + reviews per PR).
+
+    Returns:
+        Findings for post-approval commits.
+
     """
     findings = []
     for audit in pr_audits:
@@ -619,14 +732,11 @@ def detect_post_approval_commits(pr_audits: list[dict]) -> list[Finding]:
         approver_logins = {a["user"] for a in approvals}
 
         # Categorize post-approval commits by author relationship
-        from_pr_author = [
-            c for c in post_approval if c.get("author_login", "") == pr_author
-        ]
+        from_pr_author = [c for c in post_approval if c.get("author_login", "") == pr_author]
         from_approver = [
             c
             for c in post_approval
-            if c.get("author_login", "") in approver_logins
-            and c.get("author_login", "") != pr_author
+            if c.get("author_login", "") in approver_logins and c.get("author_login", "") != pr_author
         ]
         from_unknown_third_party = [
             c
@@ -651,8 +761,7 @@ def detect_post_approval_commits(pr_audits: list[dict]) -> list[Finding]:
         else:
             risk = RiskLevel.HIGH
             summary = (
-                f"PR #{pr_num}: {len(from_pr_author)} commit(s) pushed by PR "
-                f"author after approval by {last_approver}"
+                f"PR #{pr_num}: {len(from_pr_author)} commit(s) pushed by PR author after approval by {last_approver}"
             )
 
         details_parts = [
@@ -664,7 +773,7 @@ def detect_post_approval_commits(pr_audits: list[dict]) -> list[Finding]:
             author = c.get("author_login", "unknown")
             msg = c.get("message", "").split("\n")[0][:60]
             details_parts.append(
-                f"  - {c['sha'][:8]} by {author}: '{msg}' ({c.get('date', '')[:16]})"
+                f"  - {c['sha'][:8]} by {author}: '{msg}' ({c.get('date', '')[:16]})",
             )
 
         findings.append(
@@ -692,14 +801,22 @@ def detect_post_approval_commits(pr_audits: list[dict]) -> list[Finding]:
                     "from_approver": len(from_approver),
                     "from_unknown_third_party": len(from_unknown_third_party),
                 },
-            )
+            ),
         )
 
     return findings
 
 
 def detect_known_vulnerabilities(vulns: dict[str, list[dict]]) -> list[Finding]:
-    """Flag packages with known CVEs/advisories from OSV.dev."""
+    """Flag packages with known CVEs/advisories from OSV.dev.
+
+    Args:
+        vulns: Vulnerability results keyed by repo.
+
+    Returns:
+        Findings for known vulnerabilities.
+
+    """
     findings = []
     for repo, pkg_vulns in vulns.items():
         for entry in pkg_vulns:
@@ -739,7 +856,7 @@ def detect_known_vulnerabilities(vulns: dict[str, list[dict]]) -> list[Finding]:
                             "severity": severity,
                             "aliases": aliases,
                         },
-                    )
+                    ),
                 )
 
     return findings
@@ -758,7 +875,15 @@ BOT_ACCOUNTS = {
 
 
 def _is_bot_account(login: str) -> bool:
-    """Check if a login is a known bot account."""
+    """Check if a login is a known bot account.
+
+    Args:
+        login: GitHub username.
+
+    Returns:
+        ``True`` if the login matches a known bot pattern.
+
+    """
     return login in BOT_ACCOUNTS or login.endswith("[bot]")
 
 
@@ -767,6 +892,14 @@ def detect_bot_only_approval(pr_audits: list[dict], prs: list[dict]) -> list[Fin
 
     A PR merged with only bot approvals means no human examined the code diff
     before it landed on main.
+
+    Args:
+        pr_audits: PR audit data (commits + reviews per PR).
+        prs: All audited PRs.
+
+    Returns:
+        Findings for bot-only approved PRs.
+
     """
     findings = []
 
@@ -796,28 +929,18 @@ def detect_bot_only_approval(pr_audits: list[dict], prs: list[dict]) -> list[Fin
 
         # Determine risk based on PR characteristics
         is_bot_pr = _is_bot_account(pr_author)
-        is_dep_only = any(
-            kw in pr_title.lower()
-            for kw in ("chore(deps)", "bump ", "update dependency", "lock file")
-        )
+        is_dep_only = any(kw in pr_title.lower() for kw in ("chore(deps)", "bump ", "update dependency", "lock file"))
 
         if is_bot_pr and is_dep_only:
             risk = RiskLevel.LOW
-            summary = (
-                f"PR #{pr_num}: bot-to-bot approval for dependency update "
-                f"(approved by {', '.join(bot_names)})"
-            )
+            summary = f"PR #{pr_num}: bot-to-bot approval for dependency update (approved by {', '.join(bot_names)})"
         elif is_bot_pr:
             risk = RiskLevel.MEDIUM
-            summary = (
-                f"PR #{pr_num}: bot PR approved only by bot(s) "
-                f"({', '.join(bot_names)}), no human review"
-            )
+            summary = f"PR #{pr_num}: bot PR approved only by bot(s) ({', '.join(bot_names)}), no human review"
         else:
             risk = RiskLevel.HIGH
             summary = (
-                f"PR #{pr_num}: human-authored PR approved only by bot(s) "
-                f"({', '.join(bot_names)}), no human review"
+                f"PR #{pr_num}: human-authored PR approved only by bot(s) ({', '.join(bot_names)}), no human review"
             )
 
         findings.append(
@@ -841,7 +964,7 @@ def detect_bot_only_approval(pr_audits: list[dict], prs: list[dict]) -> list[Fin
                     "is_dep_only": is_dep_only,
                     "commit_count": audit.get("commit_count", 0),
                 },
-            )
+            ),
         )
 
     return findings
@@ -853,6 +976,13 @@ def detect_self_approval(pr_audits: list[dict]) -> list[Finding]:
     GitHub allows self-approval when branch protection doesn't enforce
     'require approval from someone other than the last pusher'. This is
     a serious process violation — the author is reviewing their own code.
+
+    Args:
+        pr_audits: PR audit data (commits + reviews per PR).
+
+    Returns:
+        Findings for self-approved PRs.
+
     """
     findings = []
 
@@ -892,7 +1022,7 @@ def detect_self_approval(pr_audits: list[dict]) -> list[Finding]:
                         "approvers": approver_logins,
                         "human_approvers": human_approvers,
                     },
-                )
+                ),
             )
         elif pr_author in human_approvers and len(human_approvers) > 1:
             # Author approved alongside others — informational only
@@ -902,10 +1032,7 @@ def detect_self_approval(pr_audits: list[dict]) -> list[Finding]:
                     category=FindingCategory.SELF_APPROVED,
                     risk_level=RiskLevel.LOW,
                     repo=repo,
-                    summary=(
-                        f"PR #{pr_num}: author {pr_author} self-approved "
-                        f"(also reviewed by {', '.join(others)})"
-                    ),
+                    summary=(f"PR #{pr_num}: author {pr_author} self-approved (also reviewed by {', '.join(others)})"),
                     details=(
                         f"PR #{pr_num} in {repo} was approved by its author {pr_author} "
                         f"in addition to independent reviewer(s): {', '.join(others)}. "
@@ -919,13 +1046,13 @@ def detect_self_approval(pr_audits: list[dict]) -> list[Finding]:
                         "human_approvers": human_approvers,
                         "independent_reviewers": others,
                     },
-                )
+                ),
             )
 
     return findings
 
 
-def _print_cache_stats(
+def _print_cache_stats(  # pylint: disable=too-many-positional-arguments
     commits: list[dict],
     prs: list[dict],
     checks: dict[str, list[dict]],
@@ -935,7 +1062,19 @@ def _print_cache_stats(
     renovate_configs: dict[str, dict],
     vulns: dict[str, list[dict]],
 ) -> None:
-    """Print summary statistics for loaded cache data."""
+    """Print summary statistics for loaded cache data.
+
+    Args:
+        commits: All audited commits.
+        prs: All audited PRs.
+        checks: Check suites keyed by commit SHA.
+        deps: All dependency changes.
+        protection: Branch protection data keyed by repo.
+        pr_audits: PR audit data.
+        renovate_configs: Renovate configs keyed by repo.
+        vulns: Vulnerability results keyed by repo.
+
+    """
     print(f"  Commits on main: {len(commits)}")
     print(f"  PRs: {len(prs)}")
     print(f"  PR branch commits: {sum(a.get('commit_count', 0) for a in pr_audits)}")
@@ -943,12 +1082,10 @@ def _print_cache_stats(
     print(f"  Dep changes: {len(deps)}")
     print(f"  Repos with protection data: {len(protection)}")
     print(
-        f"  Repos with renovate config: "
-        f"{sum(1 for c in renovate_configs.values() if c.get('source') != 'none')}"
+        f"  Repos with renovate config: {sum(1 for c in renovate_configs.values() if c.get('source') != 'none')}",
     )
     print(
-        f"  Repos with vulnerability data: {len(vulns)} "
-        f"({sum(len(v) for v in vulns.values())} affected packages)"
+        f"  Repos with vulnerability data: {len(vulns)} ({sum(len(v) for v in vulns.values())} affected packages)",
     )
 
 
@@ -958,14 +1095,25 @@ def _run_detection_pass(
     detector: Callable[[], list[Finding]],
     result_message: Callable[[list[Finding]], str],
 ) -> list[Finding]:
-    """Run a single detection pass and print its progress."""
+    """Run a single detection pass and print its progress.
+
+    Args:
+        step: Step label (e.g. ``[1/12]``).
+        description: Human-readable pass description.
+        detector: Callable that returns findings.
+        result_message: Callable that formats the result count.
+
+    Returns:
+        Findings from this detection pass.
+
+    """
     print(f"  {step} {description}...")
     findings = detector()
     print(f"          {result_message(findings)}")
     return findings
 
 
-def _run_detection_passes(
+def _run_detection_passes(  # pylint: disable=too-many-positional-arguments
     commits: list[dict],
     prs: list[dict],
     checks: dict[str, list[dict]],
@@ -975,12 +1123,25 @@ def _run_detection_passes(
     renovate_configs: dict[str, dict],
     vulns: dict[str, list[dict]],
 ) -> list[Finding]:
-    """Execute all detection passes and return combined findings."""
+    """Execute all detection passes and return combined findings.
+
+    Args:
+        commits: All audited commits.
+        prs: All audited PRs.
+        checks: Check suites keyed by commit SHA.
+        deps: All dependency changes.
+        protection: Branch protection data keyed by repo.
+        pr_audits: PR audit data.
+        renovate_configs: Renovate configs keyed by repo.
+        vulns: Vulnerability results keyed by repo.
+
+    Returns:
+        Combined findings from all passes.
+
+    """
     print("\nRunning detection passes...")
 
-    pass_specs: list[
-        tuple[str, str, Callable[[], list[Finding]], Callable[[list[Finding]], str]]
-    ] = [
+    pass_specs: list[tuple[str, str, Callable[[], list[Finding]], Callable[[list[Finding]], str]]] = [
         (
             "[1/12]",
             "Unsigned commits",
@@ -991,9 +1152,7 @@ def _run_detection_passes(
             "[2/12]",
             "GitHub-web-signed commits (excluding PR merges)",
             lambda: detect_github_web_signed(commits, prs),
-            lambda findings: (
-                f"Found {len(findings)} GitHub-web-signed commits (non-merge)"
-            ),
+            lambda findings: f"Found {len(findings)} GitHub-web-signed commits (non-merge)",
         ),
         (
             "[3/12]",
@@ -1071,14 +1230,19 @@ def _run_detection_passes(
     all_findings: list[Finding] = []
     for step, description, detector, result_message in pass_specs:
         all_findings.extend(
-            _run_detection_pass(step, description, detector, result_message)
+            _run_detection_pass(step, description, detector, result_message),
         )
 
     return all_findings
 
 
 def _print_risk_summary(all_findings: list[Finding]) -> None:
-    """Print finding counts grouped by risk level."""
+    """Print finding counts grouped by risk level.
+
+    Args:
+        all_findings: Combined findings from all passes.
+
+    """
     print(f"\nTotal findings: {len(all_findings)}")
 
     by_risk: dict[str, int] = {}
@@ -1090,7 +1254,15 @@ def _print_risk_summary(all_findings: list[Finding]) -> None:
 
 
 def run_analysis(cache_dir: Path) -> list[Finding]:
-    """Run all detection passes and return combined findings."""
+    """Run all detection passes and return combined findings.
+
+    Args:
+        cache_dir: Root cache directory.
+
+    Returns:
+        Combined findings from all passes.
+
+    """
     print("Loading cached data...")
     commits = get_all_cached_commits(cache_dir)
     prs = get_all_cached_prs(cache_dir)
@@ -1102,11 +1274,25 @@ def run_analysis(cache_dir: Path) -> list[Finding]:
     vulns = get_all_cached_vulns(cache_dir)
 
     _print_cache_stats(
-        commits, prs, checks, deps, protection, pr_audits, renovate_configs, vulns
+        commits,
+        prs,
+        checks,
+        deps,
+        protection,
+        pr_audits,
+        renovate_configs,
+        vulns,
     )
 
     all_findings = _run_detection_passes(
-        commits, prs, checks, deps, protection, pr_audits, renovate_configs, vulns
+        commits,
+        prs,
+        checks,
+        deps,
+        protection,
+        pr_audits,
+        renovate_configs,
+        vulns,
     )
     _print_risk_summary(all_findings)
 
@@ -1114,8 +1300,16 @@ def run_analysis(cache_dir: Path) -> list[Finding]:
 
 
 def _build_findings_summary(findings: list[dict], manifest: dict) -> dict:
-    """Build a compact summary of findings for the agent to reason about."""
+    """Build a compact summary of findings for the agent to reason about.
 
+    Args:
+        findings: Serialized finding dicts.
+        manifest: Audit manifest dict.
+
+    Returns:
+        Compact summary dict with category and repo breakdowns.
+
+    """
     by_category: dict[str, list[dict]] = {}
     for f in findings:
         by_category.setdefault(f["category"], []).append(f)
@@ -1154,7 +1348,7 @@ def _build_findings_summary(findings: list[dict], manifest: dict) -> dict:
                         ].index(x.get("risk_level", "info")),
                     )[:5]
                 ],
-            }
+            },
         )
 
     repo_breakdown = []
@@ -1168,10 +1362,11 @@ def _build_findings_summary(findings: list[dict], manifest: dict) -> dict:
                 "high": counts.get("high", 0),
                 "medium": counts.get("medium", 0),
                 "low": counts.get("low", 0),
-            }
+            },
         )
     repo_breakdown.sort(
-        key=lambda x: (x["critical"], x["high"], x["total"]), reverse=True
+        key=lambda x: (x["critical"], x["high"], x["total"]),
+        reverse=True,
     )
 
     return {
@@ -1188,15 +1383,17 @@ def main() -> None:
     """Entry point for anomaly analysis."""
     parser = argparse.ArgumentParser(description="Supply chain anomaly analyzer")
     parser.add_argument(
-        "--cache-dir", required=True, help="Cache directory from collect.py"
+        "--cache-dir",
+        required=True,
+        help="Cache directory from collect.py",
     )
     args = parser.parse_args()
 
     cache_path = Path(args.cache_dir)
 
+    cache_dir = cache_path
     manifest_found = False
     if (cache_path / "manifest.json").exists():
-        cache_dir = cache_path
         manifest_found = True
     else:
         for subdir in sorted(cache_path.iterdir()):
@@ -1210,10 +1407,15 @@ def main() -> None:
         sys.exit(1)
 
     manifest = read_manifest(cache_dir)
+    if not manifest:
+        print("ERROR: Could not read manifest.", file=sys.stderr)
+        sys.exit(1)
     print(
-        f"Analyzing audit data for: {manifest['start_date']} to {manifest['end_date']}"
+        f"Analyzing audit data for: {manifest['start_date']} to {manifest['end_date']}",
     )
-    print(f"Repos: {', '.join(manifest.get('repos', []))}")
+    manifest_repos = manifest.get("repos", [])
+    repos_display = ", ".join(str(r) for r in manifest_repos) if isinstance(manifest_repos, list) else ""
+    print(f"Repos: {repos_display}")
 
     findings = run_analysis(cache_dir)
     serialized = [f.to_dict() for f in findings]

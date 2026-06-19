@@ -8,7 +8,16 @@ from typing import Any
 
 
 class RiskLevel(enum.Enum):
-    """Risk classification for findings."""
+    """Risk classification for findings.
+
+    Attributes:
+        CRITICAL: Critical severity risk.
+        HIGH: High severity risk.
+        MEDIUM: Medium severity risk.
+        LOW: Low severity risk.
+        INFO: Informational finding only.
+
+    """
 
     CRITICAL = "critical"
     HIGH = "high"
@@ -18,7 +27,25 @@ class RiskLevel(enum.Enum):
 
 
 class FindingCategory(enum.Enum):
-    """Categories of supply chain anomalies."""
+    """Categories of supply chain anomalies.
+
+    Attributes:
+        UNSIGNED_COMMIT: Commit lacks cryptographic signature.
+        GITHUB_WEB_SIGNED: Signed only via GitHub web UI.
+        ORPHAN_COMMIT: Commit not linked to any PR.
+        BYPASSED_CI: Merged without passing CI checks.
+        POST_MERGE_PUSH: Push directly after merge.
+        REPLICATED_MESSAGE: Duplicated commit message detected.
+        SUSPICIOUS_DEP_TIMING: Dependency updated suspiciously fast.
+        YANKED_VERSION: Depends on a yanked release.
+        PROTECTION_CHANGED: Branch protection was modified.
+        POST_APPROVAL_COMMIT: Commit added after approval.
+        BOT_ONLY_APPROVAL: PR approved only by bots.
+        COOLDOWN_VIOLATED: Merged before cooldown elapsed.
+        KNOWN_VULNERABILITY: Known CVE in dependency.
+        SELF_APPROVED: Author approved their own PR.
+
+    """
 
     UNSIGNED_COMMIT = "unsigned_commit"
     GITHUB_WEB_SIGNED = "github_web_signed"
@@ -38,7 +65,16 @@ class FindingCategory(enum.Enum):
 
 @dataclass
 class CommitVerification:
-    """GPG/SSH signature verification details."""
+    """GPG/SSH signature verification details.
+
+    Attributes:
+        verified: Whether signature is valid.
+        reason: Verification status reason.
+        signature: Raw signature string.
+        signer_login: GitHub login of signer.
+        signer_email: Email of the signer.
+
+    """
 
     verified: bool
     reason: str
@@ -48,8 +84,23 @@ class CommitVerification:
 
 
 @dataclass
-class Commit:
-    """A git commit with verification and PR linkage metadata."""
+class Commit:  # pylint: disable=too-many-instance-attributes
+    """A git commit with verification and PR linkage metadata.
+
+    Attributes:
+        sha: Full commit SHA hash.
+        repo: Repository name (org/repo).
+        author_login: GitHub login of author.
+        author_email: Email of the author.
+        committer_login: GitHub login of committer.
+        committer_email: Email of the committer.
+        message: Commit message text.
+        date: ISO 8601 commit timestamp.
+        verification: Signature verification details.
+        associated_prs: Linked pull request numbers.
+        url: GitHub web URL for commit.
+
+    """
 
     sha: str
     repo: str
@@ -65,7 +116,16 @@ class Commit:
 
     @classmethod
     def from_api(cls, data: dict[str, Any], repo: str) -> Commit:
-        """Construct from GitHub API commit response."""
+        """Construct from GitHub API commit response.
+
+        Args:
+            data: Raw GitHub API JSON dict.
+            repo: Repository name.
+
+        Returns:
+            Parsed commit.
+
+        """
         commit_data = data.get("commit", {})
         author = data.get("author") or {}
         committer = data.get("committer") or {}
@@ -91,7 +151,12 @@ class Commit:
         )
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialize to dict for JSON storage."""
+        """Serialize to dict for JSON storage.
+
+        Returns:
+            JSON-serializable dict.
+
+        """
         return {
             "sha": self.sha,
             "repo": self.repo,
@@ -114,7 +179,15 @@ class Commit:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Commit:
-        """Deserialize from dict."""
+        """Deserialize from dict.
+
+        Args:
+            data: Previously serialized dict.
+
+        Returns:
+            Reconstructed commit.
+
+        """
         v = data.get("verification", {})
         return cls(
             sha=data["sha"],
@@ -138,8 +211,23 @@ class Commit:
 
 
 @dataclass
-class PullRequest:
-    """A pull request with merge and review metadata."""
+class PullRequest:  # pylint: disable=too-many-instance-attributes
+    """A pull request with merge and review metadata.
+
+    Attributes:
+        number: PR number in the repository.
+        repo: Repository name (org/repo).
+        title: Pull request title.
+        state: Current state (open/closed).
+        merged: Whether the PR was merged.
+        merged_at: ISO 8601 merge timestamp.
+        merge_commit_sha: SHA of merge commit.
+        author_login: GitHub login of PR author.
+        base_ref: Target branch name.
+        head_ref: Source branch name.
+        url: GitHub web URL for PR.
+
+    """
 
     number: int
     repo: str
@@ -155,7 +243,16 @@ class PullRequest:
 
     @classmethod
     def from_api(cls, data: dict[str, Any], repo: str) -> PullRequest:
-        """Construct from GitHub API PR response."""
+        """Construct from GitHub API PR response.
+
+        Args:
+            data: Raw GitHub API JSON dict.
+            repo: Repository name.
+
+        Returns:
+            Parsed pull request.
+
+        """
         user = data.get("user") or {}
         base = data.get("base") or {}
         head = data.get("head") or {}
@@ -174,7 +271,12 @@ class PullRequest:
         )
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialize to dict for JSON storage."""
+        """Serialize to dict for JSON storage.
+
+        Returns:
+            JSON-serializable dict.
+
+        """
         return {
             "number": self.number,
             "repo": self.repo,
@@ -191,7 +293,15 @@ class PullRequest:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> PullRequest:
-        """Deserialize from dict."""
+        """Deserialize from dict.
+
+        Args:
+            data: Previously serialized dict.
+
+        Returns:
+            Reconstructed pull request.
+
+        """
         return cls(
             number=data["number"],
             repo=data["repo"],
@@ -209,7 +319,17 @@ class PullRequest:
 
 @dataclass
 class CheckSuite:
-    """CI check suite status for a commit."""
+    """CI check suite status for a commit.
+
+    Attributes:
+        commit_sha: SHA of the checked commit.
+        repo: Repository name (org/repo).
+        status: Suite execution status.
+        conclusion: Final suite conclusion.
+        app_name: GitHub App that ran checks.
+        url: GitHub API URL for suite.
+
+    """
 
     commit_sha: str
     repo: str
@@ -220,7 +340,17 @@ class CheckSuite:
 
     @classmethod
     def from_api(cls, data: dict[str, Any], repo: str, commit_sha: str) -> CheckSuite:
-        """Construct from GitHub API check-suite response."""
+        """Construct from GitHub API check-suite response.
+
+        Args:
+            data: Raw GitHub API JSON dict.
+            repo: Repository name.
+            commit_sha: SHA of the commit this suite belongs to.
+
+        Returns:
+            Parsed check suite.
+
+        """
         app = data.get("app") or {}
         return cls(
             commit_sha=commit_sha,
@@ -232,7 +362,12 @@ class CheckSuite:
         )
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialize to dict for JSON storage."""
+        """Serialize to dict for JSON storage.
+
+        Returns:
+            JSON-serializable dict.
+
+        """
         return {
             "commit_sha": self.commit_sha,
             "repo": self.repo,
@@ -244,7 +379,15 @@ class CheckSuite:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> CheckSuite:
-        """Deserialize from dict."""
+        """Deserialize from dict.
+
+        Args:
+            data: Previously serialized dict.
+
+        Returns:
+            Reconstructed check suite.
+
+        """
         return cls(
             commit_sha=data["commit_sha"],
             repo=data["repo"],
@@ -256,8 +399,25 @@ class CheckSuite:
 
 
 @dataclass
-class DepChange:
-    """A dependency change detected in a commit or comparison."""
+class DepChange:  # pylint: disable=too-many-instance-attributes
+    """A dependency change detected in a commit or comparison.
+
+    Attributes:
+        repo: Repository name (org/repo).
+        file_path: Path to dependency file.
+        package_name: Name of the package.
+        old_version: Previous version string.
+        new_version: Updated version string.
+        change_type: Kind of change (added/removed/updated).
+        commit_sha: SHA introducing the change.
+        commit_date: ISO 8601 commit timestamp.
+        ecosystem: Package ecosystem (pypi/npm).
+        is_direct: Whether a direct dependency.
+        release_date: Package release date.
+        days_since_release: Days since upstream release.
+        yanked: Whether version was yanked.
+
+    """
 
     repo: str
     file_path: str
@@ -274,7 +434,12 @@ class DepChange:
     yanked: bool = False
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialize to dict for JSON storage."""
+        """Serialize to dict for JSON storage.
+
+        Returns:
+            JSON-serializable dict.
+
+        """
         return {
             "repo": self.repo,
             "file_path": self.file_path,
@@ -293,7 +458,15 @@ class DepChange:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> DepChange:
-        """Deserialize from dict."""
+        """Deserialize from dict.
+
+        Args:
+            data: Previously serialized dict.
+
+        Returns:
+            Reconstructed dependency change.
+
+        """
         return cls(
             repo=data["repo"],
             file_path=data.get("file_path", ""),
@@ -312,8 +485,21 @@ class DepChange:
 
 
 @dataclass
-class Finding:
-    """An anomaly detected during analysis."""
+class Finding:  # pylint: disable=too-many-instance-attributes
+    """An anomaly detected during analysis.
+
+    Attributes:
+        category: Type of anomaly found.
+        risk_level: Severity classification.
+        repo: Repository name (org/repo).
+        summary: One-line finding summary.
+        details: Extended description of finding.
+        commit_sha: Related commit SHA if any.
+        pr_number: Related PR number if any.
+        date: ISO 8601 timestamp of event.
+        evidence: Supporting data dictionary.
+
+    """
 
     category: FindingCategory
     risk_level: RiskLevel
@@ -326,7 +512,12 @@ class Finding:
     evidence: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialize to dict for JSON storage."""
+        """Serialize to dict for JSON storage.
+
+        Returns:
+            JSON-serializable dict.
+
+        """
         return {
             "category": self.category.value,
             "risk_level": self.risk_level.value,
@@ -341,7 +532,15 @@ class Finding:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Finding:
-        """Deserialize from dict."""
+        """Deserialize from dict.
+
+        Args:
+            data: Previously serialized dict.
+
+        Returns:
+            Reconstructed finding.
+
+        """
         return cls(
             category=FindingCategory(data["category"]),
             risk_level=RiskLevel(data["risk_level"]),
@@ -356,8 +555,21 @@ class Finding:
 
 
 @dataclass
-class AuditManifest:
-    """Metadata about a cached audit run."""
+class AuditManifest:  # pylint: disable=too-many-instance-attributes
+    """Metadata about a cached audit run.
+
+    Attributes:
+        start_date: Audit window start date.
+        end_date: Audit window end date.
+        repos: List of audited repo slugs.
+        cache_key: Unique key for cached data.
+        collected_at: ISO 8601 collection timestamp.
+        gh_version: GitHub CLI version used.
+        total_commits: Number of commits analyzed.
+        total_prs: Number of PRs analyzed.
+        total_findings: Number of findings produced.
+
+    """
 
     start_date: str
     end_date: str
@@ -370,7 +582,12 @@ class AuditManifest:
     total_findings: int = 0
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialize to dict for JSON storage."""
+        """Serialize to dict for JSON storage.
+
+        Returns:
+            JSON-serializable dict.
+
+        """
         return {
             "start_date": self.start_date,
             "end_date": self.end_date,
@@ -385,7 +602,15 @@ class AuditManifest:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> AuditManifest:
-        """Deserialize from dict."""
+        """Deserialize from dict.
+
+        Args:
+            data: Previously serialized dict.
+
+        Returns:
+            Reconstructed audit manifest.
+
+        """
         return cls(
             start_date=data["start_date"],
             end_date=data["end_date"],

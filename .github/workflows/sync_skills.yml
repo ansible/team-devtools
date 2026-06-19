@@ -1,18 +1,15 @@
 ---
-name: sync-skills
+name: sync-skills-cleanup
 
+# One-time cleanup: close old sync PRs and remove .agents/skills/
+# from downstream repos. Delete this workflow after it runs successfully.
 on:
-  schedule:
-    - cron: "7 8 * * 1" # Weekly Monday 08:07 UTC
-  push:
-    branches: [main]
-    paths: [".agents/skills/**"]
   workflow_dispatch:
 permissions:
   contents: read
 
 jobs:
-  sync:
+  cleanup:
     runs-on: ubuntu-24.04
     environment: ack
     strategy:
@@ -30,63 +27,69 @@ jobs:
           - ansible/tox-ansible
           - ansible/vscode-ansible
     steps:
-      - name: Checkout team-devtools (source)
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          path: source
-          sparse-checkout: .agents/skills
-
       - name: Checkout target repo
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           repository: ${{ matrix.repo }}
           token: ${{ secrets.BOT_PAT }}
-          path: target
 
       - name: Import GPG Key
-        uses: crazy-max/ghaction-import-gpg@v6
+        uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7
         with:
           gpg_private_key: ${{ secrets.BOT_GPG_PRIVATE_KEY }}
-          gpg_passphrase: ${{ secrets.BOT_GPG_PASSPHRASE }}
+          passphrase: ${{ secrets.BOT_GPG_PASSPHRASE }}
           git_user_signingkey: true
           git_commit_gpgsign: true
-          git_config_global: true
-          workdir: target
+          git_committer_name: "ansibuddy"
+          git_committer_email: "107943535+ansibuddy@users.noreply.github.com"
 
-      - name: Sync skills to target repo
-        run: |
-          mkdir -p target/.agents/skills
-          rsync -a --delete source/.agents/skills/ target/.agents/skills/
-
-      - name: Create PR if changed
-        working-directory: target
+      - name: Close open sync PRs
         env:
-          SOURCE_SHA: ${{ github.sha }}
           GH_TOKEN: ${{ secrets.BOT_PAT }}
         run: |
-          git add .agents/skills/
-          git diff --quiet --cached && exit 0
-
-          REPO_NAME="${{ matrix.repo }}"
+          REPO="${{ matrix.repo }}"
           BRANCH="chore/sync-agent-skills"
 
-          git config user.name "Ansible Bot"
-          git config user.email "devtools@ansible.com"
-          git checkout -B "${BRANCH}"
-          git commit -S -m "chore: sync agent skills from team-devtools
+          PR_NUM=$(gh pr list --repo "${REPO}" --head "${BRANCH}" \
+            --state open --json number --jq '.[0].number')
+          if [ -n "${PR_NUM}" ]; then
+            gh pr close "${PR_NUM}" --repo "${REPO}" \
+              --comment "Closing: agent skills are no longer synced to downstream repos. They live in ansible/team-devtools."
+            git push origin --delete "${BRANCH}" 2>/dev/null || true
+            echo "Closed PR #${PR_NUM} and deleted branch ${BRANCH}."
+          else
+            echo "No open sync PR found."
+          fi
 
-          Source: ansible/team-devtools@${SOURCE_SHA}"
-          git push --force origin "${BRANCH}"
+      - name: Open cleanup PR if .agents/skills exists
+        env:
+          GH_TOKEN: ${{ secrets.BOT_PAT }}
+        run: |
+          REPO="${{ matrix.repo }}"
+          CLEANUP_BRANCH="chore/remove-synced-skills"
 
-          # update existing PR or open a new one
-          if gh pr view "${BRANCH}" --repo "${REPO_NAME}" > /dev/null 2>&1; then
-            echo "PR already exists for ${BRANCH}, force-pushed update."
+          if [ ! -d ".agents/skills" ]; then
+            echo "No .agents/skills directory — nothing to clean up."
+            exit 0
+          fi
+
+          git checkout -B "${CLEANUP_BRANCH}"
+          git rm -rf .agents/skills
+          git commit -S -m "chore: remove previously-synced agent skills
+
+          Skills now live exclusively in ansible/team-devtools.
+          See: https://github.com/ansible/team-devtools/tree/main/.agents/skills"
+          git push --force origin "${CLEANUP_BRANCH}"
+
+          EXISTING=$(gh pr list --repo "${REPO}" --head "${CLEANUP_BRANCH}" \
+            --state open --json number --jq '.[0].number')
+          if [ -n "${EXISTING}" ]; then
+            echo "Cleanup PR #${EXISTING} already exists, force-pushed update."
           else
             gh pr create \
-              --repo "${REPO_NAME}" \
-              --head "${BRANCH}" \
-              --title "chore: sync agent skills from team-devtools" \
-              --body "Automated sync of \`.agents/skills/\` from \`ansible/team-devtools\`.
-
-          Source: ansible/team-devtools@${SOURCE_SHA}"
+              --repo "${REPO}" \
+              --head "${CLEANUP_BRANCH}" \
+              --title "chore: remove previously-synced agent skills" \
+              --body "Agent skills now live exclusively in \`ansible/team-devtools\`. This PR removes the copies that were previously synced here."
+            echo "Created cleanup PR."
           fi

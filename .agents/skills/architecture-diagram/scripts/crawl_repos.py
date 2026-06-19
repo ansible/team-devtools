@@ -17,23 +17,33 @@ import subprocess
 import sys
 from pathlib import Path
 
-
-# Allow importing sibling module when run as a script.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-
-from models import (
-    ADT_PACKAGE_MAP,
-    PYTHON_CLI_TOOLS,
-    REPO_MANIFEST,
-    ContainerArtifact,
-    CrawlResult,
-    DiscoveredComponent,
-    DiscoveredRelationship,
-    RelationshipType,
-    RepoLanguage,
-    RepoManifestEntry,
-)
-
+try:
+    from arch_models import (  # pylint: disable=import-error
+        ADT_PACKAGE_MAP,
+        PYTHON_CLI_TOOLS,
+        REPO_MANIFEST,
+        ContainerArtifact,
+        CrawlResult,
+        DiscoveredComponent,
+        DiscoveredRelationship,
+        RelationshipType,
+        RepoLanguage,
+        RepoManifestEntry,
+    )
+except ImportError:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from arch_models import (
+        ADT_PACKAGE_MAP,
+        PYTHON_CLI_TOOLS,
+        REPO_MANIFEST,
+        ContainerArtifact,
+        CrawlResult,
+        DiscoveredComponent,
+        DiscoveredRelationship,
+        RelationshipType,
+        RepoLanguage,
+        RepoManifestEntry,
+    )
 
 # ---------------------------------------------------------------------------
 # Cloning
@@ -43,8 +53,14 @@ from models import (
 def clone_all(clone_dir: Path) -> dict[str, Path]:
     """Shallow-clone every manifest repo into *clone_dir*.
 
-    Returns a mapping of repo slug -> local path.
     Skips repos that fail to clone (prints a warning).
+
+    Args:
+        clone_dir: Directory to clone repos into (will be recreated).
+
+    Returns:
+        Mapping of repo slug to local clone path.
+
     """
     if clone_dir.exists():
         shutil.rmtree(clone_dir)
@@ -74,15 +90,23 @@ def clone_all(clone_dir: Path) -> dict[str, Path]:
 
 
 def _read_toml_deps(pyproject: Path) -> list[str]:
-    """Extract dependency names from pyproject.toml without a TOML library."""
-    text = pyproject.read_text()
+    """Extract dependency names from pyproject.toml without a TOML library.
+
+    Args:
+        pyproject: Path to pyproject.toml file.
+
+    Returns:
+        Lowercased dependency package names.
+
+    """
+    text = pyproject.read_text(encoding="utf-8")
     deps: list[str] = []
     in_deps = False
     in_optional = False
     for line in text.splitlines():
         stripped = line.strip()
         if stripped == "[project.dependencies]" or stripped.startswith(
-            "dependencies = ["
+            "dependencies = [",
         ):
             in_deps = True
             continue
@@ -90,7 +114,7 @@ def _read_toml_deps(pyproject: Path) -> list[str]:
             in_optional = True
             continue
         if stripped.startswith("[") and not stripped.startswith(
-            "[project.optional-dependencies"
+            "[project.optional-dependencies",
         ):
             in_deps = False
             in_optional = False
@@ -103,9 +127,17 @@ def _read_toml_deps(pyproject: Path) -> list[str]:
 
 
 def _read_package_json_deps(pkg_json: Path) -> list[str]:
-    """Extract dependency names from package.json."""
+    """Extract dependency names from package.json.
+
+    Args:
+        pkg_json: Path to package.json file.
+
+    Returns:
+        Dependency package names.
+
+    """
     try:
-        data = json.loads(pkg_json.read_text())
+        data = json.loads(pkg_json.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return []
     names: list[str] = []
@@ -115,7 +147,15 @@ def _read_package_json_deps(pkg_json: Path) -> list[str]:
 
 
 def _find_containerfiles(repo_dir: Path) -> list[Path]:
-    """Find Containerfile / Dockerfile variants."""
+    """Find Containerfile / Dockerfile variants.
+
+    Args:
+        repo_dir: Root directory of the cloned repository.
+
+    Returns:
+        Paths to discovered container definition files.
+
+    """
     candidates = ["Containerfile", "Dockerfile"]
     found: list[Path] = [p for name in candidates for p in repo_dir.rglob(name)]
     found.extend(repo_dir.rglob("*.containerfile"))
@@ -124,11 +164,23 @@ def _find_containerfiles(repo_dir: Path) -> list[Path]:
 
 
 def _parse_containerfile(
-    cf: Path, repo_slug: str, repo_dir: Path
+    cf: Path,
+    repo_slug: str,
+    repo_dir: Path,
 ) -> ContainerArtifact | None:
-    """Extract base image and notable contents from a Containerfile."""
+    """Extract base image and notable contents from a Containerfile.
+
+    Args:
+        cf: Path to the Containerfile.
+        repo_slug: Repository slug (e.g. ``ansible/ansible-lint``).
+        repo_dir: Root directory of the cloned repository.
+
+    Returns:
+        Parsed container artifact, or ``None`` if unparsable.
+
+    """
     try:
-        text = cf.read_text()
+        text = cf.read_text(encoding="utf-8")
     except OSError:
         return None
     base_image = ""
@@ -168,9 +220,19 @@ def _parse_containerfile(
 
 
 def _scan_workflow_container_builds(
-    repo_dir: Path, repo_slug: str
+    repo_dir: Path,
+    repo_slug: str,
 ) -> list[ContainerArtifact]:
-    """Scan GitHub Actions workflows and build scripts for container image builds/pushes."""
+    """Scan GitHub Actions workflows and build scripts for container image builds/pushes.
+
+    Args:
+        repo_dir: Root directory of the cloned repository.
+        repo_slug: Repository slug.
+
+    Returns:
+        Container artifacts found in workflows.
+
+    """
     artifacts: list[ContainerArtifact] = []
     seen_images: set[str] = set()
 
@@ -187,7 +249,7 @@ def _scan_workflow_container_builds(
 
     for scan_path, source_label in scan_files:
         try:
-            text = scan_path.read_text()
+            text = scan_path.read_text(encoding="utf-8")
         except OSError:
             continue
         if any(
@@ -214,23 +276,33 @@ def _scan_workflow_container_builds(
                             containerfile_path="(workflow/script)",
                             base_image="(from workflow)",
                             published_in_workflow=source_label,
-                        )
+                        ),
                     )
 
     return artifacts
 
 
 def _scan_workflow_reusable(
-    repo_dir: Path, repo_slug: str
+    repo_dir: Path,
+    repo_slug: str,
 ) -> list[DiscoveredRelationship]:
-    """Discover reusable workflow references to other ADT repos."""
+    """Discover reusable workflow references to other ADT repos.
+
+    Args:
+        repo_dir: Root directory of the cloned repository.
+        repo_slug: Repository slug.
+
+    Returns:
+        Relationships for reusable workflow references.
+
+    """
     rels: list[DiscoveredRelationship] = []
     wf_dir = repo_dir / ".github" / "workflows"
     if not wf_dir.is_dir():
         return rels
     for yml in wf_dir.glob("*.yml"):
         try:
-            text = yml.read_text()
+            text = yml.read_text(encoding="utf-8")
         except OSError:
             continue
         for m in re.finditer(r"uses:\s+([a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+)/", text):
@@ -243,7 +315,7 @@ def _scan_workflow_reusable(
                         relationship_type=RelationshipType.USES_WORKFLOW,
                         label="uses reusable workflow",
                         discovered_from=yml.name,
-                    )
+                    ),
                 )
     return rels
 
@@ -254,7 +326,13 @@ def _scan_workflow_reusable(
 
 
 def _crawl_vscode_ansible(repo_dir: Path, result: CrawlResult) -> None:  # noqa: PLR0912
-    """Deep crawl vscode-ansible for language server, MCP, and Python CLI spawns."""
+    """Deep crawl vscode-ansible for language server, MCP, and Python CLI spawns.
+
+    Args:
+        repo_dir: Root directory of the cloned repository.
+        result: Accumulator for discovered components and relationships.
+
+    """
     slug = "ansible/vscode-ansible"
 
     # Scan extension source (src/) for Python CLI tool references
@@ -276,7 +354,7 @@ def _crawl_vscode_ansible(repo_dir: Path, result: CrawlResult) -> None:  # noqa:
                             relationship_type=RelationshipType.SPAWNS,
                             label=f"spawns {tool_name}",
                             discovered_from=str(f.relative_to(repo_dir)),
-                        )
+                        ),
                     )
 
     # Detect language server
@@ -285,11 +363,7 @@ def _crawl_vscode_ansible(repo_dir: Path, result: CrawlResult) -> None:  # noqa:
             text = f.read_text(errors="ignore")
         except OSError:
             continue
-        if (
-            "LanguageClient" in text
-            or "createConnection" in text
-            or "LanguageServer" in text
-        ):
+        if "LanguageClient" in text or "createConnection" in text or "LanguageServer" in text:
             result.components.append(
                 DiscoveredComponent(
                     name="Ansible Language Server",
@@ -297,7 +371,7 @@ def _crawl_vscode_ansible(repo_dir: Path, result: CrawlResult) -> None:  # noqa:
                     component_type="server",
                     technology="TypeScript (LSP)",
                     description="Integrated language server for Ansible content editing",
-                )
+                ),
             )
             break
 
@@ -313,7 +387,7 @@ def _crawl_vscode_ansible(repo_dir: Path, result: CrawlResult) -> None:  # noqa:
                 component_type="server",
                 technology="TypeScript (MCP)",
                 description="Model Context Protocol server exposing ADT CLI tools to AI agents",
-            )
+            ),
         )
         # Scan MCP server source for Python CLI tool dependencies
         mcp_src = mcp_dir / "src"
@@ -332,7 +406,7 @@ def _crawl_vscode_ansible(repo_dir: Path, result: CrawlResult) -> None:  # noqa:
                                 relationship_type=RelationshipType.SPAWNS,
                                 label=f"MCP tool: {tool_name}",
                                 discovered_from=f"packages/ansible-mcp-server/src/{f.relative_to(mcp_src)}",
-                            )
+                            ),
                         )
 
     if not mcp_found:
@@ -342,9 +416,7 @@ def _crawl_vscode_ansible(repo_dir: Path, result: CrawlResult) -> None:  # noqa:
                 text = f.read_text(errors="ignore")
             except OSError:
                 continue
-            if "mcp" in text.lower() and (
-                "server" in text.lower() or "McpServer" in text or "MCP" in text
-            ):
+            if "mcp" in text.lower() and ("server" in text.lower() or "McpServer" in text or "MCP" in text):
                 result.components.append(
                     DiscoveredComponent(
                         name="Ansible MCP Server",
@@ -352,13 +424,19 @@ def _crawl_vscode_ansible(repo_dir: Path, result: CrawlResult) -> None:  # noqa:
                         component_type="server",
                         technology="TypeScript (MCP)",
                         description="Model Context Protocol server for AI tool integration",
-                    )
+                    ),
                 )
                 break
 
 
 def _crawl_abbenay(repo_dir: Path, result: CrawlResult) -> None:
-    """Crawl abbenay monorepo for sub-packages and Containerfile."""
+    """Crawl abbenay monorepo for sub-packages and Containerfile.
+
+    Args:
+        repo_dir: Root directory of the cloned repository.
+        result: Accumulator for discovered components and relationships.
+
+    """
     slug = "redhat-developer/abbenay"
     packages_dir = repo_dir / "packages"
     if packages_dir.is_dir():
@@ -371,7 +449,7 @@ def _crawl_abbenay(repo_dir: Path, result: CrawlResult) -> None:
             ctype = "library"
             if pkg_json.exists():
                 try:
-                    data = json.loads(pkg_json.read_text())
+                    data = json.loads(pkg_json.read_text(encoding="utf-8"))
                     desc = data.get("description", "")
                 except (json.JSONDecodeError, OSError):
                     pass
@@ -394,14 +472,12 @@ def _crawl_abbenay(repo_dir: Path, result: CrawlResult) -> None:
                 desc = desc or "Generated TypeScript proto stubs"
             result.components.append(
                 DiscoveredComponent(
-                    name=f"@abbenay/{name}"
-                    if name != "python"
-                    else "abbenay-python-client",
+                    name=f"@abbenay/{name}" if name != "python" else "abbenay-python-client",
                     repo_slug=slug,
                     component_type=ctype,
                     technology=tech,
                     description=desc,
-                )
+                ),
             )
 
 
@@ -410,8 +486,15 @@ def _crawl_abbenay(repo_dir: Path, result: CrawlResult) -> None:
 # ---------------------------------------------------------------------------
 
 
-def crawl_repo(entry: RepoManifestEntry, repo_dir: Path, result: CrawlResult) -> None:  # noqa: PLR0912, PLR0915
-    """Introspect a single cloned repo and add findings to *result*."""
+def crawl_repo(entry: RepoManifestEntry, repo_dir: Path, result: CrawlResult) -> None:  # noqa: PLR0912
+    """Introspect a single cloned repo and add findings to *result*.
+
+    Args:
+        entry: Manifest entry for the repository.
+        repo_dir: Root directory of the cloned repository.
+        result: Accumulator for discovered components and relationships.
+
+    """
     slug = entry.slug
 
     # --- Python dependencies ---
@@ -427,7 +510,7 @@ def crawl_repo(entry: RepoManifestEntry, repo_dir: Path, result: CrawlResult) ->
                         relationship_type=RelationshipType.DEPENDS,
                         label=f"depends on {dep_name}",
                         discovered_from="pyproject.toml",
-                    )
+                    ),
                 )
 
     # --- Node dependencies ---
@@ -443,7 +526,7 @@ def crawl_repo(entry: RepoManifestEntry, repo_dir: Path, result: CrawlResult) ->
                         relationship_type=RelationshipType.DEPENDS,
                         label=f"depends on {dep_name}",
                         discovered_from="package.json",
-                    )
+                    ),
                 )
 
     # --- Python source: CLI tool spawns (catches runtime deps not in pyproject.toml) ---
@@ -466,7 +549,7 @@ def crawl_repo(entry: RepoManifestEntry, repo_dir: Path, result: CrawlResult) ->
                             relationship_type=RelationshipType.SPAWNS,
                             label=f"spawns {tool_name}",
                             discovered_from=str(f.relative_to(repo_dir)),
-                        )
+                        ),
                     )
 
     # --- Container artifacts (merge Containerfile builds with workflow registry names) ---
@@ -523,7 +606,15 @@ def crawl_repo(entry: RepoManifestEntry, repo_dir: Path, result: CrawlResult) ->
 def deduplicate_relationships(
     rels: list[DiscoveredRelationship],
 ) -> list[DiscoveredRelationship]:
-    """Remove duplicate relationships (same source, target, type)."""
+    """Remove duplicate relationships (same source, target, type).
+
+    Args:
+        rels: Relationships to deduplicate.
+
+    Returns:
+        Unique relationships.
+
+    """
     seen: set[tuple[str, str, str]] = set()
     unique: list[DiscoveredRelationship] = []
     for r in rels:
@@ -540,8 +631,9 @@ def deduplicate_relationships(
 
 
 def main() -> None:
+    """Clone and crawl ADT repos for C4 diagram generation."""
     parser = argparse.ArgumentParser(
-        description="Clone and crawl ADT repos for C4 diagrams"
+        description="Clone and crawl ADT repos for C4 diagrams",
     )
     parser.add_argument(
         "--clone-dir",
