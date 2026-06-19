@@ -6,7 +6,7 @@ on:
     - cron: "7 8 * * 1" # Weekly Monday 08:07 UTC
   push:
     branches: [main]
-    paths: [".agents/skills/**"]
+    paths: [".agents/skills/architecture-diagram/**"]
   workflow_dispatch:
 permissions:
   contents: read
@@ -34,7 +34,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           path: source
-          sparse-checkout: .agents/skills
+          sparse-checkout: .agents/skills/architecture-diagram
 
       - name: Checkout target repo
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -56,8 +56,12 @@ jobs:
 
       - name: Sync skills to target repo
         run: |
-          mkdir -p target/.agents/skills
-          rsync -a --delete source/.agents/skills/ target/.agents/skills/
+          mkdir -p target/.agents/skills/architecture-diagram
+          rsync -a --delete \
+            source/.agents/skills/architecture-diagram/ \
+            target/.agents/skills/architecture-diagram/
+          # Only architecture-diagram is synced; supply-chain-audit
+          # stays in team-devtools (too many cross-repo lint conflicts).
 
       - name: Create PR if changed
         working-directory: target
