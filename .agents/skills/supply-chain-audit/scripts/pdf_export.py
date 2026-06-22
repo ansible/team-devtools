@@ -11,6 +11,7 @@ import re
 import sys
 from pathlib import Path
 
+
 PRINT_CSS = """
 @media print {
   :root {
@@ -46,7 +47,11 @@ PRINT_CSS = """
   .timeline-svg { min-width: unset !important; width: 100% !important; }
   .timeline-container { overflow-x: visible !important; }
   table { font-size: 7.5pt !important; width: 100% !important; table-layout: fixed !important; }
-  table th, table td { padding: 0.4rem 0.5rem !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
+  table th, table td {
+    padding: 0.4rem 0.5rem !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+  }
   #repoSummaryTable { min-width: unset !important; }
   #repoSummaryTable th:first-child, #repoSummaryTable td:first-child { width: 16% !important; }
   #repoSummaryTable th:nth-child(n+2), #repoSummaryTable td:nth-child(n+2) { width: 10.5% !important; }
@@ -101,21 +106,22 @@ JS_EXPAND_ALL = """
 
 def _prepare_html_for_print(html_path: Path) -> str:
     """Read HTML and inject print-friendly CSS."""
-    content = html_path.read_text(encoding="utf-8")
-    content = content.replace("</style>", PRINT_CSS + "\n</style>", 1)
-    content = re.sub(
+    return re.sub(
         r"(<div class=\"footer\">)",
         r'<div style="page-break-before: always;"></div>\1',
-        content,
+        html_path.read_text(encoding="utf-8").replace(
+            "</style>", PRINT_CSS + "\n</style>", 1
+        ),
         count=0,
     )
-    return content
 
 
-def export_pdf_playwright(html_path: Path, pdf_path: Path) -> None:
-    """Render HTML report to PDF using Playwright (Chromium)."""
+def _get_playwright() -> type:
+    """Import and return playwright's sync_playwright, or exit with guidance."""
     try:
-        from playwright.sync_api import sync_playwright
+        from playwright.sync_api import (  # noqa: PLC0415
+            sync_playwright,
+        )
     except ImportError:
         print(
             "ERROR: playwright not installed.\n"
@@ -123,7 +129,12 @@ def export_pdf_playwright(html_path: Path, pdf_path: Path) -> None:
             file=sys.stderr,
         )
         sys.exit(1)
+    return sync_playwright
 
+
+def export_pdf_playwright(html_path: Path, pdf_path: Path) -> None:
+    """Render HTML report to PDF using Playwright (Chromium)."""
+    sync_playwright = _get_playwright()
     prepared_html = _prepare_html_for_print(html_path)
 
     tmp_html = html_path.with_suffix(".print.html")
