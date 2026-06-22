@@ -11,7 +11,6 @@ import re
 import sys
 from pathlib import Path
 
-
 PRINT_CSS = """
 @media print {
   :root {
@@ -110,7 +109,9 @@ def _prepare_html_for_print(html_path: Path) -> str:
         r"(<div class=\"footer\">)",
         r'<div style="page-break-before: always;"></div>\1',
         html_path.read_text(encoding="utf-8").replace(
-            "</style>", PRINT_CSS + "\n</style>", 1
+            "</style>",
+            PRINT_CSS + "\n</style>",
+            1,
         ),
         count=0,
     )
@@ -124,8 +125,7 @@ def _get_playwright() -> type:
         )
     except ImportError:
         print(
-            "ERROR: playwright not installed.\n"
-            "  Install with: pip install playwright && playwright install chromium",
+            "ERROR: playwright not installed.\n  Install with: pip install playwright && playwright install chromium",
             file=sys.stderr,
         )
         sys.exit(1)
