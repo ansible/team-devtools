@@ -354,19 +354,19 @@ a:hover { text-decoration: underline; }
 <!-- Per-repo Summary -->
 <h2>Repository Summary</h2>
 <p>Breakdown of activity and verification status per repository.</p>
-<div style="overflow-x: auto;">
-<table id="repoSummaryTable">
+<div style="overflow-x: auto; margin-right: 0; padding-right: 0;">
+<table id="repoSummaryTable" style="min-width: 900px;">
   <thead>
     <tr>
       <th onclick="sortTable('repoSummaryTable', 0)">Repository <span class="sort-arrow">▾</span></th>
       <th onclick="sortTable('repoSummaryTable', 1)">Commits <span class="sort-arrow">▾</span></th>
-      <th onclick="sortTable('repoSummaryTable', 2)">PRs Merged <span class="sort-arrow">▾</span></th>
-      <th onclick="sortTable('repoSummaryTable', 3)">Signed (PR merge) <span class="sort-arrow">▾</span></th>
-      <th onclick="sortTable('repoSummaryTable', 4)">Signed (personal key) <span class="sort-arrow">▾</span></th>
+      <th onclick="sortTable('repoSummaryTable', 2)">PRs <span class="sort-arrow">▾</span></th>
+      <th onclick="sortTable('repoSummaryTable', 3)" title="Signed via PR merge (GitHub web-flow)">Signed (PR) <span class="sort-arrow">▾</span></th>
+      <th onclick="sortTable('repoSummaryTable', 4)" title="Signed with personal GPG/SSH key">Signed (key) <span class="sort-arrow">▾</span></th>
       <th onclick="sortTable('repoSummaryTable', 5)">Unsigned <span class="sort-arrow">▾</span></th>
-      <th onclick="sortTable('repoSummaryTable', 6)">Dep Changes <span class="sort-arrow">▾</span></th>
-      <th onclick="sortTable('repoSummaryTable', 7)">Required Checks <span class="sort-arrow">▾</span></th>
-      <th onclick="sortTable('repoSummaryTable', 8)">Findings <span class="sort-arrow">▾</span></th>
+      <th onclick="sortTable('repoSummaryTable', 6)">Deps <span class="sort-arrow">▾</span></th>
+      <th onclick="sortTable('repoSummaryTable', 7)" title="Required CI status checks">Checks <span class="sort-arrow">▾</span></th>
+      <th onclick="sortTable('repoSummaryTable', 8)" style="min-width: 80px;">Findings <span class="sort-arrow">▾</span></th>
     </tr>
   </thead>
   <tbody>
