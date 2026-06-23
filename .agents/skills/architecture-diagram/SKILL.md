@@ -264,7 +264,7 @@ the source for updates or regeneration.
 
 All output goes to `.architecture-diagrams/` in the workspace root:
 
-```
+```text
 .architecture-diagrams/
 ├── dependencies.json           # Crawl results (intermediate)
 ├── l1_system_context.py        # L1 diagram source
@@ -281,7 +281,7 @@ Add `.architecture-diagrams/` to `.gitignore` if not already present.
 
 | File | Purpose |
 |------|---------|
-| `scripts/models.py` | Data classes, repo manifest, package name mappings |
+| `scripts/arch_models.py` | Data classes, repo manifest, package name mappings |
 | `scripts/crawl_repos.py` | Clone + introspect repos, output `dependencies.json` |
 | `scripts/generate_diagram.py` | Consume crawl data, produce C4 diagram `.py` files |
 | `scripts/render.py` | Render diagram `.py` files to PNG via `c4 export` |
