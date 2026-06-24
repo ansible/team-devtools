@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supply Chain Audit Report</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface-2: #21262d;
+  --border: #30363d;
+  --text: #c9d1d9;
+  --text-muted: #8b949e;
+  --accent: #58a6ff;
+  --critical: #f85149;
+  --high: #db6d28;
+  --medium: #d29922;
+  --low: #3fb950;
+  --info: #8b949e;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --mono: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
+h2 { font-size: 1.3rem; margin: 2rem 0 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+h3 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; }
+p { margin: 0.5rem 0; }
+.header {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.header-meta { color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem; }
+.verdict {
+  margin: 1.5rem 0;
+  padding: 1.2rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+}
+.verdict-clean {
+  background: rgba(63, 185, 80, 0.1);
+  border: 1px solid var(--low);
+  color: var(--low);
+}
+.verdict-issues {
+  background: rgba(248, 81, 73, 0.1);
+  border: 1px solid var(--critical);
+  color: var(--critical);
+}
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.summary-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.2rem;
+  text-align: center;
+}
+.summary-card .number {
+  font-size: 2rem;
+  font-weight: 700;
+  display: block;
+}
+.summary-card .label { color: var(--text-muted); font-size: 0.8rem; }
+.risk-critical .number { color: var(--critical); }
+.risk-high .number { color: var(--high); }
+.risk-medium .number { color: var(--medium); }
+.risk-low .number { color: var(--low); }
+.risk-info .number { color: var(--info); }
+
+.methodology {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+}
+.methodology ul {
+  list-style: none;
+  padding: 0;
+}
+.methodology li {
+  padding: 0.3rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+}
+.methodology li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: var(--low);
+  font-weight: bold;
+}
+
+.repo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+.repo-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.repo-card .light {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.light-green { background: var(--low); }
+.light-yellow { background: var(--medium); }
+.light-red { background: var(--critical); }
+.repo-card .repo-name { font-size: 0.85rem; font-weight: 500; }
+.repo-card .repo-count { color: var(--text-muted); font-size: 0.75rem; margin-left: auto; }
+
+.timeline-container {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+.timeline-description {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+.timeline-legend {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.timeline-legend span {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.timeline-svg { width: 100%; min-width: 800px; }
+
+.controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin: 1rem 0;
+  flex-wrap: wrap;
+}
+.controls input[type="text"] {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  color: var(--text);
+  font-size: 0.85rem;
+  width: 250px;
+}
+.controls input[type="text"]::placeholder { color: var(--text-muted); }
+.filter-btn {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.4rem 0.8rem;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+.filter-btn:hover { border-color: var(--accent); }
+.filter-btn.active { border-color: var(--accent); background: rgba(88, 166, 255, 0.1); }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin: 1rem 0;
+}
+th, td {
+  padding: 0.6rem 0.8rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+th {
+  background: var(--surface);
+  color: var(--text-muted);
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  position: sticky;
+  top: 0;
+}
+th:hover { color: var(--accent); }
+th .sort-arrow { margin-left: 0.3rem; opacity: 0.5; }
+tr:hover { background: var(--surface); }
+td code {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  background: var(--surface-2);
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+}
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.badge-critical { background: rgba(248, 81, 73, 0.2); color: var(--critical); }
+.badge-high { background: rgba(219, 109, 40, 0.2); color: var(--high); }
+.badge-medium { background: rgba(210, 153, 34, 0.2); color: var(--medium); }
+.badge-low { background: rgba(63, 185, 80, 0.2); color: var(--low); }
+.badge-info { background: rgba(139, 148, 158, 0.2); color: var(--info); }
+
+.collapsible {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin: 0.75rem 0;
+}
+.collapsible-header {
+  padding: 0.8rem 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+.collapsible-header:hover { background: var(--surface-2); }
+.collapsible-header .arrow { transition: transform 0.2s; }
+.collapsible-header.open .arrow { transform: rotate(90deg); }
+.collapsible-body { padding: 0 1rem 1rem; display: none; }
+.collapsible-body.open { display: block; }
+
+.package-focus {
+  background: var(--surface);
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+}
+.package-focus h3 { color: var(--accent); margin-top: 0; }
+
+.no-data { color: var(--text-muted); font-style: italic; padding: 2rem; text-align: center; }
+.footer {
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  text-align: center;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Supply Chain Audit Report</h1>
+  <div class="header-meta">
+    <strong>Audit window:</strong> {{start_date}} to {{end_date}} |
+    <strong>Generated:</strong> {{generated_at}} |
+    <strong>Repos analyzed:</strong> {{repo_count}} |
+    <strong>GitHub CLI:</strong> {{gh_version}}
+  </div>
+</div>
+
+<!-- Verdict -->
+{{verdict_section}}
+
+<!-- Data Summary -->
+<h2>Data Analyzed</h2>
+<p>The following data was collected from the GitHub API and package registries for analysis.</p>
+<div class="summary-grid">
+  <div class="summary-card">
+    <span class="number">{{repo_count}}</span>
+    <span class="label">Repositories</span>
+  </div>
+  <div class="summary-card">
+    <span class="number">{{total_commits}}</span>
+    <span class="label">Commits on main</span>
+  </div>
+  <div class="summary-card">
+    <span class="number">{{total_prs}}</span>
+    <span class="label">Pull Requests</span>
+  </div>
+  <div class="summary-card">
+    <span class="number">{{total_pr_branch_commits}}</span>
+    <span class="label">PR Branch Commits</span>
+  </div>
+  <div class="summary-card">
+    <span class="number">{{total_check_suites}}</span>
+    <span class="label">CI Check Suites</span>
+  </div>
+  <div class="summary-card">
+    <span class="number">{{total_dep_changes}}</span>
+    <span class="label">Dependency Changes</span>
+  </div>
+  <div class="summary-card">
+    <span class="number">{{total_findings}}</span>
+    <span class="label">Anomalies Detected</span>
+  </div>
+</div>
+
+<!-- Methodology -->
+<h2>What Was Checked</h2>
+<div class="methodology">
+  <p>Each commit within the audit window was verified against the following criteria:</p>
+  <ul>
+    <li><strong>Commit signing:</strong> Every commit must have a valid GPG or SSH signature</li>
+    <li><strong>PR traceability:</strong> Every commit must be the merge result of an approved pull request (no direct pushes)</li>
+    <li><strong>CI integrity:</strong> Required status checks must have passed before merge (per branch protection / rulesets)</li>
+    <li><strong>No post-merge tampering:</strong> No commits pushed to branches after their PR was merged or closed</li>
+    <li><strong>Commit message originality:</strong> No commit messages replicated from earlier legitimate commits (social engineering indicator)</li>
+    <li><strong>Dependency provenance:</strong> New/updated dependencies checked against registry for release date and yank status</li>
+    <li><strong>Renovate cooldown enforcement:</strong> Each dep's adoption timing verified against the repo's configured <code>minimumReleaseAge</code> policy (violations are critical)</li>
+    <li><strong>Known vulnerability scan:</strong> All current packages (from lock files) checked against OSV.dev for disclosed CVEs and advisories</li>
+    <li><strong>Branch protection stability:</strong> No modifications to branch protection rules or rulesets during the window</li>
+    <li><strong>Post-approval PR integrity:</strong> All commits within each PR branch inspected for pushes after the last review approval — especially from unexpected authors</li>
+    <li><strong>Human review requirement:</strong> Every merged PR must have at least one approval from a human reviewer (bot-only approvals flagged)</li>
+    <li><strong>Squash/merge via GitHub UI:</strong> Accepted as legitimate when they are the merge commit of a reviewed PR</li>
+  </ul>
+</div>
+
+<!-- Per-repo Summary -->
+<h2>Repository Summary</h2>
+<p>Breakdown of activity and verification status per repository.</p>
+<div style="overflow-x: auto; margin-right: 0; padding-right: 0;">
+<table id="repoSummaryTable" style="min-width: 900px;">
+  <thead>
+    <tr>
+      <th onclick="sortTable('repoSummaryTable', 0)">Repository <span class="sort-arrow">▾</span></th>
+      <th onclick="sortTable('repoSummaryTable', 1)">Commits <span class="sort-arrow">▾</span></th>
+      <th onclick="sortTable('repoSummaryTable', 2)">PRs <span class="sort-arrow">▾</span></th>
+      <th onclick="sortTable('repoSummaryTable', 3)" title="Signed via PR merge (GitHub web-flow)">Signed (PR) <span class="sort-arrow">▾</span></th>
+      <th onclick="sortTable('repoSummaryTable', 4)" title="Signed with personal GPG/SSH key">Signed (key) <span class="sort-arrow">▾</span></th>
+      <th onclick="sortTable('repoSummaryTable', 5)">Unsigned <span class="sort-arrow">▾</span></th>
+      <th onclick="sortTable('repoSummaryTable', 6)">Deps <span class="sort-arrow">▾</span></th>
+      <th onclick="sortTable('repoSummaryTable', 7)" title="Required CI status checks">Checks <span class="sort-arrow">▾</span></th>
+      <th onclick="sortTable('repoSummaryTable', 8)" style="min-width: 80px;">Findings <span class="sort-arrow">▾</span></th>
+    </tr>
+  </thead>
+  <tbody>
+{{repo_summary_rows}}
+  </tbody>
+</table>
+</div>
+
+<!-- Findings Summary -->
+<h2>Findings Summary</h2>
+{{findings_summary_section}}
+
+<!-- Repository Status -->
+<h3>Repository Status</h3>
+<div class="repo-grid">
+{{repo_cards}}
+</div>
+
+<!-- Timeline -->
+<h2>Commit Timeline</h2>
+<div class="timeline-container">
+  <div class="timeline-description">
+    Each dot represents a commit within the audit window. Commits are plotted by date (x-axis)
+    and grouped by repository (y-axis). Dot color indicates risk level based on anomaly detection.
+    A healthy timeline shows all grey/green dots, meaning no anomalies were detected.
+  </div>
+{{timeline_svg}}
+  <div class="timeline-legend">
+    <span><span class="legend-dot" style="background: var(--low)"></span> Clean (no anomalies)</span>
+    <span><span class="legend-dot" style="background: var(--medium)"></span> Medium risk</span>
+    <span><span class="legend-dot" style="background: var(--high)"></span> High risk</span>
+    <span><span class="legend-dot" style="background: var(--critical)"></span> Critical</span>
+  </div>
+</div>
+
+<!-- Commit Integrity (only shown if there are flagged commits) -->
+{{commit_integrity_section}}
+
+<!-- Dependency Changes -->
+<h2>Dependency Changes</h2>
+<p>All dependency file modifications detected in the audit window. "Days Since" shows how long after release the version was adopted.</p>
+{{dep_section}}
+
+<!-- Renovate Cooldown Policy -->
+{{renovate_section}}
+
+<!-- Suspicious Patterns -->
+{{findings_details_section}}
+
+<!-- Security Recommendations -->
+{{recommendations_section}}
+
+<!-- Package Focus (Phase 2) -->
+{{package_focus_section}}
+
+<div class="footer">
+  Supply Chain Audit Tool v1.0 | All data sourced from GitHub API and package registries |
+  Standalone report — no external dependencies
+</div>
+
+<script>
+function sortTable(tableId, colIdx) {
+  const table = document.getElementById(tableId);
+  const tbody = table.querySelector('tbody');
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  const th = table.querySelectorAll('th')[colIdx];
+  const asc = th.dataset.sort !== 'asc';
+  th.dataset.sort = asc ? 'asc' : 'desc';
+
+  rows.sort((a, b) => {
+    const aVal = a.cells[colIdx]?.textContent.trim() || '';
+    const bVal = b.cells[colIdx]?.textContent.trim() || '';
+    const aNum = parseFloat(aVal);
+    const bNum = parseFloat(bVal);
+    if (!isNaN(aNum) && !isNaN(bNum)) {
+      return asc ? aNum - bNum : bNum - aNum;
+    }
+    return asc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+  });
+
+  rows.forEach(r => tbody.appendChild(r));
+}
+
+function filterTable(tableId, query) {
+  const table = document.getElementById(tableId);
+  const rows = table.querySelectorAll('tbody tr');
+  const q = query.toLowerCase();
+  rows.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    row.style.display = text.includes(q) ? '' : 'none';
+  });
+}
+
+function toggleRisk(btn, tableId) {
+  const table = document.getElementById(tableId);
+  const risk = btn.dataset.risk;
+  const buttons = btn.parentElement.querySelectorAll('.filter-btn');
+  buttons.forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  const rows = table.querySelectorAll('tbody tr');
+  rows.forEach(row => {
+    if (risk === 'all') {
+      row.style.display = '';
+    } else {
+      const rowRisk = row.dataset.risk || '';
+      row.style.display = rowRisk === risk ? '' : 'none';
+    }
+  });
+}
+
+document.querySelectorAll('.collapsible-header').forEach(header => {
+  header.addEventListener('click', () => {
+    header.classList.toggle('open');
+    const body = header.nextElementSibling;
+    body.classList.toggle('open');
+  });
+});
+</script>
+</body>
+</html>

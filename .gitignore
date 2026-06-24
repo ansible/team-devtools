@@ -126,6 +126,7 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+.supply-chain-audit/
 .dmypy.json
 dmypy.json
 
@@ -139,3 +140,4 @@ _readthedocs/
 src/team_devtools/_version.py
 .ansible
 coverage.lcov
+.architecture-diagrams/

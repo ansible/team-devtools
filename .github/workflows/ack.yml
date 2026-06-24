@@ -59,7 +59,7 @@ jobs:
 
       - name: Update release notes if this is already merged
         if: github.event.pull_request.merged == true
-        uses: release-drafter/release-drafter@563bf132657a13ded0b01fcb723c5a58cdd824e2 # v7
+        uses: release-drafter/release-drafter@ed4bc48ec97379be2258e7b7ac2624a3e26ab809 # v7
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -82,7 +82,7 @@ jobs:
           # label-operator: NOT
 
       # https://docs.github.com/en/code-security/dependabot/working-with-dependabot/automating-dependabot-with-github-actions#approve-a-pull-request
-      - name: Enable auto-merge and approve PRs from safe bots
+      - name: Enable auto-merge for PRs from safe bots
         # do not use github.actor as this can be someone else than the PR author
         if: >
           env.BOT_PAT != null &&
@@ -94,7 +94,6 @@ jobs:
         run: |
           set -e
           gh pr merge --auto --squash "$PR_URL"
-          gh pr review --approve "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ env.BOT_PAT }}
