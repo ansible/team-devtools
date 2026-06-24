@@ -32,7 +32,6 @@ or fix CI failures.
 ## Input
 
 Required:
-
 - **repo** — e.g., `ansible/vscode-ansible`
 - **PR number** — e.g., `2716`
 
@@ -102,12 +101,12 @@ git rebase origin/BASE_BRANCH
 Push the rebased branch:
 
 ```bash
-git push --force-with-lease
+source ~/.ansibuddy_env 2>/dev/null || true && git push --force-with-lease
 ```
 
 If push is rejected, stop and report:
 
-```text
+```
 **Action taken:** push rejected (branch was modified remotely)
 ```
 
@@ -127,9 +126,10 @@ git diff --name-only --diff-filter=U
 ```
 
 If 3 or fewer files conflict, attempt resolution:
-
-- For lock files (`pnpm-lock.yaml`, `uv.lock`, `yarn.lock`): accept theirs and regenerate after rebase.
-- For other files: abort and report that manual conflict resolution is needed.
+- For lock files (`pnpm-lock.yaml`, `uv.lock`, `yarn.lock`): accept
+  theirs and regenerate after rebase completes.
+- For other files: abort and report that manual conflict resolution is
+  needed.
 
 ```bash
 git checkout --theirs pnpm-lock.yaml  # or uv.lock
@@ -184,7 +184,7 @@ done
 
 If the loop exits due to timeout, report:
 
-```text
+```
 **CI run:** timed out (no checks appeared after 5 minutes)
 ```
 
@@ -201,7 +201,6 @@ gh pr checks PR_NUMBER --repo OWNER/REPO \
 ```
 
 **Skip list** (not code failures):
-
 - `codecov/project`, `codecov/patch`
 - `docs/readthedocs.org:*`
 - `ack / ack`
@@ -210,7 +209,7 @@ gh pr checks PR_NUMBER --repo OWNER/REPO \
 
 ### Output format
 
-```text
+```
 ## Rebase Result
 
 **Repo:** OWNER/REPO
@@ -220,7 +219,6 @@ gh pr checks PR_NUMBER --repo OWNER/REPO \
 **CI result:** all passing / N code failures
 
 ### Failing checks (if any)
-
 - check_name_1
 - check_name_2
 ```
