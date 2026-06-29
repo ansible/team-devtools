@@ -93,7 +93,7 @@ jobs:
           )
         run: |
           set -e
-          gh pr merge --auto --squash "$PR_URL"
+          gh pr merge --auto --squash "$PR_URL" || echo "::warning::Failed to auto-merge PR $PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ env.BOT_PAT }}
