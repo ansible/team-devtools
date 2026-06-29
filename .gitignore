@@ -126,6 +126,7 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+.supply-chain-audit/
 .dmypy.json
 dmypy.json
 

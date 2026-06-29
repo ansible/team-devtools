@@ -57,7 +57,7 @@ manually.
 
 ## The workflow
 
-```text
+```
 ┌─────────────────┐
 │  scan-bot-prs   │ → prioritized list of failing PRs
 └────────┬────────┘
@@ -91,6 +91,64 @@ manually.
          ▼
       report + next PR
 ```
+
+---
+
+## Step 0 — Credential & Signing Setup
+
+Before any git operations, configure SSH commit signing if running on
+Ambient Code Platform (or any environment with `ANSIBUDDY_SSH_SIGNING_KEY_B64`).
+
+```bash
+# Fix unmapped UID in ACP containers (git refuses to write commit objects otherwise)
+if ! getent passwd "$(id -u)" >/dev/null 2>&1; then
+  echo "$(id -u):x:$(id -u):0:ansibuddy:/tmp:/bin/bash" >> /etc/passwd
+fi
+
+# Set git identity (env vars override git config, so export them)
+export GIT_AUTHOR_EMAIL="107943535+ansibuddy@users.noreply.github.com"
+export GIT_COMMITTER_EMAIL="107943535+ansibuddy@users.noreply.github.com"
+export GIT_AUTHOR_NAME="ansibuddy"
+export GIT_COMMITTER_NAME="ansibuddy"
+git config --global user.email "107943535+ansibuddy@users.noreply.github.com"
+git config --global user.name "ansibuddy"
+
+if [ -n "$ANSIBUDDY_SSH_SIGNING_KEY_B64" ]; then
+  mkdir -p ~/.ssh
+  (umask 077 && echo "$ANSIBUDDY_SSH_SIGNING_KEY_B64" | tr -d ' ' | base64 -d > ~/.ssh/ansibuddy_signing_key)
+
+  eval "$(ssh-agent -s)"
+  echo "export SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> ~/.ansibuddy_env
+  echo "export SSH_AGENT_PID=$SSH_AGENT_PID" >> ~/.ansibuddy_env
+  echo "export GIT_AUTHOR_EMAIL=107943535+ansibuddy@users.noreply.github.com" >> ~/.ansibuddy_env
+  echo "export GIT_COMMITTER_EMAIL=107943535+ansibuddy@users.noreply.github.com" >> ~/.ansibuddy_env
+  echo "export GIT_AUTHOR_NAME=ansibuddy" >> ~/.ansibuddy_env
+  echo "export GIT_COMMITTER_NAME=ansibuddy" >> ~/.ansibuddy_env
+
+  if ssh-add ~/.ssh/ansibuddy_signing_key 2>/dev/null; then
+    git config --global gpg.format ssh
+    git config --global user.signingkey ~/.ssh/ansibuddy_signing_key
+    git config --global commit.gpgsign true
+    echo "SSH commit signing configured."
+  else
+    echo "WARNING: SSH signing key could not be loaded. Commits will not be signed." >&2
+    rm -f ~/.ssh/ansibuddy_signing_key
+  fi
+else
+  echo "No ANSIBUDDY_SSH_SIGNING_KEY_B64 found. Signing skipped."
+fi
+```
+
+**Important:** Each Bash tool call starts a fresh shell. All subsequent
+`git commit` and `git push` commands MUST be prefixed with:
+
+```bash
+source ~/.ansibuddy_env 2>/dev/null || true &&
+```
+
+Without this prefix, `SSH_AUTH_SOCK` is not set and git silently produces
+unsigned commits. The env file also re-exports the correct git identity
+to prevent ACP's default env vars from overriding the email.
 
 ---
 
@@ -147,28 +205,26 @@ on the PR by `diagnose-ci`. There is nothing left to do.
 
 ### 4a. Scope the fix
 
-- Prefer fixing within the files the bot already changed (lockfile, package.json, pyproject.toml).
-- If the fix requires touching other files (e.g., knip config, tsconfig), keep it minimal.
+- Prefer fixing within the files the bot already changed (lockfile,
+  package.json, pyproject.toml).
+- If the fix requires touching other files (e.g., knip config, tsconfig),
+  keep it minimal — only what's needed to unblock the build.
 - Never change test assertions, CI workflow files, or source logic.
 
 ### 4b. Apply by category
 
 **Lockfile regeneration:**
-
 ```bash
 pnpm install          # TypeScript
 uv lock               # Python
 ```
-
 Commit the regenerated lockfile.
 
 **Formatter/linter auto-fix:**
-
 ```bash
 npx prek run --all-files    # TypeScript
 tox -e lint                 # Python (some linters auto-fix)
 ```
-
 Commit any auto-formatted files.
 
 **Removing unused imports:**
@@ -183,7 +239,7 @@ Use conventional commits:
 
 ```bash
 git add <specific-files-only>
-git commit -m "fix(deps): <what was fixed>
+source ~/.ansibuddy_env 2>/dev/null || true && git commit -m "fix(deps): <what was fixed>
 
 <one-line description of what broke and why>"
 ```
@@ -207,7 +263,7 @@ after 3 attempts, skip this PR and report.
 ## Step 6 — Push and monitor CI
 
 ```bash
-git push
+source ~/.ansibuddy_env 2>/dev/null || true && git push
 ```
 
 Then poll CI until all jobs complete (same polling logic as `rebase-pr`):
@@ -261,7 +317,7 @@ infer or guess the state from other signals.
 
 ### Per-PR report
 
-```text
+```
 ## PR #NUMBER — TITLE (REPO)
 
 **PR state:** OPEN / MERGED / CLOSED (verified via gh pr view)
@@ -271,12 +327,10 @@ infer or guess the state from other signals.
 **Action taken:** rebase only / lockfile regen / config fix / formatter auto-fix
 
 ### What was done
-
 - Rebased onto main
 - <commit description>
 
 ### CI Status
-
 - lint: pass
 - preflight: pass
 - test (linux): pass
@@ -285,7 +339,7 @@ infer or guess the state from other signals.
 
 ### Final summary
 
-```text
+```
 ## Fix Bot PRs — Run Summary
 
 **Date:** YYYY-MM-DD HH:MM
@@ -296,17 +350,14 @@ infer or guess the state from other signals.
 **Failed:** W
 
 ### Fixed PRs
-
 - ansible/vscode-ansible #2716 — lockfile regen
 - ansible/molecule #4629 — rebase only
 
 ### Skipped PRs
-
 - ansible/vscode-ansible #2672 — NEEDS HUMAN REVIEW (4 major version bumps)
 - ansible/ansible-sign #115 — push rejected (fork PR)
 
 ### Failed PRs
-
 - ansible/ansible-lint #5011 — 3 attempts exhausted (tox lint failure)
 ```
 
@@ -344,3 +395,13 @@ then lockfile, then single dep, then all deps). After each PR:
 
 The orchestrator should process PRs from different repos without
 assuming any shared state between them. Each PR is independent.
+
+---
+
+## Cleanup
+
+After all PRs are processed, clean up signing artifacts:
+
+```bash
+rm -f ~/.ansibuddy_env ~/.ssh/ansibuddy_signing_key
+```

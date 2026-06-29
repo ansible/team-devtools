@@ -1184,7 +1184,7 @@ def _build_replacements(
     repos = manifest.get("repos", [])
     gh_version = manifest.get("gh_version", "unknown")
 
-    return {
+    replacements = {
         "{{start_date}}": manifest["start_date"],
         "{{end_date}}": manifest["end_date"],
         "{{generated_at}}": datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
@@ -1197,8 +1197,10 @@ def _build_replacements(
         "{{total_dep_changes}}": str(len(deps)),
         "{{total_findings}}": str(len(findings)),
         "{{recommendations_section}}": recommendations_section,
-        **sections,
     }
+    for key, value in sections.items():
+        replacements["{{" + key + "}}"] = value
+    return replacements
 
 
 def _print_report_summary(  # pylint: disable=too-many-positional-arguments

@@ -1,6 +1,6 @@
 ---
 name: supply-chain-audit
-description: "Perform a supply chain vulnerability analysis across ADT ecosystem repos. Verifies commit signing, PR traceability, CI integrity, and dependency provenance within a time frame. Generates a standalone HTML dashboard report."
+description: "Perform a supply chain vulnerability analysis across ADT ecosystem repos. Verifies commit signing, PR traceability, CI integrity, and dependency provenance within a time frame. Generates a standalone HTML dashboard report and PDF."
 version: "1.0"
 allowed-tools: Read, Grep, Glob, Shell, WebSearch, WebFetch, Write, AskUserQuestion
 argument-hint: "[YYYY-MM-DD YYYY-MM-DD] or [YYYY-MM-DD YYYY-MM-DD package-name compromise-date]"
@@ -61,6 +61,7 @@ The compromise-date is the date the package is suspected to have been compromise
 - `gh` CLI installed and authenticated (`gh auth status` must succeed)
 - `python3` available (3.10+)
 - Network access to GitHub API and PyPI/npm registries
+- `playwright` Python package with Chromium (for PDF export): `pip install playwright && playwright install chromium`
 
 ## Instructions
 
@@ -193,15 +194,35 @@ This produces a standalone HTML file (no CDN dependencies) with:
 - Security recommendations (from step 5)
 - Package focus section (if Phase 2 data exists)
 
-### Step 7: Present results
+### Step 7: Generate PDF report
 
-After the report is generated:
+```bash
+python3 .agents/skills/supply-chain-audit/scripts/pdf_export.py \
+  --html ".supply-chain-audit/report.html" \
+  --output ".supply-chain-audit/report.pdf"
+```
+
+This converts the HTML dashboard into a print-optimized PDF with:
+- Light theme (white background) for readability on paper
+- All collapsible sections expanded
+- Interactive controls (sort, filter) hidden
+- Proper page breaks between major sections
+- A4 format with margins
+
+The script requires `playwright` with Chromium. If not installed, run:
+```bash
+pip install playwright && playwright install chromium
+```
+
+### Step 8: Present results
+
+After the reports are generated:
 
 1. Print a summary of findings:
    - Total commits analyzed
    - Number of anomalies found per category
    - Repos with highest risk indicators
-2. Provide the path to the HTML report file
+2. Provide the paths to the HTML and PDF report files
 3. Highlight the top 3 recommendations with brief rationale
 4. If Phase 2 was run, summarize which repos pulled in the suspect package and when
 
