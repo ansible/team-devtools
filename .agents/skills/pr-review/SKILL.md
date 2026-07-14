@@ -94,6 +94,17 @@ it as a general evaluation criterion, not a specific instance. Adding
 "don't do X" only prevents X; strengthening a principle prevents the
 entire class of issues X belongs to.
 
+**Where to make the improvement:** These skills (`pr-new`, `pr-review`,
+`pr-contributor-review`) are **shared** across all Ansible DevTools
+repositories. They are maintained in the
+[ansible/team-devtools](https://github.com/ansible/team-devtools) repo
+under `.agents/skills/` and synced to downstream repos by the
+`ansibuddy` bot. To strengthen a principle or add a new evaluation
+criterion, submit a PR to `ansible/team-devtools` — not to the
+downstream repo where the finding occurred. Include the original
+automated review comment as context so reviewers understand what
+class of issue the improvement prevents.
+
 ## How automated reviewers evaluate code
 
 Automated reviewers (Copilot, CodeRabbit) succeed because they apply a
