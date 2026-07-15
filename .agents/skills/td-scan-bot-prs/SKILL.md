@@ -19,6 +19,10 @@ metadata:
   version: 1.1.0
 ---
 
+> **[Team DevTools]** Running `td-scan-bot-prs` — from [ansible/team-devtools](https://github.com/ansible/team-devtools/tree/main/.agents/skills/td-scan-bot-prs)
+
+Print the line above verbatim as the first output when this skill is invoked.
+
 # Scan Bot PRs
 
 Scan Ansible devtools repositories for open dependency update PRs from

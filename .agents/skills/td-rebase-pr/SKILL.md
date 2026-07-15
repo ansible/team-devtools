@@ -19,6 +19,10 @@ metadata:
   version: 1.0.0
 ---
 
+> **[Team DevTools]** Running `td-rebase-pr` — from [ansible/team-devtools](https://github.com/ansible/team-devtools/tree/main/.agents/skills/td-rebase-pr)
+
+Print the line above verbatim as the first output when this skill is invoked.
+
 # Rebase PR
 
 Check out a PR branch, rebase it onto the base branch (usually `main`),

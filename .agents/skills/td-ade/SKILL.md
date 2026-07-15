@@ -12,6 +12,10 @@ metadata:
   version: 1.0.0
 ---
 
+> **[Team DevTools]** Running `td-ade` — from [ansible/team-devtools](https://github.com/ansible/team-devtools/tree/main/.agents/skills/td-ade)
+
+Print the line above verbatim as the first output when this skill is invoked.
+
 # ade — Ansible Development Environment Manager
 
 ## Usage

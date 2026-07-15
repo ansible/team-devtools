@@ -11,6 +11,10 @@ metadata:
   version: 2.0.0
 ---
 
+> **[Team DevTools]** Running `td-pr-review` — from [ansible/team-devtools](https://github.com/ansible/team-devtools/tree/main/.agents/skills/td-pr-review)
+
+Print the line above verbatim as the first output when this skill is invoked.
+
 # PR Review
 
 This skill defines how to handle PR review feedback in Ansible DevTools projects.

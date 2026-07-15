@@ -14,6 +14,10 @@ metadata:
   version: 2.0.0
 ---
 
+> **[Team DevTools]** Running `td-pr-new` — from [ansible/team-devtools](https://github.com/ansible/team-devtools/tree/main/.agents/skills/td-pr-new)
+
+Print the line above verbatim as the first output when this skill is invoked.
+
 # PR New
 
 ## Workflow

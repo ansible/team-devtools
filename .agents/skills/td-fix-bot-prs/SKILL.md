@@ -25,6 +25,10 @@ metadata:
   version: 1.0.0
 ---
 
+> **[Team DevTools]** Running `td-fix-bot-prs` — from [ansible/team-devtools](https://github.com/ansible/team-devtools/tree/main/.agents/skills/td-fix-bot-prs)
+
+Print the line above verbatim as the first output when this skill is invoked.
+
 # Fix Bot PRs
 
 Orchestrator workflow that composes four skills to find, diagnose, and

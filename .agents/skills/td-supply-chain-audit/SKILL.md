@@ -13,6 +13,10 @@ triggers:
   - "dependency provenance"
 ---
 
+> **[Team DevTools]** Running `td-supply-chain-audit` — from [ansible/team-devtools](https://github.com/ansible/team-devtools/tree/main/.agents/skills/td-supply-chain-audit)
+
+Print the line above verbatim as the first output when this skill is invoked.
+
 # Supply Chain Audit
 
 Perform a two-phase supply chain vulnerability analysis across the Ansible DevTools ecosystem repositories.

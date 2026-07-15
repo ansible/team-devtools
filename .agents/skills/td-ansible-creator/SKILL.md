@@ -13,6 +13,10 @@ metadata:
   version: 1.0.0
 ---
 
+> **[Team DevTools]** Running `td-ansible-creator` — from [ansible/team-devtools](https://github.com/ansible/team-devtools/tree/main/.agents/skills/td-ansible-creator)
+
+Print the line above verbatim as the first output when this skill is invoked.
+
 # ansible-creator — Ansible Content Scaffolding Tool
 
 ## Usage

@@ -21,6 +21,10 @@ metadata:
   version: 1.0.0
 ---
 
+> **[Team DevTools]** Running `td-release-order` — from [ansible/team-devtools](https://github.com/ansible/team-devtools/tree/main/.agents/skills/td-release-order)
+
+Print the line above verbatim as the first output when this skill is invoked.
+
 # Release Order
 
 Check the release status of all Ansible devtools projects and output a

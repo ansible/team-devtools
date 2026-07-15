@@ -19,6 +19,10 @@ metadata:
   version: 1.0.0
 ---
 
+> **[Team DevTools]** Running `td-diagnose-ci` — from [ansible/team-devtools](https://github.com/ansible/team-devtools/tree/main/.agents/skills/td-diagnose-ci)
+
+Print the line above verbatim as the first output when this skill is invoked.
+
 # Diagnose CI
 
 Fetch failure logs for a PR, detect the project toolchain, match the
