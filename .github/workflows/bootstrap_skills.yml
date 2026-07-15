@@ -3,7 +3,6 @@ name: bootstrap-skill-discovery
 
 on:
   workflow_dispatch:
-
 permissions:
   contents: read
 
