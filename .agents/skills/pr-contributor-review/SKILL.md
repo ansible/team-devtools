@@ -9,7 +9,7 @@ argument-hint: "<PR number or URL>"
 user-invocable: true
 metadata:
   author: Ansible DevTools Team
-  version: 1.0.0
+  version: 1.1.0
 ---
 
 # Review Contributor PR
@@ -18,6 +18,11 @@ This skill defines how to review and assist with a **contributor's** pull
 request (someone else's PR, e.g. from a fork or another branch). Use it when
 you are helping make a contributor PR merge-ready, not when submitting your
 own PR (use `pr-new` for that).
+
+When performing the actual code review (evaluating correctness, safety,
+consistency), apply the evaluation principles documented in the **`pr-review`**
+skill under "How automated reviewers evaluate code". Those principles are the
+standard lens for all code review in devtools projects.
 
 ## Goals
 
