@@ -134,11 +134,6 @@ _td_skills_refresh() {
 
   [ ! -d "$meta_dir/.git" ] && return
 
-  if [ ! -f "$stamp_file" ]; then
-    echo "$current_time" > "$stamp_file"
-    return
-  fi
-
   local last_update=$(cat "$stamp_file" 2>/dev/null || echo 0)
   local elapsed=$((current_time - last_update))
 
@@ -196,11 +191,6 @@ _td_skills_refresh() {
 
   [ ! -d "$meta_dir/.git" ] && return
 
-  if [ ! -f "$stamp_file" ]; then
-    echo "$current_time" > "$stamp_file"
-    return
-  fi
-
   local last_update
   last_update=$(cat "$stamp_file" 2>/dev/null || echo 0)
   local elapsed=$((current_time - last_update))
@@ -254,11 +244,6 @@ function _td_skills_refresh
   set -l week 604800
 
   test -d "$meta_dir/.git"; or return
-
-  if not test -f "$stamp_file"
-    echo $current_time > "$stamp_file"
-    return
-  end
 
   set -l last_update (cat "$stamp_file" 2>/dev/null; or echo 0)
   set -l elapsed (math $current_time - $last_update)
