@@ -125,6 +125,7 @@ If yes, detect their shell and append the appropriate hook.
 
 ```zsh
 # Team DevTools agent skills — periodic auto-refresh (every 7 days)
+# Prompts before updating (like oh-my-zsh). Set TD_SKILLS_UPDATE=auto to skip prompt.
 _td_skills_refresh() {
   local meta_dir="${HOME}/.agents/.td-skills-meta"
   local stamp_file="${meta_dir}/last_update"
@@ -142,16 +143,43 @@ _td_skills_refresh() {
   local elapsed=$((current_time - last_update))
 
   if [ "$elapsed" -ge "$week" ]; then
-    (
-      cd "$meta_dir" && \
-      git pull --ff-only origin main >/dev/null 2>&1 && \
-      for d in .agents/skills/td-*/; do
-        cp -a "$d" "${HOME}/.agents/skills/$(basename "$d")"
-      done && \
-      date +%s > "$stamp_file"
-    ) &!
+    local days_ago=$(( elapsed / 86400 ))
+
+    if [[ "${TD_SKILLS_UPDATE}" == "auto" ]]; then
+      echo "[td-skills] Auto-updating agent skills (last update: ${days_ago}d ago)..."
+      _td_skills_do_update
+    else
+      echo ""
+      echo "[td-skills] It's been ${days_ago} days since the last update."
+      echo "            Source: ansible/team-devtools"
+      echo ""
+      read -q "reply?Would you like to update the Team DevTools agent skills? [Y/n] "
+      echo ""
+      if [[ "$reply" =~ ^[Yy]$ ]] || [[ -z "$reply" ]]; then
+        _td_skills_do_update
+      else
+        echo "[td-skills] Skipped. Run '/td-skill-refresh update' anytime to update manually."
+        # Push the timer forward 1 day so we don't nag every shell
+        echo $(( current_time - week + 86400 )) > "$stamp_file"
+      fi
+    fi
   fi
 }
+
+_td_skills_do_update() {
+  local meta_dir="${HOME}/.agents/.td-skills-meta"
+  local stamp_file="${meta_dir}/last_update"
+  (
+    cd "$meta_dir" && \
+    git pull --ff-only origin main >/dev/null 2>&1 && \
+    for d in .agents/skills/td-*/; do
+      cp -a "$d" "${HOME}/.agents/skills/$(basename "$d")"
+    done && \
+    date +%s > "$stamp_file" && \
+    echo "[td-skills] Updated to $(git log -1 --format='%h (%cr)')."
+  )
+}
+
 _td_skills_refresh
 ```
 
@@ -159,6 +187,7 @@ _td_skills_refresh
 
 ```bash
 # Team DevTools agent skills — periodic auto-refresh (every 7 days)
+# Prompts before updating (like oh-my-zsh). Set TD_SKILLS_UPDATE=auto to skip prompt.
 _td_skills_refresh() {
   local meta_dir="${HOME}/.agents/.td-skills-meta"
   local stamp_file="${meta_dir}/last_update"
@@ -177,17 +206,39 @@ _td_skills_refresh() {
   local elapsed=$((current_time - last_update))
 
   if [ "$elapsed" -ge "$week" ]; then
-    (
-      cd "$meta_dir" && \
-      git pull --ff-only origin main >/dev/null 2>&1 && \
-      for d in .agents/skills/td-*/; do
-        cp -a "$d" "${HOME}/.agents/skills/$(basename "$d")"
-      done && \
-      date +%s > "$stamp_file"
-    ) &
-    disown
+    local days_ago=$(( elapsed / 86400 ))
+
+    if [[ "${TD_SKILLS_UPDATE}" == "auto" ]]; then
+      echo "[td-skills] Auto-updating agent skills (last update: ${days_ago}d ago)..."
+      _td_skills_do_update
+    else
+      echo ""
+      echo "[td-skills] It's been ${days_ago} days since the last update."
+      echo "            Source: ansible/team-devtools"
+      echo ""
+      read -p "Would you like to update the Team DevTools agent skills? [Y/n] " reply
+      if [[ "$reply" =~ ^[Yy]$ ]] || [[ -z "$reply" ]]; then
+        _td_skills_do_update
+      else
+        echo "[td-skills] Skipped. Run '/td-skill-refresh update' anytime to update manually."
+        echo $(( current_time - week + 86400 )) > "$stamp_file"
+      fi
+    fi
   fi
 }
+
+_td_skills_do_update() {
+  local meta_dir="${HOME}/.agents/.td-skills-meta"
+  local stamp_file="${meta_dir}/last_update"
+  cd "$meta_dir" && \
+  git pull --ff-only origin main >/dev/null 2>&1 && \
+  for d in .agents/skills/td-*/; do
+    cp -a "$d" "${HOME}/.agents/skills/$(basename "$d")"
+  done && \
+  date +%s > "$stamp_file" && \
+  echo "[td-skills] Updated to $(git log -1 --format='%h (%cr)')."
+}
+
 _td_skills_refresh
 ```
 
@@ -195,6 +246,7 @@ _td_skills_refresh
 
 ```fish
 # Team DevTools agent skills — periodic auto-refresh (every 7 days)
+# Prompts before updating. Set TD_SKILLS_UPDATE=auto to skip prompt.
 function _td_skills_refresh
   set -l meta_dir "$HOME/.agents/.td-skills-meta"
   set -l stamp_file "$meta_dir/last_update"
@@ -212,16 +264,37 @@ function _td_skills_refresh
   set -l elapsed (math $current_time - $last_update)
 
   if test $elapsed -ge $week
-    fish -c "
-      cd $meta_dir
-      and git pull --ff-only origin main >/dev/null 2>&1
-      and for d in .agents/skills/td-*/
-        cp -a \$d $HOME/.agents/skills/(basename \$d)
+    set -l days_ago (math $elapsed / 86400)
+
+    if test "$TD_SKILLS_UPDATE" = "auto"
+      echo "[td-skills] Auto-updating agent skills (last update: ${days_ago}d ago)..."
+      _td_skills_do_update
+    else
+      echo ""
+      echo "[td-skills] It's been $days_ago days since the last update."
+      echo "            Source: ansible/team-devtools"
+      echo ""
+      read -P "Would you like to update the Team DevTools agent skills? [Y/n] " reply
+      if test -z "$reply"; or string match -qi 'y' "$reply"
+        _td_skills_do_update
+      else
+        echo "[td-skills] Skipped. Run '/td-skill-refresh update' anytime to update manually."
+        echo (math $current_time - $week + 86400) > "$stamp_file"
       end
-      and date +%s > $stamp_file
-    " &
-    disown
+    end
   end
+end
+
+function _td_skills_do_update
+  set -l meta_dir "$HOME/.agents/.td-skills-meta"
+  set -l stamp_file "$meta_dir/last_update"
+  cd "$meta_dir"
+  and git pull --ff-only origin main >/dev/null 2>&1
+  and for d in .agents/skills/td-*/
+    cp -a $d "$HOME/.agents/skills/"(basename $d)
+  end
+  and date +%s > "$stamp_file"
+  and echo "[td-skills] Updated to "(git log -1 --format='%h (%cr)')"."
 end
 
 _td_skills_refresh
