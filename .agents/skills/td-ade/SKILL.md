@@ -1,5 +1,5 @@
 ---
-name: ade
+name: td-ade
 description: >
   Reference for ansible-dev-environment (ade), a pip-like installer for
   Ansible collections with isolated virtual environments. Use ade to set up

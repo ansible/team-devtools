@@ -1,5 +1,5 @@
 ---
-name: scan-bot-prs
+name: td-scan-bot-prs
 description: >
   Scan Ansible devtools repos for open PRs from renovate and dependabot,
   check their CI status, and produce a prioritized list of failing PRs.

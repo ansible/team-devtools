@@ -1,5 +1,5 @@
 ---
-name: supply-chain-audit
+name: td-supply-chain-audit
 description: "Perform a supply chain vulnerability analysis across ADT ecosystem repos. Verifies commit signing, PR traceability, CI integrity, and dependency provenance within a time frame. Generates a standalone HTML dashboard report and PDF."
 version: "1.0"
 allowed-tools: Read, Grep, Glob, Shell, WebSearch, WebFetch, Write, AskUserQuestion
@@ -86,7 +86,7 @@ If either fails, inform the user and stop.
 Execute the collection script from the skill's scripts directory:
 
 ```bash
-python3 .agents/skills/supply-chain-audit/scripts/collect.py \
+python3 .agents/skills/td-supply-chain-audit/scripts/collect.py \
   --start "$start_date" \
   --end "$end_date" \
   --cache-dir ".supply-chain-audit/cache"
@@ -107,7 +107,7 @@ Monitor progress output. The script prints per-repo status. If rate-limited, it 
 ### Step 3: Run anomaly analysis
 
 ```bash
-python3 .agents/skills/supply-chain-audit/scripts/analyze.py \
+python3 .agents/skills/td-supply-chain-audit/scripts/analyze.py \
   --cache-dir ".supply-chain-audit/cache"
 ```
 
@@ -133,7 +133,7 @@ Output: `findings.json` in the cache directory.
 If the user provided a package name and compromise date:
 
 ```bash
-python3 .agents/skills/supply-chain-audit/scripts/check_package.py \
+python3 .agents/skills/td-supply-chain-audit/scripts/check_package.py \
   --cache-dir ".supply-chain-audit/cache" \
   --package "$package_name" \
   --compromise-date "$compromise_date"
@@ -180,7 +180,7 @@ Guidelines for writing recommendations:
 ### Step 6: Generate HTML report
 
 ```bash
-python3 .agents/skills/supply-chain-audit/scripts/report.py \
+python3 .agents/skills/td-supply-chain-audit/scripts/report.py \
   --cache-dir ".supply-chain-audit/cache" \
   --output ".supply-chain-audit/report.html"
 ```
@@ -197,7 +197,7 @@ This produces a standalone HTML file (no CDN dependencies) with:
 ### Step 7: Generate PDF report
 
 ```bash
-python3 .agents/skills/supply-chain-audit/scripts/pdf_export.py \
+python3 .agents/skills/td-supply-chain-audit/scripts/pdf_export.py \
   --html ".supply-chain-audit/report.html" \
   --output ".supply-chain-audit/report.pdf"
 ```

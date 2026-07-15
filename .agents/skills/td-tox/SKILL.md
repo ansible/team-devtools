@@ -1,5 +1,5 @@
 ---
-name: tox
+name: td-tox
 description: >
   Reference for running lint, test, build, and doc commands via tox.
   Agents MUST use tox for all quality gates — never invoke pytest, ruff,

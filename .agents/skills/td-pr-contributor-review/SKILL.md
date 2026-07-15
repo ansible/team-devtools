@@ -1,5 +1,5 @@
 ---
-name: pr-contributor-review
+name: td-pr-contributor-review
 description: >
   Use when reviewing and preparing a contributor's pull request (upstream or
   fork). Use when the user asks to review a PR, get a contributor PR ready,
@@ -17,10 +17,10 @@ metadata:
 This skill defines how to review and assist with a **contributor's** pull
 request (someone else's PR, e.g. from a fork or another branch). Use it when
 you are helping make a contributor PR merge-ready, not when submitting your
-own PR (use `pr-new` for that).
+own PR (use `td-pr-new` for that).
 
 When performing the actual code review (evaluating correctness, safety,
-consistency), apply the evaluation principles documented in the **`pr-review`**
+consistency), apply the evaluation principles documented in the **`td-pr-review`**
 skill under "How automated reviewers evaluate code". Those principles are the
 standard lens for all code review in devtools projects.
 
@@ -71,7 +71,7 @@ Fix any failures (line length, untyped decorators, docstring sections, format,
 test regressions) before pushing to the contributor's branch.
 
 Do **not** run `ruff`, `mypy`, `pytest`, or `prek` directly — always use tox.
-See the `/tox` skill for the full environment reference.
+See the `/td-tox` skill for the full environment reference.
 
 Do **not** push to the contributor's branch if tox fails; fix in a new commit
 and then push so CI stays green.
@@ -79,7 +79,7 @@ and then push so CI stays green.
 ### 4. PR description quality
 
 - If the PR body is minimal or missing structure, suggest or apply the
-  **pr-new** template: Summary, Changes, Test plan.
+  **td-pr-new** template: Summary, Changes, Test plan.
 
 - You can update the PR body via GitHub (if you have permission) or draft
   text for the maintainer/contributor to paste:
@@ -109,7 +109,7 @@ and then push so CI stays green.
 ### 5a. Comment on review threads
 
 When you push fixes that address a review comment, reply on that thread so
-the resolution is visible. Follow the **`pr-review`** skill for the full
+the resolution is visible. Follow the **`td-pr-review`** skill for the full
 procedure (REST reply endpoint, finding comment IDs, GraphQL thread resolution).
 
 ### 5b. Track all deferred work as issues
@@ -154,15 +154,15 @@ When reviewing or preparing a contributor PR:
 - [ ] Fetched PR and know base/head and remotes.
 - [ ] Branch is up to date with upstream main (rebase if needed before push).
 - [ ] `tox -e lint` and `tox -e py` pass.
-- [ ] PR description has Summary, Changes, and Test plan (pr-new style).
+- [ ] PR description has Summary, Changes, and Test plan (td-pr-new style).
 - [ ] If pushing to their branch: rebase onto upstream main, tox green, then
       `git push <remote> <local>:<their-branch> --force-with-lease`.
-- [ ] If you addressed a review comment: follow the `pr-review` skill to reply
+- [ ] If you addressed a review comment: follow the `td-pr-review` skill to reply
       on the thread with explanation + commit SHA and resolve it.
 
 ## References
 
-- **tox skill** (`/tox`): Full tox environment reference.
-- **pr-new** skill: PR body template and commit conventions.
-- **pr-review** skill: Responding to review comments and resolving threads.
+- **tox skill** (`/td-tox`): Full tox environment reference.
+- **td-pr-new** skill: PR body template and commit conventions.
+- **td-pr-review** skill: Responding to review comments and resolving threads.
 - **AGENTS.md**: Commit message standards and static check requirements.

@@ -1,5 +1,5 @@
 ---
-name: diagnose-ci
+name: td-diagnose-ci
 description: >
   Fetch CI failure logs for a PR, detect the project toolchain, and
   diagnose the root cause. Outputs a structured diagnosis with the
@@ -36,7 +36,7 @@ Required:
 - **repo** — e.g., `ansible/vscode-ansible`
 - **PR number** — e.g., `2672`
 
-Optional (from `rebase-pr` output):
+Optional (from `td-rebase-pr` output):
 
 - **failing check names** — if provided, skip discovery and fetch logs
   for these checks directly.
@@ -179,7 +179,7 @@ ordered by frequency within each toolchain.
 | # | Category | Detection string in logs | Suggested fix |
 |---|----------|--------------------------|---------------|
 | 1 | **GitHub Actions version** | `Node.js 16 actions are deprecated` | Update action version SHA in workflow YAML |
-| 2 | **Merge conflict** | `merge conflict` in PR status | Should have been caught by `rebase-pr` |
+| 2 | **Merge conflict** | `merge conflict` in PR status | Should have been caught by `td-rebase-pr` |
 | 3 | **Infra/flaky** | Transient network errors, runner timeouts | Re-trigger: `gh run rerun RUN_ID --repo OWNER/REPO --failed` |
 
 ---

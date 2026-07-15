@@ -1,5 +1,5 @@
 ---
-name: ansible-creator
+name: td-ansible-creator
 description: >
   Reference for scaffolding Ansible content with ansible-creator.
   Use ansible-creator to initialize new collections, playbook projects,
@@ -31,7 +31,7 @@ resources.
 
 1. **Always use `namespace.name` format** for `init collection` and `init playbook`.
 2. **Never scaffold into a non-empty directory** without `-o/--overwrite` — the command will fail.
-3. **After scaffolding, run `tox -e lint`** to verify the generated content passes quality gates. See the `/tox` skill.
+3. **After scaffolding, run `tox -e lint`** to verify the generated content passes quality gates. See the `/td-tox` skill.
 4. **`add plugin` requires the collection root** — the path must point to the directory containing `galaxy.yml`.
 
 ## Subcommand Reference

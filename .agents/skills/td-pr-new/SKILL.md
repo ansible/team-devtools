@@ -1,5 +1,5 @@
 ---
-name: pr-new
+name: td-pr-new
 description: >
   Prepare and submit a pull request. Syncs with upstream,
   creates a feature branch, runs quality gates (tox -e lint, tox -e py),
@@ -42,7 +42,7 @@ tox -e py
 If the branch has pre-existing violations (e.g., from an old base), rebase onto `upstream/main` first.
 
 Do **not** run `ruff`, `mypy`, `prek`, or `pytest` directly — always use tox.
-See the `/tox` skill for the full environment reference.
+See the `/td-tox` skill for the full environment reference.
 
 ### Step 3: Self-review the diff
 
@@ -321,6 +321,6 @@ The Summary, Changes, and Test plan sections must stay current with all commits 
 ### Responding to review feedback
 
 After pushing the PR, reviewers (human, Copilot, or CodeRabbit) may leave
-comments. Follow the **`pr-review`** skill for the full procedure: checking CI
+comments. Follow the **`td-pr-review`** skill for the full procedure: checking CI
 status, replying to comments, resolving threads, and re-checking for new
 automated reviews.

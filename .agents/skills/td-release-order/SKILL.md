@@ -1,5 +1,5 @@
 ---
-name: release-order
+name: td-release-order
 description: >-
   Check release status of all devtools projects, determine which need
   releasing, and output the correct release order based on runtime

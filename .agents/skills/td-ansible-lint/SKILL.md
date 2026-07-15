@@ -1,5 +1,5 @@
 ---
-name: ansible-lint
+name: td-ansible-lint
 description: >
   Reference for linting Ansible playbooks, roles, and collections with
   ansible-lint. Agents should prefer tox -e lint when available, but this
@@ -31,7 +31,7 @@ choose profiles, or configure suppression.
 
 ## Hard Rules
 
-1. **In DevTools repos, prefer `tox -e lint`** over running `ansible-lint` directly. See the `/tox` skill.
+1. **In DevTools repos, prefer `tox -e lint`** over running `ansible-lint` directly. See the `/td-tox` skill.
 2. **Always run from the project root.** ansible-lint uses the working directory to locate configuration, roles, and dependencies.
 3. **Review `--fix` output before committing.** Never auto-fix and commit blindly.
 4. **Never use blanket `# noqa`** without a rule ID. Always use `# noqa: rule-id[subrule]`.

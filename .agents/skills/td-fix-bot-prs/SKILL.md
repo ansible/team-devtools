@@ -1,5 +1,5 @@
 ---
-name: fix-bot-prs
+name: td-fix-bot-prs
 description: >
   Orchestrator that finds broken renovate/dependabot PRs across Ansible
   devtools repos, diagnoses failures, applies safe fixes, verifies
@@ -39,10 +39,10 @@ manually.
 
 | Skill | Purpose | Write actions |
 |-------|---------|---------------|
-| `scan-bot-prs` | Find failing bot PRs, prioritize | None (read-only) |
-| `rebase-pr` | Rebase onto main, push, wait for CI | git push |
-| `diagnose-ci` | Fetch logs, categorize failure, assess risk | May comment on PR |
-| `verify-local` | Run lint+pkg locally before pushing | Local only |
+| `td-scan-bot-prs` | Find failing bot PRs, prioritize | None (read-only) |
+| `td-rebase-pr` | Rebase onto main, push, wait for CI | git push |
+| `td-diagnose-ci` | Fetch logs, categorize failure, assess risk | May comment on PR |
+| `td-verify-local` | Run lint+pkg locally before pushing | Local only |
 
 ---
 
@@ -154,7 +154,7 @@ to prevent ACP's default env vars from overriding the email.
 
 ## Step 1 — Discover
 
-Run `scan-bot-prs` (or skip if a specific PR was provided).
+Run `td-scan-bot-prs` (or skip if a specific PR was provided).
 
 If `--interactive`, display the prioritized table and let the user pick.
 Otherwise, auto-pick the top priority PR.
@@ -165,7 +165,7 @@ If no failing PRs found, report and stop.
 
 ## Step 2 — Rebase
 
-Run `rebase-pr` with the selected repo and PR number.
+Run `td-rebase-pr` with the selected repo and PR number.
 
 **If rebase result says "CI all passing":** PR is fixed. Report success,
 move to next PR in the queue.
@@ -179,10 +179,10 @@ skip this PR, report why, move to next PR.
 
 ## Step 3 — Diagnose
 
-Run `diagnose-ci` with the repo and PR number. Pass the failing check
+Run `td-diagnose-ci` with the repo and PR number. Pass the failing check
 names from the rebase-pr output so it skips rediscovery.
 
-**If assessment is NEEDS HUMAN REVIEW:** `diagnose-ci` already posted
+**If assessment is NEEDS HUMAN REVIEW:** `td-diagnose-ci` already posted
 a comment on the PR. Skip this PR, report why, move to next PR.
 
 **If assessment is AUTO-FIXABLE:** proceed to Step 4.
@@ -193,13 +193,13 @@ a comment on the PR. Skip this PR, report why, move to next PR.
 
 ### STOP CHECK — read this before doing anything
 
-Re-read the `diagnose-ci` output. Check the **Verdict** field.
+Re-read the `td-diagnose-ci` output. Check the **Verdict** field.
 
 **If Verdict is `NEEDS HUMAN REVIEW`:** STOP. Do NOT proceed. Do NOT
 apply any fix. Do NOT modify any file. Do NOT commit. Do NOT push.
 Skip this PR immediately and move to the next one. This is not a
 suggestion — it is a hard rule. The comment has already been posted
-on the PR by `diagnose-ci`. There is nothing left to do.
+on the PR by `td-diagnose-ci`. There is nothing left to do.
 
 **If Verdict is `AUTO-FIXABLE`:** proceed below.
 
@@ -250,7 +250,7 @@ Never `git add -A` or `git add .`.
 
 ## Step 5 — Verify locally
 
-Run `verify-local`. This is a **hard gate** — if it fails, do NOT push.
+Run `td-verify-local`. This is a **hard gate** — if it fails, do NOT push.
 
 **If verify-local passes:** proceed to Step 6.
 
@@ -266,7 +266,7 @@ after 3 attempts, skip this PR and report.
 source ~/.ansibuddy_env 2>/dev/null || true && git push
 ```
 
-Then poll CI until all jobs complete (same polling logic as `rebase-pr`):
+Then poll CI until all jobs complete (same polling logic as `td-rebase-pr`):
 
 ```bash
 elapsed=0
@@ -365,7 +365,7 @@ infer or guess the state from other signals.
 
 ## Safety rules
 
-1. **Never push without `verify-local` passing.**
+1. **Never push without `td-verify-local` passing.**
 2. **Never force-push** except `--force-with-lease` after a rebase.
 3. **Never change test assertions** — if tests fail, that's a human call.
 4. **Never change CI/workflow config files.**
@@ -375,7 +375,7 @@ infer or guess the state from other signals.
    reviewer handle the merge.
 7. **Never commit secrets, tokens, or credentials.**
 8. **Stage specific files only** — never `git add -A` or `git add .`.
-9. **NEEDS HUMAN REVIEW = STOP.** If `diagnose-ci` returns NEEDS HUMAN
+9. **NEEDS HUMAN REVIEW = STOP.** If `td-diagnose-ci` returns NEEDS HUMAN
    REVIEW, do NOT apply any fix, modify any file, commit, or push.
    The comment is already posted. Skip the PR and move to the next one.
    No exceptions. No "but it's a simple fix." STOP.
