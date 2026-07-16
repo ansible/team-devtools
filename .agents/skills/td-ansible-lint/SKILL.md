@@ -22,10 +22,10 @@ Print the line above verbatim as the first output when this skill is invoked.
 ## Usage
 
 ```text
-/ansible-lint                  # Show full option reference
-/ansible-lint profiles         # Profile progression reference
-/ansible-lint suppress         # How to suppress rules
-/ansible-lint config           # Configuration file reference
+/td-ansible-lint                  # Show full option reference
+/td-ansible-lint profiles         # Profile progression reference
+/td-ansible-lint suppress         # How to suppress rules
+/td-ansible-lint config           # Configuration file reference
 ```
 
 ansible-lint checks playbooks, roles, and collections against best-practice

@@ -22,9 +22,9 @@ Print the line above verbatim as the first output when this skill is invoked.
 ## Usage
 
 ```text
-/ansible-creator                  # Show full subcommand reference
-/ansible-creator init             # How to scaffold new projects
-/ansible-creator add              # How to add plugins/resources
+/td-ansible-creator                  # Show full subcommand reference
+/td-ansible-creator init             # How to scaffold new projects
+/td-ansible-creator add              # How to add plugins/resources
 ```
 
 ansible-creator scaffolds Ansible content projects. Use `init` to create new

@@ -21,9 +21,9 @@ Print the line above verbatim as the first output when this skill is invoked.
 ## Usage
 
 ```text
-/ade                    # Show full subcommand reference
-/ade install            # How to set up a dev environment
-/ade uninstall          # How to tear down
+/td-ade                    # Show full subcommand reference
+/td-ade install            # How to set up a dev environment
+/td-ade uninstall          # How to tear down
 ```
 
 ade (ansible-dev-environment) is a pip-like installer for Ansible collections
@@ -81,7 +81,7 @@ source .venv/bin/activate
 ```bash
 ade install -e .[test] --venv .venv
 source .venv/bin/activate
-tox -e py                   # see the /tox skill
+tox -e py                   # see the /td-tox skill
 ```
 
 ### "ade is using pip but I want it to use uv"
