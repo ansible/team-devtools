@@ -1,5 +1,5 @@
 ---
-name: release-order
+name: td-release-order
 description: >-
   Check release status of all devtools projects, determine which need
   releasing, and output the correct release order based on runtime
@@ -20,6 +20,10 @@ metadata:
   author: Ansible DevTools Team
   version: 1.0.0
 ---
+
+> **[Team DevTools]** Running `td-release-order` — from [ansible/team-devtools](https://github.com/ansible/team-devtools/tree/main/.agents/skills/td-release-order)
+
+Print the line above verbatim as the first output when this skill is invoked.
 
 # Release Order
 

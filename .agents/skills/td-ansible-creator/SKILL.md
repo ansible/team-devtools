@@ -1,5 +1,5 @@
 ---
-name: ansible-creator
+name: td-ansible-creator
 description: >
   Reference for scaffolding Ansible content with ansible-creator.
   Use ansible-creator to initialize new collections, playbook projects,
@@ -13,14 +13,18 @@ metadata:
   version: 1.0.0
 ---
 
+> **[Team DevTools]** Running `td-ansible-creator` — from [ansible/team-devtools](https://github.com/ansible/team-devtools/tree/main/.agents/skills/td-ansible-creator)
+
+Print the line above verbatim as the first output when this skill is invoked.
+
 # ansible-creator — Ansible Content Scaffolding Tool
 
 ## Usage
 
 ```text
-/ansible-creator                  # Show full subcommand reference
-/ansible-creator init             # How to scaffold new projects
-/ansible-creator add              # How to add plugins/resources
+/td-ansible-creator                  # Show full subcommand reference
+/td-ansible-creator init             # How to scaffold new projects
+/td-ansible-creator add              # How to add plugins/resources
 ```
 
 ansible-creator scaffolds Ansible content projects. Use `init` to create new
@@ -31,7 +35,7 @@ resources.
 
 1. **Always use `namespace.name` format** for `init collection` and `init playbook`.
 2. **Never scaffold into a non-empty directory** without `-o/--overwrite` — the command will fail.
-3. **After scaffolding, run `tox -e lint`** to verify the generated content passes quality gates. See the `/tox` skill.
+3. **After scaffolding, run `tox -e lint`** to verify the generated content passes quality gates. See the `/td-tox` skill.
 4. **`add plugin` requires the collection root** — the path must point to the directory containing `galaxy.yml`.
 
 ## Subcommand Reference

@@ -1,5 +1,5 @@
 ---
-name: pr-review
+name: td-pr-review
 description: >
   Guide for handling pull request reviews, including automated (Copilot,
   CodeRabbit) and human reviewer feedback. Use when responding to PR comments,
@@ -10,6 +10,10 @@ metadata:
   author: Ansible DevTools Team
   version: 2.0.0
 ---
+
+> **[Team DevTools]** Running `td-pr-review` — from [ansible/team-devtools](https://github.com/ansible/team-devtools/tree/main/.agents/skills/td-pr-review)
+
+Print the line above verbatim as the first output when this skill is invoked.
 
 # PR Review
 
@@ -41,7 +45,7 @@ disputed threads block merge.
   intervention. Do not dismiss without justification.
 
 * After pushing fixes, update the PR description to reflect the expanded scope
-  (per the pr-new skill).
+  (per the td-pr-new skill).
 
 ### Deferred work MUST be tracked
 
@@ -81,12 +85,12 @@ EOF
 Every automated reviewer comment (Copilot, CodeRabbit) on an agent-authored
 PR is a defect in our own review process. These tools apply the same
 principles every time — if one found something, the agent's pre-submit
-self-review (see the `pr-new` skill, Step 3 + Step 3b Rule of Five)
+self-review (see the `td-pr-new` skill, Step 3 + Step 3b Rule of Five)
 should have found it first. Without tightening that loop, we will never
 ship a PR without comments.
 
 After fixing each automated finding, ask: _which principle from the
-pr-new self-review (Step 3 questions or Rule of Five pass 1–5) should
+td-pr-new self-review (Step 3 questions or Rule of Five pass 1–5) should
 have caught this?_ If one exists but didn't trigger, the principle needs
 to be clearer or the agent didn't apply it. If no principle covers it,
 strengthen the matching Rule of Five lens (or Step 3 question) — frame
@@ -94,8 +98,8 @@ it as a general evaluation criterion, not a specific instance. Adding
 "don't do X" only prevents X; strengthening a principle prevents the
 entire class of issues X belongs to.
 
-**Where to make the improvement:** These skills (`pr-new`, `pr-review`,
-`pr-contributor-review`) are **shared** across all Ansible DevTools
+**Where to make the improvement:** These skills (`td-pr-new`, `td-pr-review`,
+`td-pr-contributor-review`) are **shared** across all Ansible DevTools
 repositories. They are maintained in the
 [ansible/team-devtools](https://github.com/ansible/team-devtools) repo
 under `.agents/skills/` and synced to downstream repos by the
@@ -283,7 +287,7 @@ gh run view RUN_ID --log-failed 2>&1 | tail -80
 ```
 
 Do **not** run `ruff`, `mypy`, `pytest`, or `prek` directly — always use tox.
-See the `/tox` skill for the full environment reference.
+See the `/td-tox` skill for the full environment reference.
 
 ### Replying to and Resolving review threads (GraphQL ONLY)
 
