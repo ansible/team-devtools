@@ -220,13 +220,15 @@ _td_skills_refresh() {
 _td_skills_do_update() {
   local meta_dir="${HOME}/.agents/.td-skills-meta"
   local stamp_file="${meta_dir}/last_update"
-  cd "$meta_dir" && \
-  git pull --ff-only origin main >/dev/null 2>&1 && \
-  for d in .agents/skills/td-*/; do
-    cp -a "$d" "${HOME}/.agents/skills/$(basename "$d")"
-  done && \
-  date +%s > "$stamp_file" && \
-  echo "[td-skills] Updated to $(git log -1 --format='%h (%cr)')."
+  (
+    cd "$meta_dir" && \
+    git pull --ff-only origin main >/dev/null 2>&1 && \
+    for d in .agents/skills/td-*/; do
+      cp -a "$d" "${HOME}/.agents/skills/$(basename "$d")"
+    done && \
+    date +%s > "$stamp_file" && \
+    echo "[td-skills] Updated to $(git log -1 --format='%h (%cr)')."
+  )
 }
 
 _td_skills_refresh
@@ -273,6 +275,7 @@ end
 function _td_skills_do_update
   set -l meta_dir "$HOME/.agents/.td-skills-meta"
   set -l stamp_file "$meta_dir/last_update"
+  set -l old_dir (pwd)
   cd "$meta_dir"
   and git pull --ff-only origin main >/dev/null 2>&1
   and for d in .agents/skills/td-*/
@@ -280,6 +283,7 @@ function _td_skills_do_update
   end
   and date +%s > "$stamp_file"
   and echo "[td-skills] Updated to "(git log -1 --format='%h (%cr)')"."
+  cd "$old_dir"
 end
 
 _td_skills_refresh
