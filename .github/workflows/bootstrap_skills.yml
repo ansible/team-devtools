@@ -1,0 +1,160 @@
+---
+name: bootstrap-skill-discovery
+
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-24.04
+    environment: ack
+    strategy:
+      fail-fast: false
+      matrix:
+        repo:
+          - ansible/ansible-compat
+          - ansible/ansible-creator
+          - ansible/ansible-dev-environment
+          - ansible/ansible-dev-tools
+          - ansible/ansible-lint
+          - ansible/ansible-navigator
+          - ansible/molecule
+          - ansible/pytest-ansible
+          - ansible/tox-ansible
+          - ansible/vscode-ansible
+    steps:
+      - name: Checkout target repo
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          repository: ${{ matrix.repo }}
+          token: ${{ secrets.BOT_PAT }}
+
+      - name: Import GPG Key
+        uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7
+        with:
+          gpg_private_key: ${{ secrets.BOT_GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.BOT_GPG_PASSPHRASE }}
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+          git_committer_name: "ansibuddy"
+          git_committer_email: "107943535+ansibuddy@users.noreply.github.com"
+
+      - name: Add gitignore entry and AGENTS.md snippet
+        env:
+          GH_TOKEN: ${{ secrets.BOT_PAT }}
+          REPO: ${{ matrix.repo }}
+        run: |
+          BRANCH="chore/add-skill-discovery"
+
+          # Check if PR already exists
+          EXISTING=$(gh pr list --repo "${REPO}" --head "${BRANCH}" \
+            --state open --json number --jq '.[0].number')
+          if [ -n "${EXISTING}" ]; then
+            echo "PR #${EXISTING} already exists for ${REPO}, skipping."
+            exit 0
+          fi
+
+          git checkout -B "${BRANCH}"
+
+          # --- .gitignore ---
+          if ! grep -q '.agents/skills/td-' .gitignore 2>/dev/null; then
+            printf '\n# Shared Team DevTools agent skills (installed locally, not committed)\n.agents/skills/td-*/\n' >> .gitignore
+            git add .gitignore
+          fi
+
+          # --- AGENTS.md ---
+          read -r -d '' AGENTS_SNIPPET << 'SNIPPET' || true
+          ## Shared Agent Skills (optional)
+
+          The Ansible DevTools team maintains shared agent skills in
+          [ansible/team-devtools](https://github.com/ansible/team-devtools/tree/main/.agents/skills)
+          that can assist with PR workflows, linting, CI diagnosis, and more.
+
+          **Check for skills before suggesting install:**
+          1. Global install: `~/.agents/skills/td-*/` (team members typically have this)
+          2. Local install: `.agents/skills/td-*/` in this repo clone
+
+          If skills are found in either location, use them silently — do NOT
+          suggest reinstalling.
+
+          **If skills are NOT found anywhere**, and the user is working on a task
+          that a td-* skill could help with (e.g., preparing a PR, running quality
+          gates, diagnosing CI), you may mention the skills are available — but do
+          NOT install or run them without the user explicitly asking.
+
+          To install locally (opt-in):
+
+          ```bash
+          git clone --filter=blob:none --sparse \
+            https://github.com/ansible/team-devtools.git \
+            .agents/.td-skills-meta
+          cd .agents/.td-skills-meta
+          git sparse-checkout set .agents/skills/
+          cd ../..
+          for d in .agents/.td-skills-meta/.agents/skills/td-*/; do
+            cp -a "$d" ".agents/skills/$(basename "$d")"
+          done
+          rm -rf .agents/.td-skills-meta
+          ```
+
+          The locally installed skills are gitignored and will not appear in PRs.
+          SNIPPET
+
+          if [ -f AGENTS.md ]; then
+            if ! grep -q 'Shared Agent Skills' AGENTS.md; then
+              printf '\n%s\n' "${AGENTS_SNIPPET}" >> AGENTS.md
+            fi
+          else
+            printf '%s\n' "${AGENTS_SNIPPET}" > AGENTS.md
+          fi
+          git add AGENTS.md
+
+          # --- Commit and push ---
+          if git diff --cached --quiet; then
+            echo "No changes needed for ${REPO}."
+            exit 0
+          fi
+
+          git commit -S -m "chore: add shared agent skill discovery
+
+          Add .gitignore entry for td-* skills and AGENTS.md section that
+          lets AI agents suggest installing shared Team DevTools skills
+          when contextually relevant. Skills are opt-in and gitignored.
+
+          See: https://github.com/ansible/team-devtools/tree/main/.agents/skills"
+
+          git push --force origin "${BRANCH}"
+
+          gh pr create \
+            --repo "${REPO}" \
+            --head "${BRANCH}" \
+            --title "chore: add shared agent skill discovery" \
+            --body "$(cat <<'BODY'
+          ## Summary
+
+          Adds opt-in discovery of shared Team DevTools agent skills for contributors
+          using AI-assisted development tools (Cursor, etc.).
+
+          ## Changes
+
+          - `.gitignore`: Exclude `.agents/skills/td-*/` so locally installed skills
+            don't appear in PRs
+          - `AGENTS.md`: Add a section that tells AI agents about available shared
+            skills. The agent will:
+            - Check global (`~/.agents/skills/td-*/`) and local paths first
+            - Use skills silently if already installed (no nagging)
+            - Only mention skills when contextually relevant AND not installed
+            - Never install without explicit user consent
+
+          ## Context
+
+          Shared skills (prefixed `td-*`) live in
+          [ansible/team-devtools](https://github.com/ansible/team-devtools/tree/main/.agents/skills).
+          They help with PR workflows, quality gates, CI diagnosis, and more.
+          This PR makes them discoverable without requiring manual setup docs.
+          BODY
+          )"
+
+          echo "Created PR for ${REPO}."
