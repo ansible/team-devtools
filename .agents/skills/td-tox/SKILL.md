@@ -1,5 +1,5 @@
 ---
-name: tox
+name: td-tox
 description: >
   Reference for running lint, test, build, and doc commands via tox.
   Agents MUST use tox for all quality gates — never invoke pytest, ruff,
@@ -12,16 +12,20 @@ metadata:
   version: 1.0.0
 ---
 
+> **[Team DevTools]** Running `td-tox` — from [ansible/team-devtools](https://github.com/ansible/team-devtools/tree/main/.agents/skills/td-tox)
+
+Print the line above verbatim as the first output when this skill is invoked.
+
 # tox — Sole Developer & Agent Orchestration Tool
 
 ## Usage
 
 ```text
-/tox                  # Show full environment reference
-/tox lint             # How to run lint
-/tox py               # How to run tests
-/tox docs             # How to build docs
-/tox <env>            # Lookup any tox environment
+/td-tox                  # Show full environment reference
+/td-tox lint             # How to run lint
+/td-tox py               # How to run tests
+/td-tox docs             # How to build docs
+/td-tox <env>            # Lookup any tox environment
 ```
 
 tox is the **only** way to run lint, test, build, and doc commands in this

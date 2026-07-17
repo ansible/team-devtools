@@ -6,13 +6,13 @@ Agent skills are available in `.agents/skills/` and can be invoked by name:
 
 | Skill | Purpose | Invocation |
 |-------|---------|------------|
-| `pr-new` | Prepare and submit a pull request | `/pr-new` |
-| `pr-review` | Handle PR review feedback (Copilot and human) | `/pr-review <PR#>` |
-| `pr-contributor-review` | Review and prepare a contributor's PR | `/pr-contributor-review <PR#>` |
-| `tox` | Tox environment reference (lint, test, docs) | `/tox [env]` |
-| `ansible-creator` | Scaffold Ansible content (collections, playbooks, EEs, plugins) | `/ansible-creator [subcommand]` |
-| `ansible-lint` | Ansible linting reference (profiles, suppression, config) | `/ansible-lint [options]` |
-| `ade` | Development environment setup (ansible-dev-environment) | `/ade [subcommand]` |
+| `td-pr-new` | Prepare and submit a pull request | `/td-pr-new` |
+| `td-pr-review` | Handle PR review feedback (Copilot and human) | `/td-pr-review <PR#>` |
+| `td-pr-contributor-review` | Review and prepare a contributor's PR | `/td-pr-contributor-review <PR#>` |
+| `td-tox` | Tox environment reference (lint, test, docs) | `/td-tox [env]` |
+| `td-ansible-creator` | Scaffold Ansible content (collections, playbooks, EEs, plugins) | `/td-ansible-creator [subcommand]` |
+| `td-ansible-lint` | Ansible linting reference (profiles, suppression, config) | `/td-ansible-lint [options]` |
+| `td-ade` | Development environment setup (ansible-dev-environment) | `/td-ade [subcommand]` |
 
 ## Agents
 

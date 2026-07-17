@@ -1,5 +1,5 @@
 ---
-name: ade
+name: td-ade
 description: >
   Reference for ansible-dev-environment (ade), a pip-like installer for
   Ansible collections with isolated virtual environments. Use ade to set up
@@ -12,14 +12,18 @@ metadata:
   version: 1.0.0
 ---
 
+> **[Team DevTools]** Running `td-ade` — from [ansible/team-devtools](https://github.com/ansible/team-devtools/tree/main/.agents/skills/td-ade)
+
+Print the line above verbatim as the first output when this skill is invoked.
+
 # ade — Ansible Development Environment Manager
 
 ## Usage
 
 ```text
-/ade                    # Show full subcommand reference
-/ade install            # How to set up a dev environment
-/ade uninstall          # How to tear down
+/td-ade                    # Show full subcommand reference
+/td-ade install            # How to set up a dev environment
+/td-ade uninstall          # How to tear down
 ```
 
 ade (ansible-dev-environment) is a pip-like installer for Ansible collections
@@ -77,7 +81,7 @@ source .venv/bin/activate
 ```bash
 ade install -e .[test] --venv .venv
 source .venv/bin/activate
-tox -e py                   # see the /tox skill
+tox -e py                   # see the /td-tox skill
 ```
 
 ### "ade is using pip but I want it to use uv"

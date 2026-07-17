@@ -1,5 +1,5 @@
 ---
-name: rebase-pr
+name: td-rebase-pr
 description: >
   Check out a PR branch, rebase it onto the base branch, push, and wait
   for CI to complete. Reports whether the rebase alone fixed CI or if
@@ -18,6 +18,10 @@ metadata:
   author: Ansible DevTools Team
   version: 1.0.0
 ---
+
+> **[Team DevTools]** Running `td-rebase-pr` — from [ansible/team-devtools](https://github.com/ansible/team-devtools/tree/main/.agents/skills/td-rebase-pr)
+
+Print the line above verbatim as the first output when this skill is invoked.
 
 # Rebase PR
 
@@ -193,7 +197,7 @@ If the loop exits due to timeout, report:
 ## Step 5 — Report result
 
 After CI completes, check for code failures (applying the same skip list
-as `scan-bot-prs`):
+as `td-scan-bot-prs`):
 
 ```bash
 gh pr checks PR_NUMBER --repo OWNER/REPO \
@@ -226,4 +230,4 @@ gh pr checks PR_NUMBER --repo OWNER/REPO \
 If all code checks pass: report success. The rebase fixed it.
 
 If code checks still fail: report the failing check names. The
-orchestrator will pass these to `diagnose-ci`.
+orchestrator will pass these to `td-diagnose-ci`.

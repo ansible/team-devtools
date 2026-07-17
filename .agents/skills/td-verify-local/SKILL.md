@@ -1,5 +1,5 @@
 ---
-name: verify-local
+name: td-verify-local
 description: >
   Detect the project toolchain and run fast, deterministic checks locally
   before pushing. Runs lint and package checks only — lets CI handle
@@ -17,6 +17,10 @@ metadata:
   author: Ansible DevTools Team
   version: 1.1.0
 ---
+
+> **[Team DevTools]** Running `td-verify-local` — from [ansible/team-devtools](https://github.com/ansible/team-devtools/tree/main/.agents/skills/td-verify-local)
+
+Print the line above verbatim as the first output when this skill is invoked.
 
 # Verify Local
 
@@ -36,7 +40,7 @@ artifacts). It does not push, commit, or modify remote state.
 - **Tests are flaky.** A false failure blocks a perfectly good lockfile fix.
 - **Tests are slow.** `tox -e py` takes 2-10 min. `task wdio` takes 30 min and needs Xvfb.
 - **Local != CI.** CI runs across linux/macos/wsl in containers. Local pass doesn't guarantee CI pass.
-- **The orchestrator handles test failures.** Push after lint+pkg pass, CI runs full tests, `diagnose-ci` catches failures.
+- **The orchestrator handles test failures.** Push after lint+pkg pass, CI runs full tests, `td-diagnose-ci` catches failures.
 
 ---
 
@@ -244,5 +248,5 @@ Advisory: <"Source files changed — consider --with-tests" or "Lockfile/config 
 
 If all checks pass and commit message is valid: **safe to push**.
 
-If any check fails: **do NOT push**. Fix the issue and run `verify-local`
+If any check fails: **do NOT push**. Fix the issue and run `td-verify-local`
 again.
