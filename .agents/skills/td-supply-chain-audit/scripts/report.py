@@ -679,8 +679,7 @@ def generate_commit_integrity_section(commits: list[dict], findings: list[dict])
         repo_gh = repo_name if "/" in repo_name else f"ansible/{repo_name}"
         pr_str = (
             ", ".join(
-                f'<a href="https://github.com/{repo_gh}/pull/{p}" '
-                f'target="_blank" rel="noopener noreferrer">#{p}</a>'
+                f'<a href="https://github.com/{repo_gh}/pull/{p}" target="_blank" rel="noopener noreferrer">#{p}</a>'
                 for p in prs
             )
             if prs

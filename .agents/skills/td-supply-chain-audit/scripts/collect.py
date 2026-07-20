@@ -103,6 +103,34 @@ DEP_FILE_PATTERNS = re.compile(
 )
 
 
+def _gh_api_on_failure(
+    endpoint: str,
+    result: subprocess.CompletedProcess[str],
+    *,
+    paginate: bool,
+) -> list | dict | None:
+    """Handle a non-zero ``gh api`` exit: retry rate limits, else return None."""
+    stderr_lower = result.stderr.lower()
+    # Auth / SAML / permission failures are not rate limits — fail fast.
+    if "saml" in stderr_lower or "sso" in stderr_lower:
+        print(
+            f"  ACCESS DENIED (SAML/SSO): {endpoint} — authorize the org token via gh auth refresh / SSO grant",
+            file=sys.stderr,
+        )
+    elif "rate limit" in stderr_lower or "secondary rate limit" in stderr_lower:
+        print("  Rate limited, sleeping 60s...", file=sys.stderr)
+        time.sleep(RATE_LIMIT_RETRY_SLEEP_SECONDS)
+        return gh_api(endpoint, paginate=paginate)
+    elif "404" in result.stderr or "Not Found" in result.stderr:
+        pass
+    elif "403" in result.stderr or "forbidden" in stderr_lower:
+        # Generic 403 (e.g. private repo without access) — do not retry forever.
+        print(f"  FORBIDDEN: {endpoint}: {result.stderr[:200]}", file=sys.stderr)
+    else:
+        print(f"  ERROR ({result.returncode}): {result.stderr[:200]}", file=sys.stderr)
+    return None
+
+
 def gh_api(endpoint: str, *, paginate: bool = False) -> list | dict | None:
     """Call GitHub API via gh CLI.
 
@@ -131,27 +159,7 @@ def gh_api(endpoint: str, *, paginate: bool = False) -> list | dict | None:
         return None
 
     if result.returncode != 0:
-        stderr_lower = result.stderr.lower()
-        # Auth / SAML / permission failures are not rate limits — fail fast.
-        if "saml" in stderr_lower or "sso" in stderr_lower:
-            print(
-                f"  ACCESS DENIED (SAML/SSO): {endpoint} — "
-                "authorize the org token via gh auth refresh / SSO grant",
-                file=sys.stderr,
-            )
-            return None
-        if "rate limit" in stderr_lower or "secondary rate limit" in stderr_lower:
-            print("  Rate limited, sleeping 60s...", file=sys.stderr)
-            time.sleep(RATE_LIMIT_RETRY_SLEEP_SECONDS)
-            return gh_api(endpoint, paginate=paginate)
-        if "404" in result.stderr or "Not Found" in result.stderr:
-            return None
-        # Generic 403 (e.g. private repo without access) — do not retry forever.
-        if "403" in result.stderr or "forbidden" in stderr_lower:
-            print(f"  FORBIDDEN: {endpoint}: {result.stderr[:200]}", file=sys.stderr)
-            return None
-        print(f"  ERROR ({result.returncode}): {result.stderr[:200]}", file=sys.stderr)
-        return None
+        return _gh_api_on_failure(endpoint, result, paginate=paginate)
 
     try:
         return json.loads(result.stdout)
@@ -191,9 +199,7 @@ def collect_commits(repo: str, start_date: str, end_date: str) -> list[dict]:
         Serialized commit dicts.
 
     """
-    endpoint = (
-        f"repos/{repo}/commits?since={start_date}T00:00:00Z&until={end_date}T23:59:59Z&per_page={PER_PAGE}"
-    )
+    endpoint = f"repos/{repo}/commits?since={start_date}T00:00:00Z&until={end_date}T23:59:59Z&per_page={PER_PAGE}"
     data = gh_api(endpoint, paginate=True)
     if not data or not isinstance(data, list):
         return []
