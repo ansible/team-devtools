@@ -1,0 +1,23 @@
+extend = "../ruff.toml"
+
+# Migrated CLI scripts from sathyapramod/devtools-guardian — keep runnable as
+# standalone stdlib tools. Tighten toward the shared skill standard over time.
+[lint]
+ignore = [
+  "ANN",  # type annotations (follow-up)
+  "BLE001",  # blind except in API fetch helpers
+  "COM812",  # conflicts with ruff formatter
+  "D205",  # docstring blank-line (module banners)
+  "E501",  # long HTML/JS template lines in dashboard generator
+  "E741",  # short loop names in compact JS-adjacent helpers
+  "EXE001",  # invoked via `python3 path/to/script.py`, not as executables
+  "FBT",  # boolean positional args in small CLI helpers
+  "PERF401",  # list append loops in report builders
+  "PLC0415",  # lazy imports in optional report paths
+  "PLR0912",  # branchy orchestrator / report formatters
+  "PLR2004",  # magic values (HTTP codes, thresholds)
+  "PLW1510",  # subprocess.run without check= (handled via returncode)
+  "PTH",  # os.path is intentional for portable CLI scripts
+  "S310",  # urlopen to GitHub / Sonar / Codecov APIs
+  "SIM102",  # collapsible-if readability in fetchers
+]
