@@ -90,15 +90,6 @@ jobs:
           --renovate "${SKILL_ROOT}/reports/renovate-prs.json"
           -o "${SKILL_ROOT}/reports/correlation.json"
 
-      - name: Fetch supply-chain audit
-        run: >
-          python3 "${SKILL_ROOT}/scripts/fetch_supply_chain.py"
-          --repos-file "${SKILL_ROOT}/config/repos.json"
-          --days 7 --skip-vulns
-          -o "${SKILL_ROOT}/reports/supply-chain.json"
-        env:
-          GH_TOKEN: ${{ secrets.AUDIT_GH_TOKEN }}
-
       - name: Run full security audit (collect + analyze)
         run: |
           START_DATE=$(date -d '7 days ago' +%Y-%m-%d)
@@ -159,7 +150,6 @@ jobs:
             --codecov "${SKILL_ROOT}/reports/codecov.json" \
             --sonar "${SKILL_ROOT}/reports/sonar-gates.json" \
             --correlation "${SKILL_ROOT}/reports/correlation.json" \
-            --supply-chain "${SKILL_ROOT}/reports/supply-chain.json" \
             --security-audit "${SKILL_ROOT}/reports/security-audit.json" \
             --changes "${SKILL_ROOT}/reports/changes.json" \
             --output "${SITE_DIR}/index.html"

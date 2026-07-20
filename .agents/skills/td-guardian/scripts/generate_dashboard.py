@@ -918,124 +918,6 @@ def build_codecov_section(codecov_data):
     return section_html("codecov", "Code Coverage (Codecov)", total, content, collapsed=True)
 
 
-def build_supply_chain_section(sc_data):
-    """Build the Supply Chain Audit section showing post-approval commits,
-    bot-only approvals, and known vulnerabilities.
-    """
-    if not sc_data:
-        return ""
-
-    results = sc_data.get("results", [])
-    agg = sc_data.get("aggregate", {})
-    days = sc_data.get("days", 14)
-
-    all_post_approval = []
-    all_bot_only = []
-
-    for repo in results:
-        slug = f"{repo.get('owner', '?')}/{repo.get('repo', '?')}"
-        for f in repo.get("post_approval", []):
-            f["_repo"] = slug
-            all_post_approval.append(f)
-        for f in repo.get("bot_only", []):
-            f["_repo"] = slug
-            all_bot_only.append(f)
-
-    content = f'<p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1rem;">Last {days} days of merged PRs scanned across {agg.get("repos_scanned", 0)} repos.</p>'
-
-    # --- Post-Approval Commits ---
-    if all_post_approval:
-        all_post_approval.sort(
-            key=lambda f: 0 if f.get("risk") == "critical" else (1 if f.get("risk") == "high" else 2),
-        )
-        rows = ""
-        for f in all_post_approval:
-            risk_cls = "error" if f["risk"] in ("critical", "high") else "warn"
-            pr_url = f.get("pr_url", "")
-            pr_link = (
-                f'<a href="{esc(pr_url)}" target="_blank">#{f["pr_number"]}</a>' if pr_url else f"#{f['pr_number']}"
-            )
-            commit_info = ", ".join(f"{c['sha']} by {c['author']}" for c in f.get("commits", [])[:3])
-            rows += (
-                f"<tr>"
-                f"<td>{esc(f['_repo'])}</td>"
-                f"<td>{pr_link}</td>"
-                f"<td>{esc(f.get('pr_title', '')[:50])}</td>"
-                f"<td>{esc(f.get('pr_author', ''))}</td>"
-                f'<td><span class="status {risk_cls}">{f["post_approval_count"]} commits</span></td>'
-                f"<td>{esc(f.get('last_approver', ''))}</td>"
-                f"<td>{esc(commit_info)}</td>"
-                f"</tr>"
-            )
-        content += f"""<h3>Post-Approval Commits ({len(all_post_approval)})</h3>
-<table><thead><tr><th>Repo</th><th>PR</th><th>Title</th><th>Author</th><th>After Approval</th><th>Approver</th><th>Commits</th></tr></thead>
-<tbody>{rows}</tbody></table>"""
-
-    # --- Bot-Only Approvals ---
-    if all_bot_only:
-        all_bot_only.sort(key=lambda f: 0 if f.get("risk") == "high" else (1 if f.get("risk") == "medium" else 2))
-        rows = ""
-        for f in all_bot_only:
-            risk_cls = "error" if f["risk"] == "high" else ("warn" if f["risk"] == "medium" else "neutral")
-            pr_url = f.get("pr_url", "")
-            pr_link = (
-                f'<a href="{esc(pr_url)}" target="_blank">#{f["pr_number"]}</a>' if pr_url else f"#{f['pr_number']}"
-            )
-            bots = ", ".join(f.get("bot_approvers", []))
-            rows += (
-                f"<tr>"
-                f"<td>{esc(f['_repo'])}</td>"
-                f"<td>{pr_link}</td>"
-                f"<td>{esc(f.get('pr_title', '')[:50])}</td>"
-                f"<td>{esc(f.get('pr_author', ''))}</td>"
-                f'<td><span class="status {risk_cls}">{esc(bots)}</span></td>'
-                f"<td>{'Yes' if f.get('is_bot_pr') else 'No'}</td>"
-                f"</tr>"
-            )
-        content += f"""<h3>Bot-Only Approvals ({len(all_bot_only)})</h3>
-<table><thead><tr><th>Repo</th><th>PR</th><th>Title</th><th>Author</th><th>Approved By</th><th>Bot PR?</th></tr></thead>
-<tbody>{rows}</tbody></table>"""
-
-    # --- Known Vulnerabilities ---
-    all_vulns = []
-    for repo in results:
-        slug = f"{repo.get('owner', '?')}/{repo.get('repo', '?')}"
-        for v in repo.get("vulnerabilities", []):
-            v["_repo"] = slug
-            all_vulns.append(v)
-
-    if all_vulns:
-        all_vulns.sort(
-            key=lambda v: (
-                0
-                if v.get("severity") == "critical"
-                else (1 if v.get("severity") == "high" else (2 if v.get("severity") == "medium" else 3))
-            ),
-        )
-        rows = ""
-        for v in all_vulns:
-            sev = v.get("severity", "unknown")
-            sev_cls = "error" if sev in ("critical", "high") else ("warn" if sev == "medium" else "neutral")
-            rows += (
-                f"<tr>"
-                f"<td>{esc(v['_repo'])}</td>"
-                f"<td>{esc(v.get('id', ''))}</td>"
-                f'<td><span class="status {sev_cls}">{esc(sev)}</span></td>'
-                f"<td>{esc(v.get('package', ''))}</td>"
-                f"<td>{esc(v.get('ecosystem', ''))}</td>"
-                f"</tr>"
-            )
-        content += f"""<h3>Known Vulnerabilities ({len(all_vulns)})</h3>
-<table><thead><tr><th>Repo</th><th>ID</th><th>Severity</th><th>Package</th><th>Ecosystem</th></tr></thead>
-<tbody>{rows}</tbody></table>"""
-
-    if not all_post_approval and not all_bot_only and not all_vulns:
-        content += '<p style="color:var(--ok-text);">No supply-chain findings in this period.</p>'
-
-    total = agg.get("total_post_approval", 0) + agg.get("total_bot_only", 0) + len(all_vulns)
-    return section_html("supply-chain", "Supply Chain Audit", total, content, collapsed=True)
-
-
 def build_correlation_section(correlation_data):
     if not correlation_data:
         return ""
@@ -1253,7 +1135,6 @@ def generate_dashboard(
     sonar_data,
     correlation_data=None,
     codecov_data=None,
-    supply_chain_data=None,
     security_audit_data=None,
     changes_data=None,
     gh_token="",
@@ -1286,14 +1167,12 @@ def generate_dashboard(
     codecov_section = build_codecov_section(codecov_data)
     renovate_section = build_renovate_section(renovate_data)
     sonar_section = build_sonar_section(sonar_data)
-    supply_chain_section = build_supply_chain_section(supply_chain_data)
 
     section_list = [
         ("repo-status", "Repos", repo_status_section),
         ("ci", "CI", ci_section),
         ("correlation", "Correlation", correlation_section),
         ("prs", "PRs", pr_section),
-        ("supply-chain", "Supply Chain", supply_chain_section),
         ("codecov", "Coverage", codecov_section),
         ("deps", "Dependencies", renovate_section),
         ("sonar", "SonarCloud", sonar_section),
@@ -1398,7 +1277,6 @@ def main() -> None:
     parser.add_argument("--sonar", help="SonarCloud quality gate JSON file")
     parser.add_argument("--codecov", help="Codecov coverage JSON file")
     parser.add_argument("--correlation", help="Failure correlation JSON file")
-    parser.add_argument("--supply-chain", dest="supply_chain", help="Supply chain audit JSON file")
     parser.add_argument(
         "--security-audit",
         dest="security_audit",
@@ -1415,11 +1293,10 @@ def main() -> None:
     sonar_data = load_json_safe(args.sonar)
     codecov_data = load_json_safe(args.codecov)
     correlation_data = load_json_safe(args.correlation)
-    supply_chain_data = load_json_safe(args.supply_chain)
     security_audit_data = load_json_safe(args.security_audit)
     changes_data = load_json_safe(args.changes)
 
-    if not any([prs_data, ci_data, renovate_data, sonar_data, codecov_data, supply_chain_data, security_audit_data]):
+    if not any([prs_data, ci_data, renovate_data, sonar_data, codecov_data, security_audit_data]):
         print("ERROR: No data files provided or loadable", file=sys.stderr)
         sys.exit(1)
 
@@ -1431,7 +1308,6 @@ def main() -> None:
         sonar_data,
         correlation_data,
         codecov_data,
-        supply_chain_data,
         security_audit_data,
         changes_data,
         gh_token,
