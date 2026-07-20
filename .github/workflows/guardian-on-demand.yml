@@ -1,0 +1,94 @@
+---
+name: Guardian On-Demand
+
+# Manual Sonar / Codecov / supply-chain fetches without committing to protected main.
+# Reports are uploaded as Actions artifacts. For a full dashboard refresh, run
+# Guardian Daily (or Weekly) instead — or set deploy_pages to dispatch Daily.
+
+on:
+  workflow_dispatch:
+    inputs:
+      security_audit:
+        description: "Fetch SonarCloud + Codecov"
+        type: boolean
+        default: true
+      supply_chain:
+        description: "Fetch supply-chain signals"
+        type: boolean
+        default: true
+      deploy_pages:
+        description: "Also dispatch Guardian Daily (Pages dashboard refresh)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: guardian-on-demand
+  cancel-in-progress: true
+
+env:
+  SKILL_ROOT: .agents/skills/td-guardian
+
+jobs:
+  fetch:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+
+      - name: Ensure report directories
+        run: mkdir -p "${SKILL_ROOT}/reports"
+
+      - name: Fetch Codecov coverage
+        if: ${{ inputs.security_audit }}
+        run: >
+          python3 "${SKILL_ROOT}/scripts/fetch_codecov.py"
+          --codecov-config "${SKILL_ROOT}/config/codecov.json"
+          > "${SKILL_ROOT}/reports/codecov.json"
+
+      - name: Fetch SonarCloud quality gates
+        if: ${{ inputs.security_audit }}
+        run: >
+          python3 "${SKILL_ROOT}/scripts/fetch_sonar_gates.py"
+          --sonar-config "${SKILL_ROOT}/config/sonar.json"
+          > "${SKILL_ROOT}/reports/sonar-gates.json"
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Fetch supply-chain audit
+        if: ${{ inputs.supply_chain }}
+        run: >
+          python3 "${SKILL_ROOT}/scripts/fetch_supply_chain.py"
+          --repos-file "${SKILL_ROOT}/config/repos.json"
+          --days 7 --skip-vulns
+          -o "${SKILL_ROOT}/reports/supply-chain.json"
+        env:
+          GH_TOKEN: ${{ secrets.AUDIT_GH_TOKEN }}
+
+      - name: Upload report artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: guardian-on-demand-reports
+          path: .agents/skills/td-guardian/reports/
+          if-no-files-found: warn
+
+      - name: Dispatch Guardian Daily for Pages refresh
+        if: ${{ inputs.deploy_pages }}
+        env:
+          GH_TOKEN: ${{ secrets.GUARDIAN_GH_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::GUARDIAN_GH_TOKEN is required to dispatch guardian-daily.yml"
+            exit 1
+          fi
+          gh workflow run guardian-daily.yml
+          echo "Dispatched guardian-daily.yml at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
