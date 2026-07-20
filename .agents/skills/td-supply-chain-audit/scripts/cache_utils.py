@@ -12,21 +12,57 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 TARGET_REPOS = [
-    "ansible-builder",
-    "ansible-compat",
-    "ansible-creator",
-    "ansible-dev-environment",
-    "ansible-lint",
-    "ansible-navigator",
-    "ansible-sign",
-    "molecule",
-    "pytest-ansible",
-    "tox-ansible",
-    "ansible-dev-tools",
-    "vscode-ansible",
+    "ansible/ansible-builder",
+    "ansible/ansible-compat",
+    "ansible/ansible-creator",
+    "ansible/ansible-dev-environment",
+    "ansible/ansible-lint",
+    "ansible/ansible-navigator",
+    "ansible/ansible-sign",
+    "ansible/molecule",
+    "ansible/pytest-ansible",
+    "ansible/tox-ansible",
+    "ansible/ansible-dev-tools",
+    "ansible/vscode-ansible",
+    "ansible/actions",
+    "ansible/ansible-content-actions",
+    "ansible/mkdocs-ansible",
+    "ansible-automation-platform/ansible-devtools-container",
+    "ansible-automation-platform/ansible-devspaces-container",
+    "redhat-developer/abbenay",
 ]
 
+# Default org when a bare repo name is passed (e.g. via --repos).
 GITHUB_ORG = "ansible"
+
+
+def normalize_repo(repo: str) -> str:
+    """Return a canonical ``org/repo`` slug.
+
+    Bare names (no slash) are assumed to live under ``GITHUB_ORG``.
+    """
+    if "/" in repo:
+        return repo
+    return f"{GITHUB_ORG}/{repo}"
+
+
+def repo_cache_name(repo: str) -> str:
+    """Filename-safe cache key for an ``org/repo`` slug (``org__repo``)."""
+    return normalize_repo(repo).replace("/", "__")
+
+
+def repo_from_cache_name(name: str) -> str:
+    """Inverse of :func:`repo_cache_name` (stem without ``.json``)."""
+    return name.replace("__", "/", 1)
+
+
+def repo_github_url(repo: str, *, path: str = "") -> str:
+    """Build a GitHub URL for a repo, optionally with a path suffix."""
+    slug = normalize_repo(repo)
+    base = f"https://github.com/{slug}"
+    if path:
+        return f"{base}/{path.lstrip('/')}"
+    return base
 
 
 def compute_cache_key(
@@ -139,7 +175,7 @@ def has_cached_data(cache_dir: Path, repo: str, subdir: str) -> bool:
         ``True`` if the cache file exists.
 
     """
-    path = cache_dir / subdir / f"{repo}.json"
+    path = cache_dir / subdir / f"{repo_cache_name(repo)}.json"
     return path.exists()
 
 
@@ -385,7 +421,7 @@ def get_all_cached_protection(cache_dir: Path) -> dict[str, dict[str, object]]:
         return {}
     for f in sorted(prot_dir.iterdir()):
         if f.suffix == ".json":
-            repo_name = f.stem
+            repo_name = repo_from_cache_name(f.stem)
             with f.open(encoding="utf-8") as fh:
                 protection[repo_name] = json.load(fh)
     return protection
@@ -407,7 +443,7 @@ def get_all_cached_vulns(cache_dir: Path) -> dict[str, list[dict[str, object]]]:
         return {}
     for f in sorted(vulns_dir.iterdir()):
         if f.suffix == ".json":
-            repo_name = f.stem
+            repo_name = repo_from_cache_name(f.stem)
             with f.open(encoding="utf-8") as fh:
                 data = json.load(fh)
                 if isinstance(data, list) and data:
@@ -431,7 +467,7 @@ def get_all_cached_renovate(cache_dir: Path) -> dict[str, dict[str, object]]:
         return {}
     for f in sorted(reno_dir.iterdir()):
         if f.suffix == ".json":
-            repo_name = f.stem
+            repo_name = repo_from_cache_name(f.stem)
             with f.open(encoding="utf-8") as fh:
                 configs[repo_name] = json.load(fh)
     return configs

@@ -254,7 +254,7 @@ def _build_repo_summary_row(  # pylint: disable=too-many-positional-arguments
 
     """
     findings_str = str(num_findings) if num_findings == 0 else (f'<span class="badge badge-high">{num_findings}</span>')
-    repo_url = f"https://github.com/ansible/{repo}"
+    repo_url = f"https://github.com/{repo}" if "/" in repo else f"https://github.com/ansible/{repo}"
     repo_link = f'<a href="{repo_url}" target="_blank" rel="noopener noreferrer">{esc(repo)}</a>'
     return (
         f"<tr>"
@@ -676,10 +676,10 @@ def generate_commit_integrity_section(commits: list[dict], findings: list[dict])
         signer = commit.get("committer_login", "")
         prs = commit.get("associated_prs", [])
         repo_name = commit.get("repo", "")
+        repo_gh = repo_name if "/" in repo_name else f"ansible/{repo_name}"
         pr_str = (
             ", ".join(
-                f'<a href="https://github.com/ansible/{repo_name}/pull/{p}" '
-                f'target="_blank" rel="noopener noreferrer">#{p}</a>'
+                f'<a href="https://github.com/{repo_gh}/pull/{p}" target="_blank" rel="noopener noreferrer">#{p}</a>'
                 for p in prs
             )
             if prs
@@ -773,8 +773,9 @@ def generate_dep_section(deps: list[dict], prs: list[dict]) -> str:
         pr_info = sha_to_pr.get(commit_sha)
         if pr_info:
             repo_name, pr_num = pr_info
+            repo_gh = repo_name if "/" in repo_name else f"ansible/{repo_name}"
             pr_cell = (
-                f'<a href="https://github.com/ansible/{repo_name}/pull/{pr_num}" '
+                f'<a href="https://github.com/{repo_gh}/pull/{pr_num}" '
                 f'target="_blank" rel="noopener noreferrer">#{pr_num}</a>'
             )
         else:
@@ -911,8 +912,9 @@ def generate_findings_details(findings: list[dict]) -> str:
             repo = f.get("repo", "")
             pr_link = ""
             if pr_num:
+                repo_gh = repo if "/" in repo else f"ansible/{repo}"
                 pr_link = (
-                    f' <a href="https://github.com/ansible/{repo}/pull/{pr_num}" '
+                    f' <a href="https://github.com/{repo_gh}/pull/{pr_num}" '
                     f'target="_blank" rel="noopener noreferrer">PR #{pr_num}</a>'
                 )
             summary_html = _linkify_advisory_ids(esc(f.get("summary", "")))
