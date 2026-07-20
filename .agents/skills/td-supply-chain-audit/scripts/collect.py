@@ -64,7 +64,7 @@ GH_API_TIMEOUT_SECONDS = 120
 GH_VERSION_TIMEOUT_SECONDS = 10
 REGISTRY_REQUEST_TIMEOUT_SECONDS = 10
 OSV_REQUEST_TIMEOUT_SECONDS = 30
-OSV_BATCH_SIZE = 100
+OSV_BATCH_SIZE = 1000
 OSV_BATCH_SLEEP_SECONDS = 1
 MAX_COMMIT_MSG_LEN = 120
 GITHUB_EXT_PREFIX_LEN = 7
@@ -931,25 +931,95 @@ def collect_package_inventory(repo: str) -> list[dict]:
             break
         time.sleep(RATE_LIMIT_SLEEP)
 
-    # Check for npm lock file (too large for contents API, use a different approach)
-    # For package.json we can get direct deps
+    npm_pkgs = _collect_npm_inventory(repo)
+    packages.extend(npm_pkgs)
+
+    return packages
+
+
+def _collect_npm_inventory(repo: str) -> list[dict]:
+    """Collect npm package inventory from lock files or package.json fallback."""
+    tree_data = gh_api(f"repos/{GITHUB_ORG}/{repo}/git/trees/main")
+    if tree_data and isinstance(tree_data, dict):
+        for lock_file in ["pnpm-lock.yaml", "package-lock.json"]:
+            for item in tree_data.get("tree", []):
+                if item.get("path") != lock_file or not item.get("sha"):
+                    continue
+                blob_data = gh_api(f"repos/{GITHUB_ORG}/{repo}/git/blobs/{item['sha']}")
+                if not blob_data or not isinstance(blob_data, dict):
+                    continue
+                try:
+                    content = base64.b64decode(blob_data.get("content", "")).decode("utf-8")
+                except (ValueError, UnicodeDecodeError):
+                    continue
+                parser = _parse_pnpm_lock_inventory if lock_file == "pnpm-lock.yaml" else _parse_package_lock_inventory
+                return [{"name": p[0], "version": p[1], "ecosystem": "npm"} for p in parser(content)]
+            time.sleep(RATE_LIMIT_SLEEP)
+
     endpoint = f"repos/{GITHUB_ORG}/{repo}/contents/package.json"
     data = gh_api(endpoint)
     if data and isinstance(data, dict) and data.get("content"):
         try:
             content = base64.b64decode(data["content"]).decode("utf-8")
             pkg_json = json.loads(content)
-            for section in ("dependencies", "devDependencies"):
-                for name, ver_spec in pkg_json.get(section, {}).items():
-                    # Strip version prefixes (^, ~, >=)
-                    ver = re.sub(r"^[~^>=<]*", "", ver_spec).strip()
-                    if ver and re.match(r"\d", ver):
-                        packages.append(
-                            {"name": name, "version": ver, "ecosystem": "npm"},
-                        )
         except (json.JSONDecodeError, ValueError):
-            pass
+            return []
+        packages = []
+        for section in ("dependencies", "devDependencies"):
+            for name, ver_spec in pkg_json.get(section, {}).items():
+                ver = re.sub(r"^[~^>=<]*", "", ver_spec).strip()
+                if ver and re.match(r"\d", ver):
+                    packages.append({"name": name, "version": ver, "ecosystem": "npm"})
+        return packages
 
+    return []
+
+
+def _parse_pnpm_lock_inventory(content: str) -> list[tuple[str, str]]:
+    """Extract (name, version) pairs from a pnpm-lock.yaml file.
+
+    Parses the packages section where entries look like:
+      '@scope/name@1.2.3':
+        resolution: ...
+
+    """
+    packages = []
+    seen = set()
+    in_packages = False
+    pkg_pattern = re.compile(r"^\s{2}'?(@?[^@'\s]+(?:/@?[^@'\s]+)?)@(\d+[^(':\s]*)")
+
+    for line in content.split("\n"):
+        if line.strip() == "packages:":
+            in_packages = True
+            continue
+        if not in_packages:
+            continue
+        m = pkg_pattern.match(line)
+        if m:
+            name, version = m.group(1), m.group(2)
+            key = (name, version)
+            if key not in seen:
+                seen.add(key)
+                packages.append((name, version))
+
+    return packages
+
+
+def _parse_package_lock_inventory(content: str) -> list[tuple[str, str]]:
+    """Extract (name, version) pairs from a package-lock.json file."""
+    packages = []
+    try:
+        data = json.loads(content)
+        pkgs = data.get("packages", {})
+        for path, info in pkgs.items():
+            if not path:
+                continue
+            name = path.split("node_modules/")[-1] if "node_modules/" in path else path
+            version = info.get("version", "")
+            if name and version:
+                packages.append((name, version))
+    except (json.JSONDecodeError, ValueError):
+        pass
     return packages
 
 
