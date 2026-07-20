@@ -9,6 +9,7 @@ Agent skills are available in `.agents/skills/` and can be invoked by name:
 | `td-pr-new` | Prepare and submit a pull request | `/td-pr-new` |
 | `td-pr-review` | Handle PR review feedback (Copilot and human) | `/td-pr-review <PR#>` |
 | `td-pr-contributor-review` | Review and prepare a contributor's PR | `/td-pr-contributor-review <PR#>` |
+| `td-guardian` | Guardian shift: CI health, PR triage, deps, Sonar, handoff | `/td-guardian [check\|audit\|…]` |
 | `td-tox` | Tox environment reference (lint, test, docs) | `/td-tox [env]` |
 | `td-ansible-creator` | Scaffold Ansible content (collections, playbooks, EEs, plugins) | `/td-ansible-creator [subcommand]` |
 | `td-ansible-lint` | Ansible linting reference (profiles, suppression, config) | `/td-ansible-lint [options]` |

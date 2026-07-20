@@ -1,0 +1,20 @@
+{
+  "base_url": "https://api.codecov.io/api/v2",
+  "repos": [
+    { "owner": "ansible", "repo": "actions" },
+    { "owner": "ansible", "repo": "ansible-compat" },
+    { "owner": "ansible", "repo": "ansible-creator" },
+    { "owner": "ansible", "repo": "ansible-dev-environment" },
+    { "owner": "ansible", "repo": "ansible-dev-tools" },
+    { "owner": "ansible", "repo": "ansible-lint" },
+    { "owner": "ansible", "repo": "ansible-navigator" },
+    { "owner": "ansible", "repo": "ansible-sign" },
+    { "owner": "ansible", "repo": "mkdocs-ansible" },
+    { "owner": "ansible", "repo": "molecule" },
+    { "owner": "ansible", "repo": "pytest-ansible" },
+    { "owner": "ansible", "repo": "team-devtools" },
+    { "owner": "ansible", "repo": "tox-ansible" },
+    { "owner": "ansible", "repo": "vscode-ansible" }
+  ],
+  "service": "github"
+}

@@ -57,7 +57,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [tool.codespell]
-ignore-words-list = ["SME"]
+ignore-words-list = ["SME", "IST"]
 
 # Keep this default because xml/report do not know to use load it from config file:
 # data_file = ".coverage"
