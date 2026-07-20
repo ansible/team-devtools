@@ -931,50 +931,48 @@ def collect_package_inventory(repo: str) -> list[dict]:
             break
         time.sleep(RATE_LIMIT_SLEEP)
 
-    # Check for npm lock files (transitive deps)
-    npm_parsed = False
-    for lock_file in ["pnpm-lock.yaml", "package-lock.json"]:
-        if npm_parsed:
-            break
-        tree_data = gh_api(f"repos/{GITHUB_ORG}/{repo}/git/trees/main")
-        if not tree_data or not isinstance(tree_data, dict):
-            break
-        for item in tree_data.get("tree", []):
-            if item.get("path") == lock_file and item.get("sha"):
-                blob_data = gh_api(f"repos/{GITHUB_ORG}/{repo}/git/blobs/{item['sha']}")
-                if not blob_data or not isinstance(blob_data, dict):
-                    break
-                try:
-                    content = base64.b64decode(blob_data.get("content", "")).decode("utf-8")
-                    if lock_file == "pnpm-lock.yaml":
-                        pkgs = _parse_pnpm_lock_inventory(content)
-                    else:
-                        pkgs = _parse_package_lock_inventory(content)
-                    packages.extend({"name": p[0], "version": p[1], "ecosystem": "npm"} for p in pkgs)
-                    npm_parsed = True
-                except (ValueError, UnicodeDecodeError):
-                    pass
-                break
-        time.sleep(RATE_LIMIT_SLEEP)
-
-    if not npm_parsed:
-        endpoint = f"repos/{GITHUB_ORG}/{repo}/contents/package.json"
-        data = gh_api(endpoint)
-        if data and isinstance(data, dict) and data.get("content"):
-            try:
-                content = base64.b64decode(data["content"]).decode("utf-8")
-                pkg_json = json.loads(content)
-                for section in ("dependencies", "devDependencies"):
-                    for name, ver_spec in pkg_json.get(section, {}).items():
-                        ver = re.sub(r"^[~^>=<]*", "", ver_spec).strip()
-                        if ver and re.match(r"\d", ver):
-                            packages.append(
-                                {"name": name, "version": ver, "ecosystem": "npm"},
-                            )
-            except (json.JSONDecodeError, ValueError):
-                pass
+    npm_pkgs = _collect_npm_inventory(repo)
+    packages.extend(npm_pkgs)
 
     return packages
+
+
+def _collect_npm_inventory(repo: str) -> list[dict]:
+    """Collect npm package inventory from lock files or package.json fallback."""
+    tree_data = gh_api(f"repos/{GITHUB_ORG}/{repo}/git/trees/main")
+    if tree_data and isinstance(tree_data, dict):
+        for lock_file in ["pnpm-lock.yaml", "package-lock.json"]:
+            for item in tree_data.get("tree", []):
+                if item.get("path") != lock_file or not item.get("sha"):
+                    continue
+                blob_data = gh_api(f"repos/{GITHUB_ORG}/{repo}/git/blobs/{item['sha']}")
+                if not blob_data or not isinstance(blob_data, dict):
+                    continue
+                try:
+                    content = base64.b64decode(blob_data.get("content", "")).decode("utf-8")
+                except (ValueError, UnicodeDecodeError):
+                    continue
+                parser = _parse_pnpm_lock_inventory if lock_file == "pnpm-lock.yaml" else _parse_package_lock_inventory
+                return [{"name": p[0], "version": p[1], "ecosystem": "npm"} for p in parser(content)]
+            time.sleep(RATE_LIMIT_SLEEP)
+
+    endpoint = f"repos/{GITHUB_ORG}/{repo}/contents/package.json"
+    data = gh_api(endpoint)
+    if data and isinstance(data, dict) and data.get("content"):
+        try:
+            content = base64.b64decode(data["content"]).decode("utf-8")
+            pkg_json = json.loads(content)
+        except (json.JSONDecodeError, ValueError):
+            return []
+        packages = []
+        for section in ("dependencies", "devDependencies"):
+            for name, ver_spec in pkg_json.get(section, {}).items():
+                ver = re.sub(r"^[~^>=<]*", "", ver_spec).strip()
+                if ver and re.match(r"\d", ver):
+                    packages.append({"name": name, "version": ver, "ecosystem": "npm"})
+        return packages
+
+    return []
 
 
 def _parse_pnpm_lock_inventory(content: str) -> list[tuple[str, str]]:
