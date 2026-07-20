@@ -912,8 +912,44 @@ def detect_bot_only_approval(pr_audits: list[dict], prs: list[dict]) -> list[Fin
         approvals = audit.get("approvals", [])
         repo = audit.get("repo", "")
         pr_num = audit.get("pr_number", 0)
+        pr_author = audit.get("pr_author", "")
+        pr_title = audit.get("pr_title", "")
+        is_bot_pr = _is_bot_account(pr_author)
+        is_dep_only = any(kw in pr_title.lower() for kw in ("chore(deps)", "bump ", "update dependency", "lock file"))
 
         if not approvals:
+            if is_bot_pr and is_dep_only:
+                risk = RiskLevel.LOW
+                summary = f"PR #{pr_num}: bot dependency update merged with no approvals"
+            elif is_bot_pr:
+                risk = RiskLevel.MEDIUM
+                summary = f"PR #{pr_num}: bot PR merged with no approvals"
+            else:
+                risk = RiskLevel.CRITICAL
+                summary = f"PR #{pr_num}: human-authored PR merged with zero approvals by {pr_author}"
+
+            findings.append(
+                Finding(
+                    category=FindingCategory.BOT_ONLY_APPROVAL,
+                    risk_level=risk,
+                    repo=repo,
+                    summary=summary,
+                    details=(
+                        f"PR #{pr_num} ('{pr_title}') in {repo} by {pr_author} was merged "
+                        f"with no approvals at all. No human or bot reviewed this change."
+                    ),
+                    pr_number=pr_num,
+                    date=audit.get("merged_at"),
+                    evidence={
+                        "pr_author": pr_author,
+                        "pr_title": pr_title,
+                        "bot_approvers": [],
+                        "is_bot_pr": is_bot_pr,
+                        "is_dep_only": is_dep_only,
+                        "commit_count": audit.get("commit_count", 0),
+                    },
+                ),
+            )
             continue
 
         human_approvals = [a for a in approvals if not _is_bot_account(a["user"])]
@@ -922,14 +958,7 @@ def detect_bot_only_approval(pr_audits: list[dict], prs: list[dict]) -> list[Fin
         if human_approvals:
             continue
 
-        # All approvals are from bots
         bot_names = list({a["user"] for a in bot_approvals})
-        pr_author = audit.get("pr_author", "")
-        pr_title = audit.get("pr_title", "")
-
-        # Determine risk based on PR characteristics
-        is_bot_pr = _is_bot_account(pr_author)
-        is_dep_only = any(kw in pr_title.lower() for kw in ("chore(deps)", "bump ", "update dependency", "lock file"))
 
         if is_bot_pr and is_dep_only:
             risk = RiskLevel.LOW
