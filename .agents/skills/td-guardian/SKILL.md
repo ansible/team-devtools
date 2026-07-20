@@ -218,31 +218,10 @@ Parse the JSON output and explain each cluster:
 
 ## Scheduled CI / GitHub Pages
 
-Workflows live in this repo under `.github/workflows/guardian-*.yml`:
-
-| Workflow | Purpose |
-|----------|---------|
-| `guardian-daily.yml` | Twice-daily dashboard (PRs, CI, deps, coverage, correlation) |
-| `guardian-weekly.yml` | Monday security audit + full `td-supply-chain-audit` |
-| `guardian-on-demand.yml` | Manual Sonar/Codecov/supply-chain fetches (artifact upload) |
-| `guardian-watchdog.yml` | Stale/failed run recovery + issue alerts |
-
-Dashboard output is written to `guardian-site/` (not mkdocs `docs/`) and
-deployed to GitHub Pages. Cross-run deltas load the previous baseline from
-the published Pages `snapshot.json` (never committed to protected `main`).
-
-Expected Pages URL once enabled:
-`https://ansible.github.io/team-devtools/`
-
-### Required repo setup (maintainers)
-
-1. **Settings → Pages** — Source: GitHub Actions
-2. Create environment **`github-pages`** (used by daily/weekly deploy jobs)
-3. Add repository (or org) secrets:
-   - `SONAR_TOKEN` — SonarCloud API
-   - `AUDIT_GH_TOKEN` — PAT for supply-chain / cross-repo audit fetches
-   - `GUARDIAN_GH_TOKEN` — PAT that can `workflow_dispatch` guardian workflows
-     (and powers the dashboard refresh button)
+Scheduled dashboard workflows currently still live in the personal ops repo
+(`sathyapramod/devtools-guardian`) until they are moved into team-devtools.
+Baselines use the published Pages `snapshot.json` (not commits to protected
+`main`). A follow-up PR will relocate `.github/workflows/guardian-*.yml` here.
 
 ## Reference
 

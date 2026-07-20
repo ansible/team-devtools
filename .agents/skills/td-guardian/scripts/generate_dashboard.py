@@ -1148,7 +1148,7 @@ TOOLBAR_CSS = """
 """
 
 TOOLBAR_JS = """
-const REPO = 'ansible/team-devtools';
+const REPO = 'sathyapramod/devtools-guardian'; // ops host until workflows move to team-devtools
 const WORKFLOW = 'guardian-daily.yml';
 const MAX_DAILY_TRIGGERS = 12;
 const AUTO_REFRESH_MS = 30 * 60 * 1000;
