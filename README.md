@@ -88,13 +88,13 @@ end
 
 ## TypeScript repositories
 
-classDef tsclass fill:#f90,stroke:#f90,color:#333;
-classDef containerclass fill:#060,stroke:#060,color:#fff;
-classDef thirdpartyclass fill:#9f6,stroke:#9f6,color:#333;
-
 ```mermaid
 
 graph TB;
+
+  classDef tsclass fill:#f90,stroke:#f90,color:#333;
+  classDef containerclass fill:#060,stroke:#060,color:#fff;
+  classDef thirdpartyclass fill:#9f6,stroke:#9f6,color:#333;
 
   ansible-backstage-plugins:::tsclass;
   vscode-ansible:::tsclass == external ==> vscode-yaml;
