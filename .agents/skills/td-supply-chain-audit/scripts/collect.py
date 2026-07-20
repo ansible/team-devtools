@@ -28,12 +28,13 @@ try:
         PullRequest,
     )
     from cache_utils import (  # pylint: disable=import-error
-        GITHUB_ORG,
         TARGET_REPOS,
         ensure_cache_structure,
         get_cache_dir,
         has_cached_data,
+        normalize_repo,
         read_cache_file,
+        repo_cache_name,
         write_cache_file,
         write_manifest,
     )
@@ -46,12 +47,13 @@ except ImportError:
         PullRequest,
     )
     from cache_utils import (
-        GITHUB_ORG,
         TARGET_REPOS,
         ensure_cache_structure,
         get_cache_dir,
         has_cached_data,
+        normalize_repo,
         read_cache_file,
+        repo_cache_name,
         write_cache_file,
         write_manifest,
     )
@@ -129,11 +131,24 @@ def gh_api(endpoint: str, *, paginate: bool = False) -> list | dict | None:
         return None
 
     if result.returncode != 0:
-        if "rate limit" in result.stderr.lower() or "403" in result.stderr:
+        stderr_lower = result.stderr.lower()
+        # Auth / SAML / permission failures are not rate limits — fail fast.
+        if "saml" in stderr_lower or "sso" in stderr_lower:
+            print(
+                f"  ACCESS DENIED (SAML/SSO): {endpoint} — "
+                "authorize the org token via gh auth refresh / SSO grant",
+                file=sys.stderr,
+            )
+            return None
+        if "rate limit" in stderr_lower or "secondary rate limit" in stderr_lower:
             print("  Rate limited, sleeping 60s...", file=sys.stderr)
             time.sleep(RATE_LIMIT_RETRY_SLEEP_SECONDS)
             return gh_api(endpoint, paginate=paginate)
         if "404" in result.stderr or "Not Found" in result.stderr:
+            return None
+        # Generic 403 (e.g. private repo without access) — do not retry forever.
+        if "403" in result.stderr or "forbidden" in stderr_lower:
+            print(f"  FORBIDDEN: {endpoint}: {result.stderr[:200]}", file=sys.stderr)
             return None
         print(f"  ERROR ({result.returncode}): {result.stderr[:200]}", file=sys.stderr)
         return None
@@ -177,7 +192,7 @@ def collect_commits(repo: str, start_date: str, end_date: str) -> list[dict]:
 
     """
     endpoint = (
-        f"repos/{GITHUB_ORG}/{repo}/commits?since={start_date}T00:00:00Z&until={end_date}T23:59:59Z&per_page={PER_PAGE}"
+        f"repos/{repo}/commits?since={start_date}T00:00:00Z&until={end_date}T23:59:59Z&per_page={PER_PAGE}"
     )
     data = gh_api(endpoint, paginate=True)
     if not data or not isinstance(data, list):
@@ -207,7 +222,7 @@ def collect_prs_for_commits(repo: str, commits: list[dict]) -> list[dict]:
 
     for commit_data in commits:
         sha = commit_data["sha"]
-        endpoint = f"repos/{GITHUB_ORG}/{repo}/commits/{sha}/pulls"
+        endpoint = f"repos/{repo}/commits/{sha}/pulls"
         pr_list = gh_api(endpoint)
         time.sleep(RATE_LIMIT_SLEEP)
 
@@ -223,7 +238,7 @@ def collect_prs_for_commits(repo: str, commits: list[dict]) -> list[dict]:
                 continue
 
             prs_seen.add(pr_num)
-            pr_detail = gh_api(f"repos/{GITHUB_ORG}/{repo}/pulls/{pr_num}")
+            pr_detail = gh_api(f"repos/{repo}/pulls/{pr_num}")
             time.sleep(RATE_LIMIT_SLEEP)
 
             if pr_detail and isinstance(pr_detail, dict):
@@ -262,7 +277,7 @@ def collect_pr_commits_and_reviews(repo: str, prs: list[dict]) -> list[dict]:
         pr_num = pr["number"]
 
         # Get all commits on the PR branch
-        commits_endpoint = f"repos/{GITHUB_ORG}/{repo}/pulls/{pr_num}/commits?per_page=100"
+        commits_endpoint = f"repos/{repo}/pulls/{pr_num}/commits?per_page=100"
         pr_commits = gh_api(commits_endpoint)
         time.sleep(RATE_LIMIT_SLEEP)
 
@@ -270,7 +285,7 @@ def collect_pr_commits_and_reviews(repo: str, prs: list[dict]) -> list[dict]:
             pr_commits = []
 
         # Get reviews (approvals)
-        reviews_endpoint = f"repos/{GITHUB_ORG}/{repo}/pulls/{pr_num}/reviews"
+        reviews_endpoint = f"repos/{repo}/pulls/{pr_num}/reviews"
         reviews = gh_api(reviews_endpoint)
         time.sleep(RATE_LIMIT_SLEEP)
 
@@ -333,7 +348,7 @@ def collect_check_suites(repo: str, commits: list[dict]) -> dict[str, list[dict]
 
     for commit_data in commits:
         sha = commit_data["sha"]
-        endpoint = f"repos/{GITHUB_ORG}/{repo}/commits/{sha}/check-suites"
+        endpoint = f"repos/{repo}/commits/{sha}/check-suites"
         data = gh_api(endpoint)
         time.sleep(RATE_LIMIT_SLEEP)
 
@@ -453,9 +468,9 @@ def collect_renovate_config(repo: str) -> dict:
     }
 
     config_paths = [
-        f"repos/{GITHUB_ORG}/{repo}/contents/renovate.json",
-        f"repos/{GITHUB_ORG}/{repo}/contents/.github/renovate.json",
-        f"repos/{GITHUB_ORG}/{repo}/contents/renovate.json5",
+        f"repos/{repo}/contents/renovate.json",
+        f"repos/{repo}/contents/.github/renovate.json",
+        f"repos/{repo}/contents/renovate.json5",
     ]
 
     raw = _load_renovate_config_at_paths(config_paths)
@@ -539,7 +554,7 @@ def collect_dep_changes(
     first_sha = commits[-1]["sha"]
     last_sha = commits[0]["sha"]
 
-    endpoint = f"repos/{GITHUB_ORG}/{repo}/compare/{first_sha}...{last_sha}"
+    endpoint = f"repos/{repo}/compare/{first_sha}...{last_sha}"
     data = gh_api(endpoint)
 
     if not data or not isinstance(data, dict):
@@ -919,7 +934,7 @@ def collect_package_inventory(repo: str) -> list[dict]:
 
     # Check for Python lock files
     for lock_file in ["uv.lock", "poetry.lock", "pdm.lock"]:
-        endpoint = f"repos/{GITHUB_ORG}/{repo}/contents/{lock_file}"
+        endpoint = f"repos/{repo}/contents/{lock_file}"
         data = gh_api(endpoint)
         if data and isinstance(data, dict) and data.get("content"):
             try:
@@ -939,13 +954,13 @@ def collect_package_inventory(repo: str) -> list[dict]:
 
 def _collect_npm_inventory(repo: str) -> list[dict]:
     """Collect npm package inventory from lock files or package.json fallback."""
-    tree_data = gh_api(f"repos/{GITHUB_ORG}/{repo}/git/trees/main")
+    tree_data = gh_api(f"repos/{repo}/git/trees/main")
     if tree_data and isinstance(tree_data, dict):
         for lock_file in ["pnpm-lock.yaml", "package-lock.json"]:
             for item in tree_data.get("tree", []):
                 if item.get("path") != lock_file or not item.get("sha"):
                     continue
-                blob_data = gh_api(f"repos/{GITHUB_ORG}/{repo}/git/blobs/{item['sha']}")
+                blob_data = gh_api(f"repos/{repo}/git/blobs/{item['sha']}")
                 if not blob_data or not isinstance(blob_data, dict):
                     continue
                 try:
@@ -956,7 +971,7 @@ def _collect_npm_inventory(repo: str) -> list[dict]:
                 return [{"name": p[0], "version": p[1], "ecosystem": "npm"} for p in parser(content)]
             time.sleep(RATE_LIMIT_SLEEP)
 
-    endpoint = f"repos/{GITHUB_ORG}/{repo}/contents/package.json"
+    endpoint = f"repos/{repo}/contents/package.json"
     data = gh_api(endpoint)
     if data and isinstance(data, dict) and data.get("content"):
         try:
@@ -1216,7 +1231,7 @@ def _collect_ruleset_required_checks(repo: str) -> list[str]:
 
     """
     required_checks: list[str] = []
-    rulesets = gh_api(f"repos/{GITHUB_ORG}/{repo}/rulesets")
+    rulesets = gh_api(f"repos/{repo}/rulesets")
     if not rulesets or not isinstance(rulesets, list):
         return required_checks
 
@@ -1226,7 +1241,7 @@ def _collect_ruleset_required_checks(repo: str) -> list[str]:
         rs_id = rs.get("id")
         if not rs_id:
             continue
-        detail = gh_api(f"repos/{GITHUB_ORG}/{repo}/rulesets/{rs_id}")
+        detail = gh_api(f"repos/{repo}/rulesets/{rs_id}")
         time.sleep(RATE_LIMIT_SLEEP)
         if not detail or not isinstance(detail, dict):
             continue
@@ -1254,7 +1269,7 @@ def collect_branch_protection(repo: str) -> dict:
         Normalized protection result dict.
 
     """
-    endpoint = f"repos/{GITHUB_ORG}/{repo}/branches/main/protection"
+    endpoint = f"repos/{repo}/branches/main/protection"
     data = gh_api(endpoint)
     if data and isinstance(data, dict) and "message" not in data:
         return _legacy_branch_protection_result(data)
@@ -1286,7 +1301,7 @@ def collect_protection_changes(repo: str, start_date: str, end_date: str) -> lis
         Protection change event dicts.
 
     """
-    endpoint = f"repos/{GITHUB_ORG}/{repo}/activity"
+    endpoint = f"repos/{repo}/activity"
     data = gh_api(endpoint, paginate=True)
     if not data or not isinstance(data, list):
         return []
@@ -1326,8 +1341,9 @@ def _load_cached_repo_counts(cache_dir: Path, repo: str) -> tuple[int, int]:
         Tuple of (commit_count, pr_count).
 
     """
-    commits = read_cache_file(cache_dir, "commits", f"{repo}.json") or []
-    prs = read_cache_file(cache_dir, "prs", f"{repo}.json") or []
+    cache_name = f"{repo_cache_name(repo)}.json"
+    commits = read_cache_file(cache_dir, "commits", cache_name) or []
+    prs = read_cache_file(cache_dir, "prs", cache_name) or []
     return len(commits), len(prs)
 
 
@@ -1445,22 +1461,23 @@ def _write_repo_cache_files(cache_dir: Path, repo: str, artifacts: dict) -> None
         artifacts: Collected artifact categories from ``_collect_repo_artifacts``.
 
     """
-    write_cache_file(cache_dir, "commits", f"{repo}.json", artifacts["commits"])
-    write_cache_file(cache_dir, "prs", f"{repo}.json", artifacts["prs"])
-    write_cache_file(cache_dir, "checks", f"{repo}.json", artifacts["checks"])
-    write_cache_file(cache_dir, "deps", f"{repo}.json", artifacts["deps"])
-    write_cache_file(cache_dir, "pr_audits", f"{repo}.json", artifacts["pr_audits"])
+    cache_name = f"{repo_cache_name(repo)}.json"
+    write_cache_file(cache_dir, "commits", cache_name, artifacts["commits"])
+    write_cache_file(cache_dir, "prs", cache_name, artifacts["prs"])
+    write_cache_file(cache_dir, "checks", cache_name, artifacts["checks"])
+    write_cache_file(cache_dir, "deps", cache_name, artifacts["deps"])
+    write_cache_file(cache_dir, "pr_audits", cache_name, artifacts["pr_audits"])
     write_cache_file(
         cache_dir,
         "renovate",
-        f"{repo}.json",
+        cache_name,
         artifacts["renovate_config"],
     )
-    write_cache_file(cache_dir, "vulns", f"{repo}.json", artifacts["vuln_results"])
+    write_cache_file(cache_dir, "vulns", cache_name, artifacts["vuln_results"])
     write_cache_file(
         cache_dir,
         "protection",
-        f"{repo}.json",
+        cache_name,
         {
             "rules": artifacts["protection"],
             "changes": artifacts["protection_changes"],
@@ -1489,8 +1506,9 @@ def collect_repo(
         Tuple of (commit_count, pr_count).
 
     """
+    repo = normalize_repo(repo)
     print(f"\n{'=' * 60}")
-    print(f"  Collecting: {GITHUB_ORG}/{repo}")
+    print(f"  Collecting: {repo}")
     print(f"{'=' * 60}")
 
     if not force and has_cached_data(cache_dir, repo, "commits"):
@@ -1547,7 +1565,7 @@ def main() -> None:
         sys.exit(1)
     print(f"Using: {gh_version}")
 
-    repos = args.repos or TARGET_REPOS
+    repos = [normalize_repo(r) for r in (args.repos or TARGET_REPOS)]
     cache_dir = get_cache_dir(args.cache_dir, args.start, args.end)
     ensure_cache_structure(cache_dir)
 
