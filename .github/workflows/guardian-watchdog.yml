@@ -1,0 +1,327 @@
+---
+name: Guardian Watchdog
+
+on:
+  schedule:
+    - cron: "30 4 * * *" # 10:00 AM IST — checks the 8 AM IST daily run
+    - cron: "30 11 * * *" # 5:00 PM IST — checks the 3 PM IST daily run
+    - cron: "0 17 * * *" # 10:30 PM IST — afternoon backstop
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: write
+  issues: write
+
+concurrency:
+  group: guardian-watchdog
+  cancel-in-progress: true
+
+jobs:
+  check-daily:
+    runs-on: ubuntu-24.04
+    outputs:
+      daily_dispatched: ${{ steps.dispatch.outputs.dispatched }}
+      daily_failed: ${{ steps.failure.outputs.daily_failed }}
+      daily_failed_url: ${{ steps.failure.outputs.daily_failed_url }}
+    steps:
+      - name: Check daily workflow freshness
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          THRESHOLD_HOURS=8
+
+          echo "::group::Fetching recent daily workflow runs"
+          LATEST_RUN=$(gh run list \
+            --workflow guardian-daily.yml \
+            --limit 5 \
+            --json status,conclusion,updatedAt \
+            --jq '
+              [.[] | select(
+                .conclusion == "success" or
+                .status == "in_progress" or
+                .status == "queued"
+              )] | first
+            ')
+          echo "Latest qualifying run: $LATEST_RUN"
+          echo "::endgroup::"
+
+          if [ -z "$LATEST_RUN" ] || [ "$LATEST_RUN" = "null" ]; then
+            echo "No recent successful or active run found"
+            echo "daily_stale=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          STATUS=$(echo "$LATEST_RUN" | jq -r '.status // empty')
+          if [ "$STATUS" = "in_progress" ] || [ "$STATUS" = "queued" ]; then
+            echo "A run is currently $STATUS — no action needed"
+            echo "daily_stale=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          LAST_RUN_TIME=$(echo "$LATEST_RUN" | jq -r '.updatedAt')
+          LAST_RUN_EPOCH=$(date -u -d "$LAST_RUN_TIME" +%s)
+          NOW_EPOCH=$(date -u +%s)
+          AGE_HOURS=$(( (NOW_EPOCH - LAST_RUN_EPOCH) / 3600 ))
+
+          echo "Last successful run: $LAST_RUN_TIME ($AGE_HOURS hours ago)"
+          echo "Threshold: $THRESHOLD_HOURS hours"
+
+          if [ "$AGE_HOURS" -ge "$THRESHOLD_HOURS" ]; then
+            echo "STALE: Last run was $AGE_HOURS hours ago"
+            echo "daily_stale=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "FRESH: Last run was $AGE_HOURS hours ago"
+            echo "daily_stale=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Detect failed daily run
+        id: failure
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          LATEST=$(gh run list \
+            --workflow guardian-daily.yml \
+            --limit 1 \
+            --json status,conclusion,url,updatedAt,displayTitle \
+            --jq '.[0]')
+          echo "Latest daily run: $LATEST"
+
+          STATUS=$(echo "$LATEST" | jq -r '.status // empty')
+          CONCLUSION=$(echo "$LATEST" | jq -r '.conclusion // empty')
+          URL=$(echo "$LATEST" | jq -r '.url // empty')
+
+          if [ "$STATUS" = "completed" ] && [ "$CONCLUSION" = "failure" ]; then
+            echo "FAIL: Latest daily run failed"
+            echo "daily_failed=true" >> "$GITHUB_OUTPUT"
+            echo "daily_failed_url=$URL" >> "$GITHUB_OUTPUT"
+          else
+            echo "Latest daily run is not a failure (status=$STATUS conclusion=$CONCLUSION)"
+            echo "daily_failed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Dispatch daily workflow
+        id: dispatch
+        if: steps.check.outputs.daily_stale == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GUARDIAN_GH_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::GUARDIAN_GH_TOKEN is not set — cannot dispatch recovery run"
+            exit 1
+          fi
+          echo "Dispatching guardian-daily.yml..."
+          gh workflow run guardian-daily.yml
+          echo "dispatched=true" >> "$GITHUB_OUTPUT"
+          echo "Daily workflow dispatched at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+  check-weekly:
+    runs-on: ubuntu-24.04
+    outputs:
+      weekly_dispatched: ${{ steps.dispatch.outputs.dispatched }}
+      weekly_failed: ${{ steps.failure.outputs.weekly_failed }}
+      weekly_failed_url: ${{ steps.failure.outputs.weekly_failed_url }}
+    steps:
+      - name: Check if today is Monday
+        id: day-check
+        run: |
+          DAY_OF_WEEK=$(date -u +%u)
+          echo "Day of week: $DAY_OF_WEEK (1=Monday)"
+          if [ "$DAY_OF_WEEK" = "1" ]; then
+            echo "is_monday=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_monday=false" >> "$GITHUB_OUTPUT"
+            echo "Not Monday — skipping weekly check"
+          fi
+
+      - name: Check weekly workflow freshness
+        id: check
+        if: steps.day-check.outputs.is_monday == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          THRESHOLD_HOURS=24
+
+          LATEST_RUN=$(gh run list \
+            --workflow guardian-weekly.yml \
+            --limit 5 \
+            --json status,conclusion,updatedAt \
+            --jq '
+              [.[] | select(
+                .conclusion == "success" or
+                .status == "in_progress" or
+                .status == "queued"
+              )] | first
+            ')
+          echo "Latest qualifying weekly run: $LATEST_RUN"
+
+          if [ -z "$LATEST_RUN" ] || [ "$LATEST_RUN" = "null" ]; then
+            echo "No recent successful or active weekly run found"
+            echo "weekly_stale=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          STATUS=$(echo "$LATEST_RUN" | jq -r '.status // empty')
+          if [ "$STATUS" = "in_progress" ] || [ "$STATUS" = "queued" ]; then
+            echo "Weekly run is currently $STATUS — no action needed"
+            echo "weekly_stale=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          LAST_RUN_TIME=$(echo "$LATEST_RUN" | jq -r '.updatedAt')
+          LAST_RUN_EPOCH=$(date -u -d "$LAST_RUN_TIME" +%s)
+          NOW_EPOCH=$(date -u +%s)
+          AGE_HOURS=$(( (NOW_EPOCH - LAST_RUN_EPOCH) / 3600 ))
+
+          echo "Last successful weekly run: $LAST_RUN_TIME ($AGE_HOURS hours ago)"
+
+          if [ "$AGE_HOURS" -ge "$THRESHOLD_HOURS" ]; then
+            echo "STALE: Last weekly run was $AGE_HOURS hours ago"
+            echo "weekly_stale=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "FRESH: Last weekly run was $AGE_HOURS hours ago"
+            echo "weekly_stale=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Detect failed weekly run
+        id: failure
+        if: steps.day-check.outputs.is_monday == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          LATEST=$(gh run list \
+            --workflow guardian-weekly.yml \
+            --limit 1 \
+            --json status,conclusion,url,updatedAt \
+            --jq '.[0]')
+          echo "Latest weekly run: $LATEST"
+
+          STATUS=$(echo "$LATEST" | jq -r '.status // empty')
+          CONCLUSION=$(echo "$LATEST" | jq -r '.conclusion // empty')
+          URL=$(echo "$LATEST" | jq -r '.url // empty')
+
+          if [ "$STATUS" = "completed" ] && [ "$CONCLUSION" = "failure" ]; then
+            echo "FAIL: Latest weekly run failed"
+            echo "weekly_failed=true" >> "$GITHUB_OUTPUT"
+            echo "weekly_failed_url=$URL" >> "$GITHUB_OUTPUT"
+          else
+            echo "Latest weekly run is not a failure (status=$STATUS conclusion=$CONCLUSION)"
+            echo "weekly_failed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Dispatch weekly workflow
+        id: dispatch
+        if: steps.check.outputs.weekly_stale == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GUARDIAN_GH_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::GUARDIAN_GH_TOKEN is not set — cannot dispatch recovery run"
+            exit 1
+          fi
+          echo "Dispatching guardian-weekly.yml..."
+          gh workflow run guardian-weekly.yml
+          echo "dispatched=true" >> "$GITHUB_OUTPUT"
+          echo "Weekly workflow dispatched at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+  notify:
+    runs-on: ubuntu-24.04
+    needs: [check-daily, check-weekly]
+    if: |
+      always() && (
+        needs.check-daily.outputs.daily_dispatched == 'true' ||
+        needs.check-weekly.outputs.weekly_dispatched == 'true' ||
+        needs.check-daily.outputs.daily_failed == 'true' ||
+        needs.check-weekly.outputs.weekly_failed == 'true'
+      )
+    steps:
+      - name: Create or update notification issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          DAILY_DISPATCHED: ${{ needs.check-daily.outputs.daily_dispatched }}
+          WEEKLY_DISPATCHED: ${{ needs.check-weekly.outputs.weekly_dispatched }}
+          DAILY_FAILED: ${{ needs.check-daily.outputs.daily_failed }}
+          WEEKLY_FAILED: ${{ needs.check-weekly.outputs.weekly_failed }}
+          DAILY_FAILED_URL: ${{ needs.check-daily.outputs.daily_failed_url }}
+          WEEKLY_FAILED_URL: ${{ needs.check-weekly.outputs.weekly_failed_url }}
+        run: |
+          TODAY=$(date -u +%Y-%m-%d)
+          TITLE="Watchdog: Guardian health alert ($TODAY)"
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          BODY="## Watchdog Alert\n\n"
+          BODY+="Detected at: \`${NOW}\`\n\n"
+
+          if [ "$DAILY_FAILED" = "true" ]; then
+            BODY+="- :x: **Daily workflow failed**"
+            if [ -n "$DAILY_FAILED_URL" ]; then
+              BODY+=" — [view run](${DAILY_FAILED_URL})"
+            fi
+            BODY+="\n"
+          fi
+          if [ "$WEEKLY_FAILED" = "true" ]; then
+            BODY+="- :x: **Weekly workflow failed**"
+            if [ -n "$WEEKLY_FAILED_URL" ]; then
+              BODY+=" — [view run](${WEEKLY_FAILED_URL})"
+            fi
+            BODY+="\n"
+          fi
+          if [ "$DAILY_DISPATCHED" = "true" ]; then
+            BODY+="- :warning: **Daily workflow** was stale — dispatched recovery run\n"
+          fi
+          if [ "$WEEKLY_DISPATCHED" = "true" ]; then
+            BODY+="- :warning: **Weekly workflow** was stale — dispatched recovery run\n"
+          fi
+
+          BODY+="\n---\n"
+          BODY+="*This issue was created automatically by the Guardian watchdog.*"
+
+          gh label create "watchdog" \
+            --description "Automated alerts from Guardian watchdog" \
+            --color "FF6B35" \
+            --force 2>/dev/null || true
+
+          EXISTING_NUM=$(gh issue list \
+            --label "watchdog" \
+            --state open \
+            --search "Watchdog: Guardian health alert ($TODAY) in:title" \
+            --json number,title \
+            --jq "[.[] | select(.title == \"Watchdog: Guardian health alert ($TODAY)\")] | first | .number // empty")
+
+          if [ -n "$EXISTING_NUM" ]; then
+            echo "Open watchdog issue #$EXISTING_NUM exists — commenting"
+            COMMENT="### Watchdog update (\`${NOW}\`)\n\n"
+            if [ "$DAILY_FAILED" = "true" ]; then
+              COMMENT+="- Daily still/again failing"
+              if [ -n "$DAILY_FAILED_URL" ]; then
+                COMMENT+=" — [run](${DAILY_FAILED_URL})"
+              fi
+              COMMENT+="\n"
+            fi
+            if [ "$WEEKLY_FAILED" = "true" ]; then
+              COMMENT+="- Weekly still/again failing"
+              if [ -n "$WEEKLY_FAILED_URL" ]; then
+                COMMENT+=" — [run](${WEEKLY_FAILED_URL})"
+              fi
+              COMMENT+="\n"
+            fi
+            if [ "$DAILY_DISPATCHED" = "true" ]; then
+              COMMENT+="- Dispatched daily recovery run\n"
+            fi
+            if [ "$WEEKLY_DISPATCHED" = "true" ]; then
+              COMMENT+="- Dispatched weekly recovery run\n"
+            fi
+            gh issue comment "$EXISTING_NUM" --body "$(echo -e "$COMMENT")"
+          else
+            gh issue create \
+              --title "$TITLE" \
+              --body "$(echo -e "$BODY")" \
+              --label "watchdog"
+          fi
