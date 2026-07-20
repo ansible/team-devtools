@@ -1,28 +1,26 @@
 #!/usr/bin/env python3
+"""Fetch open PRs across Ansible Devtools repositories and categorize by review status.
+
+Categories:
+ready_to_merge     - approved, checks passing, no conflicts
+needs_review       - no reviews yet or review requested
+changes_requested  - reviewer requested changes
+draft              - PR is in draft state
+stale              - no activity in 14+ days
+blocked            - merge conflicts or failing checks (non-draft, reviewed)
+
+Usage:
+python3 scripts/fetch_open_prs.py ansible ansible-lint
+python3 scripts/fetch_open_prs.py --repos-file config/repos.json
+python3 scripts/fetch_open_prs.py --repos-file config/repos.json --stale-days 14
+python3 scripts/fetch_open_prs.py --repos-file config/repos.json --include-bots
 """
-  Fetch open PRs across Ansible Devtools repositories and categorize by review status.
-  
-  Categories:
-    ready_to_merge     - approved, checks passing, no conflicts
-    needs_review       - no reviews yet or review requested
-    changes_requested  - reviewer requested changes
-    draft              - PR is in draft state
-    stale              - no activity in 14+ days
-    blocked            - merge conflicts or failing checks (non-draft, reviewed)
-  
-  Usage:
-      python3 scripts/fetch_open_prs.py ansible ansible-lint
-      python3 scripts/fetch_open_prs.py --repos-file config/repos.json
-      python3 scripts/fetch_open_prs.py --repos-file config/repos.json --stale-days 14
-      python3 scripts/fetch_open_prs.py --repos-file config/repos.json --include-bots
-"""
-  
+
 import argparse
 import json
 import subprocess
 import sys
-from datetime import datetime, timezone
-
+from datetime import UTC, datetime
 
 STALE_THRESHOLD_DAYS = 14
 
@@ -120,10 +118,10 @@ def fetch_repo_prs(owner, repo, stale_days, include_bots):
             "prs": [], "bot_prs": [],
             "summary": {"total": 0, "ready_to_merge": 0, "needs_review": 0,
                         "changes_requested": 0, "draft": 0, "stale": 0, "blocked": 0},
-            "bot_summary": {"total": 0}
+            "bot_summary": {"total": 0},
         }
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     human_prs = []
     bot_prs = []
 
@@ -221,7 +219,7 @@ def main():
                 "blocked": sum(r["summary"]["blocked"] for r in results),
                 "total_bot_prs": sum(r["bot_summary"]["total"] for r in results),
                 "repos_with_errors": sum(1 for r in results if r["error"]),
-            }
+            },
         }
     elif args.owner and args.repo:
         output = fetch_repo_prs(args.owner, args.repo, args.stale_days, args.include_bots)

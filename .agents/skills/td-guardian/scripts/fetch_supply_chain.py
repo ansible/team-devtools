@@ -20,7 +20,7 @@ import json
 import os
 import sys
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
@@ -83,7 +83,7 @@ def gh_api(endpoint: str, per_page: int = 100) -> Any:
                         break
         except (HTTPError, URLError) as e:
             print(f"  WARN: GitHub API error for {endpoint}: {e}", file=sys.stderr)
-            return results if results else []
+            return results or []
 
     return results
 
@@ -126,7 +126,7 @@ def fetch_pr_commits(owner: str, repo: str, pr_number: int) -> list[dict]:
 
 
 def detect_post_approval_commits(
-    owner: str, repo: str, pr: dict, reviews: list[dict], commits: list[dict]
+    owner: str, repo: str, pr: dict, reviews: list[dict], commits: list[dict],
 ) -> dict | None:
     """Check if commits were pushed after the last approval."""
     approvals = [
@@ -191,7 +191,7 @@ def detect_post_approval_commits(
 
 
 def detect_bot_only_approval(
-    owner: str, repo: str, pr: dict, reviews: list[dict]
+    owner: str, repo: str, pr: dict, reviews: list[dict],
 ) -> dict | None:
     """Check if a PR was merged with only bot approvals."""
     approvals = [
@@ -411,7 +411,7 @@ def process_repo(owner: str, repo: str, since: str, scan_vulns: bool = True) -> 
 
     # Vulnerability scan
     if scan_vulns:
-        print(f"    Scanning dependencies for vulnerabilities...", file=sys.stderr)
+        print("    Scanning dependencies for vulnerabilities...", file=sys.stderr)
         packages = fetch_dependency_versions(owner, repo)
         if packages:
             vuln_findings = detect_vulnerabilities(owner, repo, packages[:50])
@@ -440,7 +440,7 @@ def main():
         config = json.load(f)
 
     repos = config.get("repos", [])
-    since = (datetime.now(timezone.utc) - timedelta(days=args.days)).strftime("%Y-%m-%d")
+    since = (datetime.now(UTC) - timedelta(days=args.days)).strftime("%Y-%m-%d")
 
     print(f"Supply-chain audit: {len(repos)} repos, since {since}", file=sys.stderr)
 
@@ -459,7 +459,7 @@ def main():
         total_vulns += len(result["vulnerabilities"])
 
     output = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "since": since,
         "days": args.days,
         "aggregate": {

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Generate a self-contained HTML dashboard from Guardian JSON data.
+"""Generate a self-contained HTML dashboard from Guardian JSON data.
 
 Produces a single index.html with embedded CSS — no external dependencies.
 Designed to be deployed to GitHub Pages via Actions.
@@ -64,18 +63,18 @@ def status_label(status):
 
 def card_html(title, status, detail):
     cls = status_class(status)
-    return f'''<div class="card {cls}">
+    return f"""<div class="card {cls}">
   <div class="card-title">{esc(title)}</div>
   <div class="card-status">{esc(status_label(status))}</div>
   <div class="card-detail">{esc(detail)}</div>
-</div>'''
+</div>"""
 
 
 def section_html(section_id, title, count, content, collapsed=False):
-    return f'''<details class="section" id="{section_id}" {"" if collapsed else "open"}>
+    return f"""<details class="section" id="{section_id}" {"" if collapsed else "open"}>
   <summary><h2>{esc(title)} <span class="badge">{count}</span></h2></summary>
   {content}
-</details>'''
+</details>"""
 
 
 def build_changes_section(changes_data):
@@ -295,9 +294,7 @@ def build_ci_section(ci_data):
         slug = f"{repo.get('owner', '?')}/{repo.get('repo', '?')}"
         s = repo.get("summary", {})
         repo_status = "ok"
-        if repo.get("error"):
-            repo_status = "error"
-        elif s.get("failing", 0) > 0:
+        if repo.get("error") or s.get("failing", 0) > 0:
             repo_status = "error"
         elif s.get("flaky", 0) > 0:
             repo_status = "warn"
@@ -310,7 +307,7 @@ def build_ci_section(ci_data):
             f"<td>{s.get('failing', 0)}</td>"
             f"<td>{s.get('flaky', 0)}</td>"
             f'<td><span class="status {repo_status}">{repo_status.upper()}</span></td>'
-            f"</tr>"
+            f"</tr>",
         )
 
         for wf in repo.get("workflows", []):
@@ -336,9 +333,9 @@ def build_ci_section(ci_data):
                 f"<td>{esc(jobs or '-')}</td>"
                 f"</tr>"
             )
-        content += f'''<h3>Failing Workflows ({len(failing)})</h3>
+        content += f"""<h3>Failing Workflows ({len(failing)})</h3>
 <table><thead><tr><th>Repo</th><th>Workflow</th><th>Age</th><th>Failing Jobs</th></tr></thead>
-<tbody>{rows}</tbody></table>'''
+<tbody>{rows}</tbody></table>"""
 
     if flaky:
         rows = ""
@@ -352,14 +349,14 @@ def build_ci_section(ci_data):
                 f"<td>{esc(wf.get('conclusion', '?'))}</td>"
                 f"</tr>"
             )
-        content += f'''<h3>Flaky Workflows ({len(flaky)})</h3>
+        content += f"""<h3>Flaky Workflows ({len(flaky)})</h3>
 <table><thead><tr><th>Repo</th><th>Workflow</th><th>Last Result</th></tr></thead>
-<tbody>{rows}</tbody></table>'''
+<tbody>{rows}</tbody></table>"""
 
     rows = "\n".join(all_repos)
-    content += f'''<h3>Per-Repo Status</h3>
+    content += f"""<h3>Per-Repo Status</h3>
 <table><thead><tr><th>Repository</th><th>Total</th><th>Passing</th><th>Failing</th><th>Flaky</th><th>Status</th></tr></thead>
-<tbody>{rows}</tbody></table>'''
+<tbody>{rows}</tbody></table>"""
 
     agg = ci_data.get("aggregate", ci_data.get("summary", {}))
     total = agg.get("total_workflows", agg.get("total", 0))
@@ -411,9 +408,9 @@ def build_pr_section(prs_data):
                 f"<td>{pr.get('age_days', 0)}d</td>"
                 f"</tr>"
             )
-        content += f'''<h3><span class="status {cls}">{cat_title}</span> ({len(prs)})</h3>
+        content += f"""<h3><span class="status {cls}">{cat_title}</span> ({len(prs)})</h3>
 <table><thead><tr><th>Repo</th><th>PR</th><th>Title</th><th>Author</th><th>Age</th></tr></thead>
-<tbody>{rows}</tbody></table>'''
+<tbody>{rows}</tbody></table>"""
 
     agg = prs_data.get("aggregate", prs_data.get("summary", {}))
     total = agg.get("total_prs", 0)
@@ -460,9 +457,9 @@ def build_renovate_section(renovate_data):
                 f"<td>{pr.get('threshold_days', '?')}d</td>"
                 f"</tr>"
             )
-        content += f'''<h3>Overdue ({len(overdue)})</h3>
+        content += f"""<h3>Overdue ({len(overdue)})</h3>
 <table><thead><tr><th>Repo</th><th>PR</th><th>Title</th><th>Type</th><th>Age</th><th>Threshold</th></tr></thead>
-<tbody>{rows}</tbody></table>'''
+<tbody>{rows}</tbody></table>"""
 
     if pending:
         pending.sort(key=lambda p: p.get("age_days", 0), reverse=True)
@@ -479,9 +476,9 @@ def build_renovate_section(renovate_data):
                 f"<td>{pr.get('age_days', 0)}d</td>"
                 f"</tr>"
             )
-        content += f'''<h3>Pending ({len(pending)})</h3>
+        content += f"""<h3>Pending ({len(pending)})</h3>
 <table><thead><tr><th>Repo</th><th>PR</th><th>Title</th><th>Type</th><th>Age</th></tr></thead>
-<tbody>{rows}</tbody></table>'''
+<tbody>{rows}</tbody></table>"""
 
     agg = renovate_data.get("aggregate", renovate_data.get("summary", {}))
     total = agg.get("total_prs", agg.get("total", 0))
@@ -525,10 +522,10 @@ def build_sonar_section(sonar_data):
             f"</tr>"
         )
 
-    content = f'''<table>
+    content = f"""<table>
 <thead><tr><th>Repository</th><th>Gate</th><th>Coverage</th><th>Bugs</th><th>Vulns</th><th>Smells</th><th>Hotspots</th><th>Security</th></tr></thead>
 <tbody>{rows}</tbody>
-</table>'''
+</table>"""
 
     failing = [r for r in results if r.get("gate_status") == "ERROR"]
     if failing:
@@ -850,10 +847,10 @@ def build_repo_status_section(ci_data, prs_data, codecov_data):
             f'</tr>'
         )
 
-    content = f'''<table>
+    content = f"""<table>
 <thead><tr><th>Repository</th><th>CI Status</th><th>Coverage</th><th>Open PRs</th></tr></thead>
 <tbody>{rows}</tbody>
-</table>'''
+</table>"""
 
     return section_html("repo-status", "Repository Status", len(all_slugs), content)
 
@@ -901,10 +898,10 @@ def build_codecov_section(codecov_data):
             f'</tr>'
         )
 
-    content = f'''<table>
+    content = f"""<table>
 <thead><tr><th>Repository</th><th>Coverage</th><th>Lines</th><th>Hits</th><th>Misses</th></tr></thead>
 <tbody>{rows}</tbody>
-</table>'''
+</table>"""
 
     agg = codecov_data.get("aggregate", {})
     below_50 = agg.get("repos_below_50", 0)
@@ -923,7 +920,8 @@ def build_codecov_section(codecov_data):
 
 def build_supply_chain_section(sc_data):
     """Build the Supply Chain Audit section showing post-approval commits,
-    bot-only approvals, and known vulnerabilities."""
+    bot-only approvals, and known vulnerabilities.
+    """
     if not sc_data:
         return ""
 
@@ -967,9 +965,9 @@ def build_supply_chain_section(sc_data):
                 f"<td>{esc(commit_info)}</td>"
                 f"</tr>"
             )
-        content += f'''<h3>Post-Approval Commits ({len(all_post_approval)})</h3>
+        content += f"""<h3>Post-Approval Commits ({len(all_post_approval)})</h3>
 <table><thead><tr><th>Repo</th><th>PR</th><th>Title</th><th>Author</th><th>After Approval</th><th>Approver</th><th>Commits</th></tr></thead>
-<tbody>{rows}</tbody></table>'''
+<tbody>{rows}</tbody></table>"""
 
     # --- Bot-Only Approvals ---
     if all_bot_only:
@@ -990,9 +988,9 @@ def build_supply_chain_section(sc_data):
                 f"<td>{'Yes' if f.get('is_bot_pr') else 'No'}</td>"
                 f"</tr>"
             )
-        content += f'''<h3>Bot-Only Approvals ({len(all_bot_only)})</h3>
+        content += f"""<h3>Bot-Only Approvals ({len(all_bot_only)})</h3>
 <table><thead><tr><th>Repo</th><th>PR</th><th>Title</th><th>Author</th><th>Approved By</th><th>Bot PR?</th></tr></thead>
-<tbody>{rows}</tbody></table>'''
+<tbody>{rows}</tbody></table>"""
 
     # --- Known Vulnerabilities ---
     all_vulns = []
@@ -1017,9 +1015,9 @@ def build_supply_chain_section(sc_data):
                 f"<td>{esc(v.get('ecosystem', ''))}</td>"
                 f"</tr>"
             )
-        content += f'''<h3>Known Vulnerabilities ({len(all_vulns)})</h3>
+        content += f"""<h3>Known Vulnerabilities ({len(all_vulns)})</h3>
 <table><thead><tr><th>Repo</th><th>ID</th><th>Severity</th><th>Package</th><th>Ecosystem</th></tr></thead>
-<tbody>{rows}</tbody></table>'''
+<tbody>{rows}</tbody></table>"""
 
     if not all_post_approval and not all_bot_only and not all_vulns:
         content += '<p style="color:var(--ok-text);">No supply-chain findings in this period.</p>'
@@ -1061,7 +1059,7 @@ def build_correlation_section(correlation_data):
                 dep_link = f'<a href="{esc(dep_url)}" target="_blank">#{dep_pr.get("number", "")}</a>' if dep_url else f'#{dep_pr.get("number", "")}'
                 dep_html = f'<p style="margin-top:0.5rem"><strong>Trigger:</strong> {dep_link} — {esc(dep_pr.get("title", "")[:60])}</p>'
 
-            content += f'''<div style="margin-bottom:1rem; padding:0.75rem; border-left:3px solid var(--{cls}); background:var(--{cls}-bg); border-radius:4px;">
+            content += f"""<div style="margin-bottom:1rem; padding:0.75rem; border-left:3px solid var(--{cls}); background:var(--{cls}-bg); border-radius:4px;">
 <p><span class="status {cls}">{type_label}</span> <strong>{esc(cluster.get("description", ""))}</strong></p>
 <p style="color:var(--text-muted); font-size:0.85rem;">Likely cause: {esc(cluster.get("likely_cause", "Unknown"))}</p>
 <p style="font-size:0.85rem;">Repos: {repos_html}</p>
@@ -1069,7 +1067,7 @@ def build_correlation_section(correlation_data):
 <details><summary style="font-size:0.8rem; color:var(--text-muted); cursor:pointer;">Affected workflows</summary>
 <table><thead><tr><th>Repo</th><th>Workflow</th></tr></thead><tbody>{wf_rows}</tbody></table>
 </details>
-</div>'''
+</div>"""
 
     if isolated:
         rows = ""
@@ -1080,9 +1078,9 @@ def build_correlation_section(correlation_data):
             flaky_tag = ' <span class="status warn">flaky</span>' if f.get("is_flaky") else ""
             rows += f"<tr><td>{esc(f.get('repo', ''))}</td><td>{link}{flaky_tag}</td><td>{esc(jobs)}</td></tr>"
 
-        content += f'''<h3>Isolated Failures ({len(isolated)})</h3>
+        content += f"""<h3>Isolated Failures ({len(isolated)})</h3>
 <table><thead><tr><th>Repo</th><th>Workflow</th><th>Failing Jobs</th></tr></thead>
-<tbody>{rows}</tbody></table>'''
+<tbody>{rows}</tbody></table>"""
 
     total_failures = summary.get("total_failures", 0)
     cluster_count = len(clusters)
@@ -1235,7 +1233,7 @@ def generate_dashboard(prs_data, ci_data, renovate_data, sonar_data, correlation
             })
 
     js = TOOLBAR_JS.replace("%GH_TOKEN%", esc(gh_token)).replace(
-        "%REPOS_JSON%", json.dumps(repos_list)
+        "%REPOS_JSON%", json.dumps(repos_list),
     )
 
     health_cards = build_health_cards(prs_data, ci_data, renovate_data, sonar_data, codecov_data, security_audit_data)

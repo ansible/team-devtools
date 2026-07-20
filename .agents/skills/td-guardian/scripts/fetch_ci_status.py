@@ -1,5 +1,4 @@
-"""
-Fetch GitHub Actions workflow status across Ansible Devtools repositories.
+"""Fetch GitHub Actions workflow status across Ansible Devtools repositories.
 
 Reports the latest run status for each workflow on the default branch,
 identifies failing jobs, and detects flaky workflows (alternating pass/fail).
@@ -18,8 +17,7 @@ import argparse
 import json
 import subprocess
 import sys
-from datetime import datetime, timezone, timedelta
-
+from datetime import UTC, datetime, timedelta
 
 FLAKY_WINDOW = 5
 
@@ -52,7 +50,7 @@ def detect_flaky(owner, repo, workflow_id, branch):
     """Check last N runs of a workflow to detect flaky behavior."""
     data = gh_api(
         f"repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs"
-        f"?branch={branch}&per_page={FLAKY_WINDOW}&status=completed"
+        f"?branch={branch}&per_page={FLAKY_WINDOW}&status=completed",
     )
     if not data or "workflow_runs" not in data:
         return False
@@ -96,7 +94,7 @@ def fetch_primary_ci_status(owner, repo, branch, ci_workflow):
 
     data = gh_api(
         f"repos/{owner}/{repo}/actions/workflows/{ci_workflow}/runs"
-        f"?branch={branch}&event=schedule&per_page=1&status=completed"
+        f"?branch={branch}&event=schedule&per_page=1&status=completed",
     )
 
     if not data or not data.get("workflow_runs"):
@@ -116,7 +114,7 @@ def fetch_repo_ci(owner, repo, branch, days, event=None, ci_workflow=None):
     """Fetch CI status for a single repo."""
     print(f"\nFetching CI for {owner}/{repo}...", file=sys.stderr)
 
-    since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    since = (datetime.now(UTC) - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     endpoint = (
         f"repos/{owner}/{repo}/actions/runs"
@@ -144,7 +142,7 @@ def fetch_repo_ci(owner, repo, branch, days, event=None, ci_workflow=None):
         if wf_name not in seen:
             seen[wf_name] = run
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     workflows = []
 
     for wf_name, run in seen.items():

@@ -1,5 +1,4 @@
-"""
-Fetch Renovate and dependency bot PRs across Ansible Devtools repositories.
+"""Fetch Renovate and dependency bot PRs across Ansible Devtools repositories.
 
 Tracks open dependency update PRs and applies cooldown policy thresholds:
 - Security updates: overdue after 3 days
@@ -16,8 +15,7 @@ import json
 import re
 import subprocess
 import sys
-from datetime import datetime, timezone
-
+from datetime import UTC, datetime
 
 BOT_AUTHORS = {
     "renovate[bot]",
@@ -28,7 +26,7 @@ BOT_AUTHORS = {
 }
 
 SECURITY_PATTERNS = re.compile(
-    r"(CVE-|security|vulnerability|GHSA-)", re.IGNORECASE
+    r"(CVE-|security|vulnerability|GHSA-)", re.IGNORECASE,
 )
 MAJOR_PATTERNS = re.compile(
     r"(major update|update .+ to v?\d+\.0|bump .+ from \d+\.\d+ to \d+\.)",
@@ -94,7 +92,7 @@ def fetch_repo_renovate(owner, repo):
                         "all_checks_passing": True},
         }
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     dep_prs = []
 
     for pr in prs_raw:

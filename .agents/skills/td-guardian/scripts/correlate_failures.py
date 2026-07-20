@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Correlate CI failures across Ansible Devtools repositories.
+"""Correlate CI failures across Ansible Devtools repositories.
 
 Analyzes CI failure data to detect common root causes:
 - Temporal clusters: multiple repos failing within the same time window
@@ -18,7 +17,7 @@ import json
 import re
 import sys
 from collections import defaultdict
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
 IST = timezone(timedelta(hours=5, minutes=30))
 
@@ -99,7 +98,7 @@ def collect_recent_dep_prs(renovate_data, hours=48):
 
     results = renovate_data.get("results", [renovate_data])
     recent = []
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     for repo in results:
         slug = f"{repo.get('owner', '?')}/{repo.get('repo', '?')}"
@@ -331,7 +330,7 @@ def main():
     renovate_data = load_json_safe(args.renovate)
 
     result = correlate(ci_data, renovate_data)
-    result["fetched_at"] = datetime.now(timezone.utc).isoformat()
+    result["fetched_at"] = datetime.now(UTC).isoformat()
 
     output = json.dumps(result, indent=2)
 

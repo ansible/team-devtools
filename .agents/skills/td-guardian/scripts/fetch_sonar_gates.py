@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Fetch SonarCloud quality gate status and metrics across Ansible Devtools projects.
+"""Fetch SonarCloud quality gate status and metrics across Ansible Devtools projects.
 
 Reports quality gate pass/fail, coverage, bugs, vulnerabilities, code smells,
 duplication, and security hotspots for each project.
@@ -17,8 +16,7 @@ import os
 import sys
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
-
+from datetime import UTC, datetime
 
 METRICS = [
     "coverage",
@@ -178,7 +176,7 @@ def main():
     args = parser.parse_args()
 
     token = os.environ.get("SONAR_TOKEN")
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     if args.sonar_config:
         config = load_sonar_config(args.sonar_config)

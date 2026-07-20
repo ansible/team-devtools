@@ -1,5 +1,4 @@
-"""
-Generate markdown reports from Guardian JSON data.
+"""Generate markdown reports from Guardian JSON data.
 
 Reads JSON output from fetch scripts and produces formatted markdown dashboards.
 
@@ -76,7 +75,7 @@ def generate_pr_report(data):
         agg = data["aggregate"]
         lines.append("## Summary")
         lines.append("")
-        lines.append(f"| Metric | Count |")
+        lines.append("| Metric | Count |")
         lines.append("|---|---|")
         lines.append(f"| Total open PRs | **{agg['total_prs']}** across {data['total_repos']} repos |")
         lines.append(f"| Ready to merge | {agg['ready_to_merge']} |")
@@ -130,7 +129,7 @@ def generate_pr_report(data):
                 f"| [#{pr['number']}]({pr['url']}) "
                 f"| {truncate(pr['title'])} "
                 f"| {pr['author']} "
-                f"| {pr['age_days']}d |"
+                f"| {pr['age_days']}d |",
             )
         lines.append("")
 
@@ -155,22 +154,22 @@ def generate_pr_report(data):
                 f"| {s.get('draft', 0)} "
                 f"| {s.get('stale', 0)} "
                 f"| {s.get('blocked', 0)} "
-                f"| {bots} |"
+                f"| {bots} |",
             )
     lines.append("")
 
     action_items = []
     for pr in prs_by_cat.get("ready_to_merge", []):
         action_items.append(
-            f"- **MERGE** [{pr['_repo']}#{pr['number']}]({pr['url']}) - {truncate(pr['title'], 80)}"
+            f"- **MERGE** [{pr['_repo']}#{pr['number']}]({pr['url']}) - {truncate(pr['title'], 80)}",
         )
     for pr in prs_by_cat.get("stale", []):
         action_items.append(
-            f"- **STALE** [{pr['_repo']}#{pr['number']}]({pr['url']}) - {pr['age_days']} days inactive"
+            f"- **STALE** [{pr['_repo']}#{pr['number']}]({pr['url']}) - {pr['age_days']} days inactive",
         )
     for pr in prs_by_cat.get("blocked", []):
         action_items.append(
-            f"- **BLOCKED** [{pr['_repo']}#{pr['number']}]({pr['url']}) - check conflicts/CI"
+            f"- **BLOCKED** [{pr['_repo']}#{pr['number']}]({pr['url']}) - check conflicts/CI",
         )
 
     if action_items:
@@ -244,7 +243,7 @@ def generate_ci_report(data):
                 f"| {wf['_repo']} "
                 f"| [{wf['name']}]({wf.get('url', '')}) "
                 f"| {wf.get('age_hours', '?')}h "
-                f"| {truncate(jobs, 50)} |"
+                f"| {truncate(jobs, 50)} |",
             )
         lines.append("")
 
@@ -257,7 +256,7 @@ def generate_ci_report(data):
             lines.append(
                 f"| {wf['_repo']} "
                 f"| [{wf['name']}]({wf.get('url', '')}) "
-                f"| {wf.get('conclusion', '?')} |"
+                f"| {wf.get('conclusion', '?')} |",
             )
         lines.append("")
 
@@ -283,18 +282,18 @@ def generate_ci_report(data):
                 f"| {s.get('passing', 0)} "
                 f"| {s.get('failing', 0)} "
                 f"| {s.get('flaky', 0)} "
-                f"| {status} |"
+                f"| {status} |",
             )
     lines.append("")
 
     action_items = []
     for wf in failing_workflows:
         action_items.append(
-            f"- **FIX CI** [{wf['_repo']}]({wf.get('url', '')}) - {wf['name']} failing"
+            f"- **FIX CI** [{wf['_repo']}]({wf.get('url', '')}) - {wf['name']} failing",
         )
     for wf in flaky_workflows:
         action_items.append(
-            f"- **INVESTIGATE** [{wf['_repo']}]({wf.get('url', '')}) - {wf['name']} flaky"
+            f"- **INVESTIGATE** [{wf['_repo']}]({wf.get('url', '')}) - {wf['name']} flaky",
         )
 
     if action_items:
@@ -370,7 +369,7 @@ def generate_renovate_report(data):
                 f"| {pr.get('update_type', '?')} "
                 f"| {pr.get('age_days', '?')}d "
                 f"| {pr.get('threshold_days', '?')}d "
-                f"| {pr.get('check_state', '?')} |"
+                f"| {pr.get('check_state', '?')} |",
             )
         lines.append("")
 
@@ -389,7 +388,7 @@ def generate_renovate_report(data):
                     f"| {truncate(pr['title'], 45)} "
                     f"| {pr.get('update_type', '?')} "
                     f"| {pr.get('age_days', '?')}d "
-                    f"| {pr.get('check_state', '?')} |"
+                    f"| {pr.get('check_state', '?')} |",
                 )
             lines.append("")
 
@@ -410,7 +409,7 @@ def generate_renovate_report(data):
                 f"| {s.get('security', 0)} "
                 f"| {s.get('major', 0)} "
                 f"| {s.get('minor', 0)} "
-                f"| {s.get('oldest_days', 0)}d |"
+                f"| {s.get('oldest_days', 0)}d |",
             )
     lines.append("")
 
@@ -419,13 +418,13 @@ def generate_renovate_report(data):
         if pr.get("update_type") == "security":
             action_items.append(
                 f"- **SECURITY** [{pr['_repo']}#{pr['number']}]({pr.get('url', '')}) - "
-                f"{truncate(pr['title'], 60)} ({pr.get('age_days', '?')}d, threshold {pr.get('threshold_days', '?')}d)"
+                f"{truncate(pr['title'], 60)} ({pr.get('age_days', '?')}d, threshold {pr.get('threshold_days', '?')}d)",
             )
     for pr in overdue_prs:
         if pr.get("update_type") != "security":
             action_items.append(
                 f"- **OVERDUE** [{pr['_repo']}#{pr['number']}]({pr.get('url', '')}) - "
-                f"{pr.get('update_type', '?')} update, {pr.get('age_days', '?')}d old"
+                f"{pr.get('update_type', '?')} update, {pr.get('age_days', '?')}d old",
             )
 
     if action_items:
@@ -523,7 +522,7 @@ def generate_sonar_report(data):
                 f"| {m.get('code_smells', 'N/A')} "
                 f"| {m.get('security_hotspots', 'N/A')} "
                 f"| {m.get('reliability_rating', 'N/A')} "
-                f"| {m.get('security_rating', 'N/A')} |"
+                f"| {m.get('security_rating', 'N/A')} |",
             )
     lines.append("")
 
@@ -614,7 +613,7 @@ def generate_codecov_report(data):
                 f"| {cov_str} "
                 f"| {repo.get('lines', 0):,} "
                 f"| {repo.get('hits', 0):,} "
-                f"| {repo.get('misses', 0):,} |"
+                f"| {repo.get('misses', 0):,} |",
             )
     lines.append("")
 
@@ -785,7 +784,7 @@ def generate_guardian_report(prs_data, ci_data, renovate_data, sonar_data, codec
             for wf in repo.get("workflows", []):
                 if wf.get("conclusion") == "failure" and not wf.get("is_flaky"):
                     action_items.append(
-                        f"- **CI FAILURE** [{slug}]({wf.get('url', '')}) - {wf['name']}"
+                        f"- **CI FAILURE** [{slug}]({wf.get('url', '')}) - {wf['name']}",
                     )
 
     if prs_data:
@@ -795,7 +794,7 @@ def generate_guardian_report(prs_data, ci_data, renovate_data, sonar_data, codec
                 slug = f"{repo.get('owner', '?')}/{repo.get('repo', '?')}"
                 if pr.get("category") == "ready_to_merge":
                     action_items.append(
-                        f"- **MERGE** [{slug}#{pr['number']}]({pr.get('url', '')}) - {truncate(pr['title'], 50)}"
+                        f"- **MERGE** [{slug}#{pr['number']}]({pr.get('url', '')}) - {truncate(pr['title'], 50)}",
                     )
 
     if renovate_data:
@@ -806,7 +805,7 @@ def generate_guardian_report(prs_data, ci_data, renovate_data, sonar_data, codec
                     slug = f"{repo.get('owner', '?')}/{repo.get('repo', '?')}"
                     action_items.append(
                         f"- **SECURITY DEP** [{slug}#{pr['number']}]({pr.get('url', '')}) - "
-                        f"{truncate(pr['title'], 50)}"
+                        f"{truncate(pr['title'], 50)}",
                     )
 
     if sonar_data:
@@ -992,7 +991,7 @@ def generate_handoff_report(prs_data, ci_data, renovate_data, sonar_data, codeco
                 if pr.get("is_overdue"):
                     overdue.append(
                         f"- [{slug}#{pr['number']}]({pr.get('url', '')}) - "
-                        f"{pr.get('update_type', '?')}: {truncate(pr['title'], 50)} ({pr.get('age_days', '?')}d)"
+                        f"{pr.get('update_type', '?')}: {truncate(pr['title'], 50)} ({pr.get('age_days', '?')}d)",
                     )
         if overdue:
             lines.extend(overdue)
@@ -1075,7 +1074,7 @@ def main():
 
         if args.mode == "guardian":
             report = generate_guardian_report(
-                prs_data, ci_data, renovate_data, sonar_data, codecov_data, changes_data
+                prs_data, ci_data, renovate_data, sonar_data, codecov_data, changes_data,
             )
         else:
             report = generate_handoff_report(prs_data, ci_data, renovate_data, sonar_data, codecov_data)

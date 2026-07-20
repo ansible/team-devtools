@@ -1,5 +1,4 @@
-"""
-Fetch code coverage data from Codecov for Ansible Devtools repositories.
+"""Fetch code coverage data from Codecov for Ansible Devtools repositories.
 
 Retrieves latest coverage percentages, trends, and commit details from the
 Codecov API. Works without authentication for public repositories.
@@ -14,9 +13,9 @@ import argparse
 import json
 import os
 import sys
-import urllib.request
 import urllib.error
-from datetime import datetime, timezone
+import urllib.request
+from datetime import UTC, datetime
 
 BASE_URL = "https://api.codecov.io/api/v2"
 
@@ -136,7 +135,7 @@ def main():
         output = {
             "mode": "batch",
             "total_repos": len(repos),
-            "fetched_at": datetime.now(timezone.utc).isoformat(),
+            "fetched_at": datetime.now(UTC).isoformat(),
             "results": results,
             "aggregate": {
                 "repos_with_coverage": len(active),

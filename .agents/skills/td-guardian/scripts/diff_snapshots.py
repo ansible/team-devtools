@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Compare Guardian fetch JSON against a previous compact snapshot.
+"""Compare Guardian fetch JSON against a previous compact snapshot.
 
 Produces reports/changes.json ("what changed since last check") and optionally
 rotates the baseline via --write-previous.
@@ -19,7 +18,7 @@ import argparse
 import json
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 def load_json_safe(path):
@@ -47,7 +46,7 @@ def _repo_results(data):
 
 def build_snapshot(prs_data, ci_data, renovate_data, codecov_data=None, sonar_data=None):
     """Normalize current fetch JSON into a compact comparable snapshot."""
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     workflows = {}
     for repo in _repo_results(ci_data):
@@ -105,7 +104,7 @@ def build_snapshot(prs_data, ci_data, renovate_data, codecov_data=None, sonar_da
 
     def agg(data, *keys):
         if not data:
-            return {k: 0 for k in keys}
+            return dict.fromkeys(keys, 0)
         src = data.get("aggregate", data.get("summary", {}))
         return {k: src.get(k, 0) for k in keys}
 
@@ -123,11 +122,11 @@ def build_snapshot(prs_data, ci_data, renovate_data, codecov_data=None, sonar_da
 
     if codecov_data:
         snapshot["aggregates"]["codecov"] = agg(
-            codecov_data, "average_coverage", "repos_below_50", "repos_above_80"
+            codecov_data, "average_coverage", "repos_below_50", "repos_above_80",
         )
     if sonar_data:
         snapshot["aggregates"]["sonar"] = agg(
-            sonar_data, "gate_error", "gate_ok", "total_vulnerabilities"
+            sonar_data, "gate_error", "gate_ok", "total_vulnerabilities",
         )
 
     return snapshot
@@ -286,7 +285,7 @@ def diff_snapshots(previous, current):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Diff Guardian snapshots for since-last-check deltas"
+        description="Diff Guardian snapshots for since-last-check deltas",
     )
     parser.add_argument("--prs", help="Current open PRs JSON")
     parser.add_argument("--ci", help="Current CI status JSON")
@@ -327,7 +326,7 @@ def main():
         sys.exit(1)
 
     current = build_snapshot(
-        prs_data, ci_data, renovate_data, codecov_data, sonar_data
+        prs_data, ci_data, renovate_data, codecov_data, sonar_data,
     )
     previous = load_json_safe(args.previous)
     if previous is None and args.previous:

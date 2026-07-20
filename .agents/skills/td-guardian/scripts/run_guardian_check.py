@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Guardian shift orchestrator — runs all fetch scripts and generates reports.
+"""Guardian shift orchestrator — runs all fetch scripts and generates reports.
 
 Modes:
     daily   - PRs + CI + Renovate checks, consolidated dashboard (run 2x/day)
@@ -19,8 +18,7 @@ import json
 import os
 import subprocess
 import sys
-from datetime import datetime, timezone
-
+from datetime import UTC, datetime
 
 SCRIPTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)))
 REPORTS_DIR = os.path.join(os.path.dirname(SCRIPTS_DIR), "reports")
@@ -78,7 +76,7 @@ def generate_report(mode, args, output_file):
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
     except subprocess.TimeoutExpired:
-        print(f"ERROR: Report generation timed out", file=sys.stderr)
+        print("ERROR: Report generation timed out", file=sys.stderr)
         return False
 
     if result.returncode != 0:
@@ -113,7 +111,7 @@ def main():
 
     os.makedirs(args.reports_dir, exist_ok=True)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     date_str = now.strftime("%Y-%m-%d")
     include_sonar = args.mode in ("weekly", "handoff")
     include_handoff = args.mode == "handoff"
@@ -271,7 +269,7 @@ def main():
         print(f"Handoff: handoff-{date_str}.md", file=sys.stderr)
     if errors > 0:
         print(f"Errors: {errors} script(s) failed", file=sys.stderr)
-    print("", file=sys.stderr)
+    print(file=sys.stderr)
 
     if errors > 0:
         sys.exit(2)

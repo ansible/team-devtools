@@ -72,7 +72,7 @@ def convert(cache_dir: str) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Convert audit cache to Guardian dashboard JSON"
+        description="Convert audit cache to Guardian dashboard JSON",
     )
     parser.add_argument(
         "--cache-dir",

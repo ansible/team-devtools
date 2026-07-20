@@ -1,21 +1,106 @@
 {
-    "repos": [
-      {"owner": "ansible", "repo": "actions", "default_branch": "main", "ci_workflow": "test.yml"},
-      {"owner": "ansible", "repo": "ansible-compat", "default_branch": "main", "ci_workflow": "tox.yml"},
-      {"owner": "ansible", "repo": "ansible-content-actions", "default_branch": "main", "ci_workflow": "ci.yaml"},
-      {"owner": "ansible", "repo": "ansible-creator", "default_branch": "main", "ci_workflow": "tox.yml"},
-      {"owner": "ansible", "repo": "ansible-dev-environment", "default_branch": "main", "ci_workflow": "tox.yml"},
-      {"owner": "ansible", "repo": "ansible-dev-tools", "default_branch": "main", "ci_workflow": "tox.yml"},
-      {"owner": "ansible", "repo": "ansible-lint", "default_branch": "main", "ci_workflow": "tox.yml"},
-      {"owner": "ansible", "repo": "ansible-navigator", "default_branch": "main", "ci_workflow": "tox.yml"},
-      {"owner": "ansible", "repo": "ansible-sign", "default_branch": "main", "ci_workflow": "tox.yml"},
-      {"owner": "ansible", "repo": "mkdocs-ansible", "default_branch": "main", "ci_workflow": "tox.yml"},
-      {"owner": "ansible", "repo": "molecule", "default_branch": "main", "ci_workflow": "tox.yml"},
-      {"owner": "ansible", "repo": "pytest-ansible", "default_branch": "main", "ci_workflow": "tox.yml"},
-      {"owner": "ansible", "repo": "team-devtools", "default_branch": "main", "ci_workflow": "test.yml"},
-      {"owner": "ansible", "repo": "tox-ansible", "default_branch": "main", "ci_workflow": "tox.yml"},
-      {"owner": "ansible", "repo": "vscode-ansible", "default_branch": "main", "ci_workflow": "ci.yaml"},
-      {"owner": "ansible-automation-platform", "repo": "ansible-devtools-container", "default_branch": "ansible-automation-platform-devel", "ci_workflow": "merge-gate.yaml"},
-      {"owner": "ansible-automation-platform", "repo": "ansible-devspaces-container", "default_branch": "ansible-automation-platform-devel", "ci_workflow": "merge-gate.yaml"}
-    ]
-  }
+  "repos": [
+    {
+      "ci_workflow": "test.yml",
+      "default_branch": "main",
+      "owner": "ansible",
+      "repo": "actions"
+    },
+    {
+      "ci_workflow": "tox.yml",
+      "default_branch": "main",
+      "owner": "ansible",
+      "repo": "ansible-compat"
+    },
+    {
+      "ci_workflow": "ci.yaml",
+      "default_branch": "main",
+      "owner": "ansible",
+      "repo": "ansible-content-actions"
+    },
+    {
+      "ci_workflow": "tox.yml",
+      "default_branch": "main",
+      "owner": "ansible",
+      "repo": "ansible-creator"
+    },
+    {
+      "ci_workflow": "tox.yml",
+      "default_branch": "main",
+      "owner": "ansible",
+      "repo": "ansible-dev-environment"
+    },
+    {
+      "ci_workflow": "tox.yml",
+      "default_branch": "main",
+      "owner": "ansible",
+      "repo": "ansible-dev-tools"
+    },
+    {
+      "ci_workflow": "tox.yml",
+      "default_branch": "main",
+      "owner": "ansible",
+      "repo": "ansible-lint"
+    },
+    {
+      "ci_workflow": "tox.yml",
+      "default_branch": "main",
+      "owner": "ansible",
+      "repo": "ansible-navigator"
+    },
+    {
+      "ci_workflow": "tox.yml",
+      "default_branch": "main",
+      "owner": "ansible",
+      "repo": "ansible-sign"
+    },
+    {
+      "ci_workflow": "tox.yml",
+      "default_branch": "main",
+      "owner": "ansible",
+      "repo": "mkdocs-ansible"
+    },
+    {
+      "ci_workflow": "tox.yml",
+      "default_branch": "main",
+      "owner": "ansible",
+      "repo": "molecule"
+    },
+    {
+      "ci_workflow": "tox.yml",
+      "default_branch": "main",
+      "owner": "ansible",
+      "repo": "pytest-ansible"
+    },
+    {
+      "ci_workflow": "test.yml",
+      "default_branch": "main",
+      "owner": "ansible",
+      "repo": "team-devtools"
+    },
+    {
+      "ci_workflow": "tox.yml",
+      "default_branch": "main",
+      "owner": "ansible",
+      "repo": "tox-ansible"
+    },
+    {
+      "ci_workflow": "ci.yaml",
+      "default_branch": "main",
+      "owner": "ansible",
+      "repo": "vscode-ansible"
+    },
+    {
+      "ci_workflow": "merge-gate.yaml",
+      "default_branch": "ansible-automation-platform-devel",
+      "owner": "ansible-automation-platform",
+      "repo": "ansible-devtools-container"
+    },
+    {
+      "ci_workflow": "merge-gate.yaml",
+      "default_branch": "ansible-automation-platform-devel",
+      "owner": "ansible-automation-platform",
+      "repo": "ansible-devspaces-container"
+    }
+  ]
+}
