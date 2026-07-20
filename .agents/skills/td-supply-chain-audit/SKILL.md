@@ -23,7 +23,7 @@ Perform a two-phase supply chain vulnerability analysis across the Ansible DevTo
 
 ## Target Repositories
 
-All under `github.com/ansible/`:
+### ansible/
 
 1. ansible-builder
 2. ansible-compat
@@ -37,6 +37,18 @@ All under `github.com/ansible/`:
 10. tox-ansible
 11. ansible-dev-tools
 12. vscode-ansible
+13. actions
+14. ansible-content-actions
+15. mkdocs-ansible
+
+### ansible-automation-platform/
+
+16. ansible-devtools-container
+17. ansible-devspaces-container
+
+### redhat-developer/
+
+18. abbenay
 
 ## Input
 
@@ -98,7 +110,7 @@ python3 .agents/skills/td-supply-chain-audit/scripts/collect.py \
 
 This will:
 - Create the cache directory structure
-- Fetch commits, PRs, check suites, and dependency diffs for all 12 repos
+- Fetch commits, PRs, check suites, and dependency diffs for all target repos
 - Fetch all individual commits and review timelines within each merged PR
 - Fetch branch protection rules and rulesets for each repo
 - Store results as JSON in the cache directory
