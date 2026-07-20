@@ -11,6 +11,7 @@ Usage:
 """
 
 import argparse
+import contextlib
 import json
 import re
 import subprocess
@@ -26,7 +27,8 @@ BOT_AUTHORS = {
 }
 
 SECURITY_PATTERNS = re.compile(
-    r"(CVE-|security|vulnerability|GHSA-)", re.IGNORECASE,
+    r"(CVE-|security|vulnerability|GHSA-)",
+    re.IGNORECASE,
 )
 MAJOR_PATTERNS = re.compile(
     r"(major update|update .+ to v?\d+\.0|bump .+ from \d+\.\d+ to \d+\.)",
@@ -58,7 +60,7 @@ def gh_api(endpoint):
         return None
 
 
-def classify_update(title, labels):
+def classify_update(title, labels) -> str:
     """Classify a dependency PR as security, major, or minor."""
     combined = title + " " + " ".join(labels)
     if SECURITY_PATTERNS.search(combined):
@@ -68,7 +70,7 @@ def classify_update(title, labels):
     return "minor"
 
 
-def cooldown_threshold(update_type):
+def cooldown_threshold(update_type) -> int:
     """Return the overdue threshold in days for each update type."""
     if update_type == "security":
         return 3
@@ -84,12 +86,19 @@ def fetch_repo_renovate(owner, repo):
     prs_raw = gh_api(f"repos/{owner}/{repo}/pulls?state=open&per_page=100")
     if prs_raw is None:
         return {
-            "owner": owner, "repo": repo,
+            "owner": owner,
+            "repo": repo,
             "error": "Failed to fetch PRs",
             "prs": [],
-            "summary": {"total": 0, "overdue": 0, "security": 0,
-                        "major": 0, "minor": 0, "oldest_days": 0,
-                        "all_checks_passing": True},
+            "summary": {
+                "total": 0,
+                "overdue": 0,
+                "security": 0,
+                "major": 0,
+                "minor": 0,
+                "oldest_days": 0,
+                "all_checks_passing": True,
+            },
         }
 
     now = datetime.now(UTC)
@@ -108,10 +117,8 @@ def fetch_repo_renovate(owner, repo):
         created = pr.get("created_at", "")
         age_days = 0
         if created:
-            try:
-                age_days = (now - datetime.fromisoformat(created.replace("Z", "+00:00"))).days
-            except (ValueError, TypeError):
-                pass
+            with contextlib.suppress(ValueError, TypeError):
+                age_days = (now - datetime.fromisoformat(created)).days
 
         is_overdue = age_days > threshold
 
@@ -122,20 +129,22 @@ def fetch_repo_renovate(owner, repo):
             if data:
                 check_state = data.get("state", "unknown")
 
-        dep_prs.append({
-            "number": pr["number"],
-            "title": title,
-            "author": author,
-            "url": pr.get("html_url", ""),
-            "created_at": created,
-            "age_days": age_days,
-            "labels": labels,
-            "update_type": update_type,
-            "threshold_days": threshold,
-            "is_overdue": is_overdue,
-            "check_state": check_state,
-            "mergeable_state": pr.get("mergeable_state", ""),
-        })
+        dep_prs.append(
+            {
+                "number": pr["number"],
+                "title": title,
+                "author": author,
+                "url": pr.get("html_url", ""),
+                "created_at": created,
+                "age_days": age_days,
+                "labels": labels,
+                "update_type": update_type,
+                "threshold_days": threshold,
+                "is_overdue": is_overdue,
+                "check_state": check_state,
+                "mergeable_state": pr.get("mergeable_state", ""),
+            },
+        )
 
     overdue_count = sum(1 for p in dep_prs if p["is_overdue"])
     security_count = sum(1 for p in dep_prs if p["update_type"] == "security")
@@ -145,7 +154,8 @@ def fetch_repo_renovate(owner, repo):
     all_passing = all(p["check_state"] == "success" for p in dep_prs) if dep_prs else True
 
     return {
-        "owner": owner, "repo": repo,
+        "owner": owner,
+        "repo": repo,
         "fetched_at": now.isoformat(),
         "error": None,
         "prs": dep_prs,
@@ -167,7 +177,7 @@ def load_repos(path):
         return json.load(f).get("repos", [])
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Fetch Renovate/dependency bot PRs")
     parser.add_argument("owner", nargs="?", help="GitHub org")
     parser.add_argument("repo", nargs="?", help="Repo name")

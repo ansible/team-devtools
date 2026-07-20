@@ -51,7 +51,8 @@ def fetch_repo_coverage(owner, repo, token=None):
 
     if data is None:
         return {
-            "owner": owner, "repo": repo,
+            "owner": owner,
+            "repo": repo,
             "error": "Failed to fetch from Codecov API",
             "coverage": None,
             "trend": None,
@@ -63,7 +64,7 @@ def fetch_repo_coverage(owner, repo, token=None):
         coverage = round(float(coverage), 2)
 
     latest_commit = data.get("commit", {}) or {}
-    commit_totals = latest_commit.get("totals", {}) or {}
+    latest_commit.get("totals", {}) or {}
 
     lines = totals.get("lines", 0)
     hits = totals.get("hits", 0)
@@ -101,7 +102,7 @@ def load_codecov_config(path):
     return [(r["owner"], r["repo"]) for r in data.get("repos", [])]
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Fetch Codecov coverage data")
     parser.add_argument("owner", nargs="?", help="GitHub org")
     parser.add_argument("repo", nargs="?", help="Repo name")

@@ -55,7 +55,7 @@ def convert(cache_dir: str) -> dict:
         print("ERROR: findings_summary.json is required", file=sys.stderr)
         sys.exit(1)
 
-    result = {
+    return {
         "audit_window": summary.get("audit_window", ""),
         "repos_audited": summary.get("repos_audited", []),
         "total_findings": summary.get("total_findings", 0),
@@ -67,10 +67,8 @@ def convert(cache_dir: str) -> dict:
         "category_labels": CATEGORY_LABELS,
     }
 
-    return result
 
-
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Convert audit cache to Guardian dashboard JSON",
     )
@@ -80,7 +78,8 @@ def main():
         help="Path to audit cache directory containing findings*.json",
     )
     parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         help="Output file (default: stdout)",
     )
     args = parser.parse_args()

@@ -31,16 +31,10 @@ def load_json_safe(path):
 
 def esc(text):
     """Escape HTML entities."""
-    return (
-        str(text)
-        .replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
-    )
+    return str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
 
 
-def status_class(status):
+def status_class(status) -> str:
     if status in ("OK", "success", "passing", "PASS", "ready_to_merge"):
         return "ok"
     if status in ("ERROR", "failure", "failing", "FAIL", "blocked"):
@@ -54,14 +48,18 @@ def status_class(status):
 
 def status_label(status):
     mapping = {
-        "OK": "Passing", "ERROR": "Failing", "WARN": "Warning",
-        "NONE": "No Gate", "UNKNOWN": "Unknown",
-        "success": "Pass", "failure": "Fail",
+        "OK": "Passing",
+        "ERROR": "Failing",
+        "WARN": "Warning",
+        "NONE": "No Gate",
+        "UNKNOWN": "Unknown",
+        "success": "Pass",
+        "failure": "Fail",
     }
     return mapping.get(status, status)
 
 
-def card_html(title, status, detail):
+def card_html(title, status, detail) -> str:
     cls = status_class(status)
     return f"""<div class="card {cls}">
   <div class="card-title">{esc(title)}</div>
@@ -70,14 +68,14 @@ def card_html(title, status, detail):
 </div>"""
 
 
-def section_html(section_id, title, count, content, collapsed=False):
+def section_html(section_id, title, count, content, collapsed=False) -> str:
     return f"""<details class="section" id="{section_id}" {"" if collapsed else "open"}>
   <summary><h2>{esc(title)} <span class="badge">{count}</span></h2></summary>
   {content}
 </details>"""
 
 
-def build_changes_section(changes_data):
+def build_changes_section(changes_data) -> str:
     """Render a Since last check delta panel from changes.json."""
     if not changes_data:
         return ""
@@ -108,7 +106,7 @@ def build_changes_section(changes_data):
             rows.append(f'<li><span class="status {cls}">{tag}</span> {fmt(e)}</li>')
         return rows
 
-    def _wf_link(e):
+    def _wf_link(e) -> str:
         slug = esc(e.get("repo", "?"))
         name = esc(e.get("workflow", "?"))
         url = e.get("url", "")
@@ -138,19 +136,11 @@ def build_changes_section(changes_data):
     rows += _items(ren.get("newly_overdue", []), "OVERDUE", "error", _pr_link)
     rows += _items(ren.get("no_longer_overdue", []), "DEP OK", "ok", _pr_link)
 
-    badges = (
-        f'<span class="badge">{total}</span> '
-        f'<span class="changes-meta">vs {esc(compared)}</span>'
-    )
-    return (
-        f'<div class="action-items changes-section">'
-        f"<h3>Since Last Check {badges}</h3>"
-        f"<ul>{''.join(rows)}</ul>"
-        f"</div>"
-    )
+    badges = f'<span class="badge">{total}</span> <span class="changes-meta">vs {esc(compared)}</span>'
+    return f'<div class="action-items changes-section"><h3>Since Last Check {badges}</h3><ul>{"".join(rows)}</ul></div>'
 
 
-def build_action_items(prs_data, ci_data, renovate_data, sonar_data):
+def build_action_items(prs_data, ci_data, renovate_data, sonar_data) -> str:
     items = []
 
     if ci_data:
@@ -168,7 +158,11 @@ def build_action_items(prs_data, ci_data, renovate_data, sonar_data):
             for pr in repo.get("prs", []):
                 if pr.get("category") == "ready_to_merge":
                     url = pr.get("url", "")
-                    link = f'<a href="{esc(url)}" target="_blank">{esc(slug)}#{pr["number"]}</a>' if url else f'{esc(slug)}#{pr["number"]}'
+                    link = (
+                        f'<a href="{esc(url)}" target="_blank">{esc(slug)}#{pr["number"]}</a>'
+                        if url
+                        else f"{esc(slug)}#{pr['number']}"
+                    )
                     items.append(("ok", "MERGE", f"{link} — {esc(pr.get('title', '')[:50])}"))
 
     if renovate_data:
@@ -177,7 +171,11 @@ def build_action_items(prs_data, ci_data, renovate_data, sonar_data):
             for pr in repo.get("prs", []):
                 if pr.get("is_overdue") and pr.get("update_type") == "security":
                     url = pr.get("url", "")
-                    link = f'<a href="{esc(url)}" target="_blank">{esc(slug)}#{pr["number"]}</a>' if url else f'{esc(slug)}#{pr["number"]}'
+                    link = (
+                        f'<a href="{esc(url)}" target="_blank">{esc(slug)}#{pr["number"]}</a>'
+                        if url
+                        else f"{esc(slug)}#{pr['number']}"
+                    )
                     items.append(("error", "SECURITY DEP", f"{link} — {esc(pr.get('title', '')[:50])}"))
 
     if sonar_data:
@@ -256,7 +254,7 @@ def build_health_cards(prs_data, ci_data, renovate_data, sonar_data, codecov_dat
         crit = risk.get("critical", 0)
         high = risk.get("high", 0)
         med = risk.get("medium", 0)
-        total_findings = security_audit_data.get("total_findings", 0)
+        security_audit_data.get("total_findings", 0)
         window = security_audit_data.get("audit_window", "")
 
         badges = ""
@@ -268,14 +266,14 @@ def build_health_cards(prs_data, ci_data, renovate_data, sonar_data, codecov_dat
 
         cards_html += (
             f'<a href="audit.html" target="_blank" style="text-decoration:none;display:block;'
-            f'margin:-12px 0 24px;padding:10px 16px;border-radius:8px;'
-            f'border:1px solid var(--border);'
+            f"margin:-12px 0 24px;padding:10px 16px;border-radius:8px;"
+            f"border:1px solid var(--border);"
             f'background:var(--card-bg);color:var(--text);">'
             f'<span style="font-weight:600;">Security Audit</span>'
-            f'{badges}'
+            f"{badges}"
             f'<span style="color:var(--text-muted);margin-left:0.75rem;font-size:0.85rem;">{esc(window)}</span>'
             f'<span style="float:right;font-weight:600;color:var(--accent);">View Full Report &rarr;</span>'
-            f'</a>'
+            f"</a>"
         )
 
     return cards_html
@@ -342,13 +340,7 @@ def build_ci_section(ci_data):
         for wf in flaky:
             url = wf.get("url", "")
             link = f'<a href="{esc(url)}" target="_blank">{esc(wf["name"])}</a>' if url else esc(wf["name"])
-            rows += (
-                f"<tr>"
-                f"<td>{esc(wf['_repo'])}</td>"
-                f"<td>{link}</td>"
-                f"<td>{esc(wf.get('conclusion', '?'))}</td>"
-                f"</tr>"
-            )
+            rows += f"<tr><td>{esc(wf['_repo'])}</td><td>{link}</td><td>{esc(wf.get('conclusion', '?'))}</td></tr>"
         content += f"""<h3>Flaky Workflows ({len(flaky)})</h3>
 <table><thead><tr><th>Repo</th><th>Workflow</th><th>Last Result</th></tr></thead>
 <tbody>{rows}</tbody></table>"""
@@ -398,7 +390,7 @@ def build_pr_section(prs_data):
         rows = ""
         for pr in prs:
             url = pr.get("url", "")
-            link = f'<a href="{esc(url)}" target="_blank">#{pr["number"]}</a>' if url else f'#{pr["number"]}'
+            link = f'<a href="{esc(url)}" target="_blank">#{pr["number"]}</a>' if url else f"#{pr['number']}"
             rows += (
                 f"<tr>"
                 f"<td>{esc(pr['_repo'])}</td>"
@@ -444,7 +436,7 @@ def build_renovate_section(renovate_data):
         rows = ""
         for pr in overdue:
             url = pr.get("url", "")
-            link = f'<a href="{esc(url)}" target="_blank">#{pr["number"]}</a>' if url else f'#{pr["number"]}'
+            link = f'<a href="{esc(url)}" target="_blank">#{pr["number"]}</a>' if url else f"#{pr['number']}"
             utype = pr.get("update_type", "?")
             cls = "error" if utype == "security" else "warn"
             rows += (
@@ -466,7 +458,7 @@ def build_renovate_section(renovate_data):
         rows = ""
         for pr in pending:
             url = pr.get("url", "")
-            link = f'<a href="{esc(url)}" target="_blank">#{pr["number"]}</a>' if url else f'#{pr["number"]}'
+            link = f'<a href="{esc(url)}" target="_blank">#{pr["number"]}</a>' if url else f"#{pr['number']}"
             rows += (
                 f"<tr>"
                 f"<td>{esc(pr['_repo'])}</td>"
@@ -807,7 +799,11 @@ def build_repo_status_section(ci_data, prs_data, codecov_data):
         ci_s = ci_repo.get("summary", {})
 
         ci_workflow = ci_repo.get("primary_ci", {}).get("workflow", "") if ci_repo.get("primary_ci") else ""
-        ci_actions_url = f"https://github.com/{slug}/actions/workflows/{ci_workflow}?query=event%3Aschedule" if ci_workflow else f"https://github.com/{slug}/actions"
+        ci_actions_url = (
+            f"https://github.com/{slug}/actions/workflows/{ci_workflow}?query=event%3Aschedule"
+            if ci_workflow
+            else f"https://github.com/{slug}/actions"
+        )
 
         if primary:
             ci_st = primary.get("status", "unknown")
@@ -826,7 +822,9 @@ def build_repo_status_section(ci_data, prs_data, codecov_data):
         codecov_url = f"https://codecov.io/github/{slug}"
         if coverage is not None:
             cov_cls = "ok" if coverage >= 80 else ("warn" if coverage >= 50 else "error")
-            cov_cell = f'<a href="{esc(codecov_url)}" target="_blank"><span class="status {cov_cls}">{coverage}%</span></a>'
+            cov_cell = (
+                f'<a href="{esc(codecov_url)}" target="_blank"><span class="status {cov_cls}">{coverage}%</span></a>'
+            )
         else:
             cov_cell = '<span class="status neutral">N/A</span>'
 
@@ -839,12 +837,12 @@ def build_repo_status_section(ci_data, prs_data, codecov_data):
         repo_name = owner_repo[1] if len(owner_repo) > 1 else slug
         repo_url = f"https://github.com/{slug}"
         rows += (
-            f'<tr>'
+            f"<tr>"
             f'<td><a href="{esc(repo_url)}" target="_blank">{esc(repo_name)}</a></td>'
-            f'<td>{ci_cell}</td>'
-            f'<td>{cov_cell}</td>'
-            f'<td>{pr_cell}</td>'
-            f'</tr>'
+            f"<td>{ci_cell}</td>"
+            f"<td>{cov_cell}</td>"
+            f"<td>{pr_cell}</td>"
+            f"</tr>"
         )
 
     content = f"""<table>
@@ -880,7 +878,9 @@ def build_codecov_section(codecov_data):
         coverage = repo.get("coverage")
         if coverage is not None:
             cov_cls = "ok" if coverage >= 80 else ("warn" if coverage >= 50 else "error")
-            coverage_str = f'<a href="{esc(codecov_url)}" target="_blank"><span class="status {cov_cls}">{coverage}%</span></a>'
+            coverage_str = (
+                f'<a href="{esc(codecov_url)}" target="_blank"><span class="status {cov_cls}">{coverage}%</span></a>'
+            )
         else:
             coverage_str = '<span class="status neutral">N/A</span>'
 
@@ -889,13 +889,13 @@ def build_codecov_section(codecov_data):
         misses = repo.get("misses", 0)
 
         rows += (
-            f'<tr>'
+            f"<tr>"
             f'<td><a href="{esc(repo_url)}" target="_blank">{esc(slug)}</a></td>'
-            f'<td>{coverage_str}</td>'
-            f'<td>{lines:,}</td>'
-            f'<td>{hits:,}</td>'
-            f'<td>{misses:,}</td>'
-            f'</tr>'
+            f"<td>{coverage_str}</td>"
+            f"<td>{lines:,}</td>"
+            f"<td>{hits:,}</td>"
+            f"<td>{misses:,}</td>"
+            f"</tr>"
         )
 
     content = f"""<table>
@@ -945,15 +945,17 @@ def build_supply_chain_section(sc_data):
 
     # --- Post-Approval Commits ---
     if all_post_approval:
-        all_post_approval.sort(key=lambda f: (0 if f.get("risk") == "critical" else (1 if f.get("risk") == "high" else 2)))
+        all_post_approval.sort(
+            key=lambda f: 0 if f.get("risk") == "critical" else (1 if f.get("risk") == "high" else 2),
+        )
         rows = ""
         for f in all_post_approval:
             risk_cls = "error" if f["risk"] in ("critical", "high") else "warn"
             pr_url = f.get("pr_url", "")
-            pr_link = f'<a href="{esc(pr_url)}" target="_blank">#{f["pr_number"]}</a>' if pr_url else f'#{f["pr_number"]}'
-            commit_info = ", ".join(
-                f'{c["sha"]} by {c["author"]}' for c in f.get("commits", [])[:3]
+            pr_link = (
+                f'<a href="{esc(pr_url)}" target="_blank">#{f["pr_number"]}</a>' if pr_url else f"#{f['pr_number']}"
             )
+            commit_info = ", ".join(f"{c['sha']} by {c['author']}" for c in f.get("commits", [])[:3])
             rows += (
                 f"<tr>"
                 f"<td>{esc(f['_repo'])}</td>"
@@ -971,12 +973,14 @@ def build_supply_chain_section(sc_data):
 
     # --- Bot-Only Approvals ---
     if all_bot_only:
-        all_bot_only.sort(key=lambda f: (0 if f.get("risk") == "high" else (1 if f.get("risk") == "medium" else 2)))
+        all_bot_only.sort(key=lambda f: 0 if f.get("risk") == "high" else (1 if f.get("risk") == "medium" else 2))
         rows = ""
         for f in all_bot_only:
             risk_cls = "error" if f["risk"] == "high" else ("warn" if f["risk"] == "medium" else "neutral")
             pr_url = f.get("pr_url", "")
-            pr_link = f'<a href="{esc(pr_url)}" target="_blank">#{f["pr_number"]}</a>' if pr_url else f'#{f["pr_number"]}'
+            pr_link = (
+                f'<a href="{esc(pr_url)}" target="_blank">#{f["pr_number"]}</a>' if pr_url else f"#{f['pr_number']}"
+            )
             bots = ", ".join(f.get("bot_approvers", []))
             rows += (
                 f"<tr>"
@@ -1001,7 +1005,13 @@ def build_supply_chain_section(sc_data):
             all_vulns.append(v)
 
     if all_vulns:
-        all_vulns.sort(key=lambda v: (0 if v.get("severity") == "critical" else (1 if v.get("severity") == "high" else (2 if v.get("severity") == "medium" else 3))))
+        all_vulns.sort(
+            key=lambda v: (
+                0
+                if v.get("severity") == "critical"
+                else (1 if v.get("severity") == "high" else (2 if v.get("severity") == "medium" else 3))
+            ),
+        )
         rows = ""
         for v in all_vulns:
             sev = v.get("severity", "unknown")
@@ -1040,23 +1050,34 @@ def build_correlation_section(correlation_data):
     content = ""
 
     if clusters:
-        for i, cluster in enumerate(clusters):
+        for _i, cluster in enumerate(clusters):
             ctype = cluster.get("type", "unknown")
             cls = "error" if ctype == "dependency" else ("warn" if ctype == "temporal" else "neutral")
-            type_label = {"temporal": "Time Cluster", "shared_job": "Shared Job", "dependency": "Dependency Link"}.get(ctype, ctype)
+            type_label = {"temporal": "Time Cluster", "shared_job": "Shared Job", "dependency": "Dependency Link"}.get(
+                ctype,
+                ctype,
+            )
 
             repos_html = ", ".join(esc(r) for r in cluster.get("repos", []))
             wf_rows = ""
             for wf in cluster.get("workflows", [])[:5]:
                 url = wf.get("url", "")
-                link = f'<a href="{esc(url)}" target="_blank">{esc(wf.get("workflow", ""))}</a>' if url else esc(wf.get("workflow", ""))
+                link = (
+                    f'<a href="{esc(url)}" target="_blank">{esc(wf.get("workflow", ""))}</a>'
+                    if url
+                    else esc(wf.get("workflow", ""))
+                )
                 wf_rows += f"<tr><td>{esc(wf.get('repo', ''))}</td><td>{link}</td></tr>"
 
             dep_html = ""
             dep_pr = cluster.get("dependency_pr")
             if dep_pr:
                 dep_url = dep_pr.get("url", "")
-                dep_link = f'<a href="{esc(dep_url)}" target="_blank">#{dep_pr.get("number", "")}</a>' if dep_url else f'#{dep_pr.get("number", "")}'
+                dep_link = (
+                    f'<a href="{esc(dep_url)}" target="_blank">#{dep_pr.get("number", "")}</a>'
+                    if dep_url
+                    else f"#{dep_pr.get('number', '')}"
+                )
                 dep_html = f'<p style="margin-top:0.5rem"><strong>Trigger:</strong> {dep_link} — {esc(dep_pr.get("title", "")[:60])}</p>'
 
             content += f"""<div style="margin-bottom:1rem; padding:0.75rem; border-left:3px solid var(--{cls}); background:var(--{cls}-bg); border-radius:4px;">
@@ -1073,7 +1094,11 @@ def build_correlation_section(correlation_data):
         rows = ""
         for f in isolated:
             url = f.get("url", "")
-            link = f'<a href="{esc(url)}" target="_blank">{esc(f.get("workflow", ""))}</a>' if url else esc(f.get("workflow", ""))
+            link = (
+                f'<a href="{esc(url)}" target="_blank">{esc(f.get("workflow", ""))}</a>'
+                if url
+                else esc(f.get("workflow", ""))
+            )
             jobs = ", ".join(f.get("failing_jobs", [])) or "-"
             flaky_tag = ' <span class="status warn">flaky</span>' if f.get("is_flaky") else ""
             rows += f"<tr><td>{esc(f.get('repo', ''))}</td><td>{link}{flaky_tag}</td><td>{esc(jobs)}</td></tr>"
@@ -1084,8 +1109,10 @@ def build_correlation_section(correlation_data):
 
     total_failures = summary.get("total_failures", 0)
     cluster_count = len(clusters)
-    badge_count = cluster_count if cluster_count > 0 else total_failures
-    content = f'<p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1rem;">{cluster_count} correlated cluster(s) across {total_failures} total failure(s).</p>' + content
+    content = (
+        f'<p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1rem;">{cluster_count} correlated cluster(s) across {total_failures} total failure(s).</p>'
+        + content
+    )
     return section_html("correlation", "Failure Correlation", f"{cluster_count} clusters", content)
 
 
@@ -1189,7 +1216,7 @@ async function triggerRefresh() {
 
 async function fetchLiveStatus() {
   const dot = document.getElementById('live-dot');
-  const liveTime = document.getElementById('live-time');
+  const liveClockEl = document.getElementById('live-time');
   if (dot) dot.className = 'live-dot fetching';
 
   let ciOk = 0, ciFail = 0;
@@ -1208,7 +1235,7 @@ async function fetchLiveStatus() {
   if (ciCard) ciCard.textContent = ciFail + ' failing, ' + ciOk + ' passing';
 
   if (dot) dot.className = 'live-dot';
-  if (liveTime) liveTime.textContent = 'Live: ' + new Date().toLocaleTimeString();
+  if (liveClockEl) liveClockEl.textContent = 'Live: ' + new Date().toLocaleTimeString();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1219,21 +1246,34 @@ document.addEventListener('DOMContentLoaded', () => {
 """
 
 
-
-def generate_dashboard(prs_data, ci_data, renovate_data, sonar_data, correlation_data=None, codecov_data=None, supply_chain_data=None, security_audit_data=None, changes_data=None, gh_token=""):
+def generate_dashboard(
+    prs_data,
+    ci_data,
+    renovate_data,
+    sonar_data,
+    correlation_data=None,
+    codecov_data=None,
+    supply_chain_data=None,
+    security_audit_data=None,
+    changes_data=None,
+    gh_token="",
+) -> str:
     now_str = datetime.now(IST).strftime("%Y-%m-%d %H:%M IST")
 
     repos_list = []
     if ci_data:
         for repo in ci_data.get("results", []):
-            repos_list.append({
-                "owner": repo.get("owner", ""),
-                "repo": repo.get("repo", ""),
-                "default_branch": repo.get("branch", "main"),
-            })
+            repos_list.append(
+                {
+                    "owner": repo.get("owner", ""),
+                    "repo": repo.get("repo", ""),
+                    "default_branch": repo.get("branch", "main"),
+                },
+            )
 
     js = TOOLBAR_JS.replace("%GH_TOKEN%", esc(gh_token)).replace(
-        "%REPOS_JSON%", json.dumps(repos_list),
+        "%REPOS_JSON%",
+        json.dumps(repos_list),
     )
 
     health_cards = build_health_cards(prs_data, ci_data, renovate_data, sonar_data, codecov_data, security_audit_data)
@@ -1259,10 +1299,7 @@ def generate_dashboard(prs_data, ci_data, renovate_data, sonar_data, correlation
         ("sonar", "SonarCloud", sonar_section),
     ]
 
-    nav_links = "".join(
-        f'<a href="#{sid}">{label}</a>'
-        for sid, label, html in section_list if html
-    )
+    nav_links = "".join(f'<a href="#{sid}">{label}</a>' for sid, label, html in section_list if html)
     nav_html = f'<nav class="nav-bar">{nav_links}</nav>' if nav_links else ""
 
     sections = "\n".join(html for _, _, html in section_list if html)
@@ -1353,7 +1390,7 @@ document.addEventListener('DOMContentLoaded', updateThemeUI);
 """
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Generate Guardian HTML dashboard")
     parser.add_argument("--prs", help="PR data JSON file")
     parser.add_argument("--ci", help="CI status JSON file")
@@ -1362,11 +1399,14 @@ def main():
     parser.add_argument("--codecov", help="Codecov coverage JSON file")
     parser.add_argument("--correlation", help="Failure correlation JSON file")
     parser.add_argument("--supply-chain", dest="supply_chain", help="Supply chain audit JSON file")
-    parser.add_argument("--security-audit", dest="security_audit", help="Full security audit JSON file (from convert_audit.py)")
+    parser.add_argument(
+        "--security-audit",
+        dest="security_audit",
+        help="Full security audit JSON file (from convert_audit.py)",
+    )
     parser.add_argument("--changes", help="Since-last-check delta JSON (from diff_snapshots.py)")
     parser.add_argument("--gh-token", help="GitHub PAT for refresh button (or set GUARDIAN_GH_TOKEN env var)")
-    parser.add_argument("--output", "-o", default="docs/index.html",
-                        help="Output HTML file (default: docs/index.html)")
+    parser.add_argument("--output", "-o", default="docs/index.html", help="Output HTML file (default: docs/index.html)")
     args = parser.parse_args()
 
     prs_data = load_json_safe(args.prs)
@@ -1385,8 +1425,16 @@ def main():
 
     gh_token = args.gh_token or os.environ.get("GUARDIAN_GH_TOKEN", "")
     html = generate_dashboard(
-        prs_data, ci_data, renovate_data, sonar_data, correlation_data,
-        codecov_data, supply_chain_data, security_audit_data, changes_data, gh_token,
+        prs_data,
+        ci_data,
+        renovate_data,
+        sonar_data,
+        correlation_data,
+        codecov_data,
+        supply_chain_data,
+        security_audit_data,
+        changes_data,
+        gh_token,
     )
 
     os.makedirs(os.path.dirname(os.path.abspath(args.output)), exist_ok=True)

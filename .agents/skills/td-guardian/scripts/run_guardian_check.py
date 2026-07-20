@@ -27,14 +27,14 @@ DEFAULT_SONAR_CONFIG = os.path.join(os.path.dirname(SCRIPTS_DIR), "config", "son
 DEFAULT_CODECOV_CONFIG = os.path.join(os.path.dirname(SCRIPTS_DIR), "config", "codecov.json")
 
 
-def run_script(script_name, args, output_file):
+def run_script(script_name, args, output_file) -> bool:
     """Run a fetch script and save its JSON output to a file."""
     script_path = os.path.join(SCRIPTS_DIR, script_name)
-    cmd = [sys.executable, script_path] + args
+    cmd = [sys.executable, script_path, *args]
 
-    print(f"\n{'='*60}", file=sys.stderr)
+    print(f"\n{'=' * 60}", file=sys.stderr)
     print(f"Running: {script_name}", file=sys.stderr)
-    print(f"{'='*60}", file=sys.stderr)
+    print(f"{'=' * 60}", file=sys.stderr)
 
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
@@ -68,10 +68,10 @@ def run_script(script_name, args, output_file):
     return True
 
 
-def generate_report(mode, args, output_file):
+def generate_report(mode, args, output_file) -> bool:
     """Run generate_report.py with the given mode and arguments."""
     script_path = os.path.join(SCRIPTS_DIR, "generate_report.py")
-    cmd = [sys.executable, script_path, mode] + args + ["--output", output_file]
+    cmd = [sys.executable, script_path, mode, *args, "--output", output_file]
 
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
@@ -91,22 +91,20 @@ def generate_report(mode, args, output_file):
     return True
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Guardian shift orchestrator")
-    parser.add_argument("--mode", choices=["daily", "weekly", "handoff"], default="daily",
-                        help="Check mode (default: daily)")
-    parser.add_argument("--repos-file", default=DEFAULT_REPOS_FILE,
-                        help="Path to repos.json")
-    parser.add_argument("--sonar-config", default=DEFAULT_SONAR_CONFIG,
-                        help="Path to sonar.json")
-    parser.add_argument("--codecov-config", default=DEFAULT_CODECOV_CONFIG,
-                        help="Path to codecov.json")
-    parser.add_argument("--reports-dir", default=REPORTS_DIR,
-                        help="Directory for output files")
-    parser.add_argument("--stale-days", type=int, default=14,
-                        help="Days before a PR is considered stale (default: 14)")
-    parser.add_argument("--ci-days", type=int, default=3,
-                        help="Days of CI history to check (default: 3)")
+    parser.add_argument(
+        "--mode",
+        choices=["daily", "weekly", "handoff"],
+        default="daily",
+        help="Check mode (default: daily)",
+    )
+    parser.add_argument("--repos-file", default=DEFAULT_REPOS_FILE, help="Path to repos.json")
+    parser.add_argument("--sonar-config", default=DEFAULT_SONAR_CONFIG, help="Path to sonar.json")
+    parser.add_argument("--codecov-config", default=DEFAULT_CODECOV_CONFIG, help="Path to codecov.json")
+    parser.add_argument("--reports-dir", default=REPORTS_DIR, help="Directory for output files")
+    parser.add_argument("--stale-days", type=int, default=14, help="Days before a PR is considered stale (default: 14)")
+    parser.add_argument("--ci-days", type=int, default=3, help="Days of CI history to check (default: 3)")
     args = parser.parse_args()
 
     os.makedirs(args.reports_dir, exist_ok=True)
@@ -128,34 +126,28 @@ def main():
     errors = 0
     issues_found = False
 
-    if not run_script("fetch_open_prs.py",
-                      ["--repos-file", args.repos_file, "--stale-days", str(args.stale_days)],
-                      prs_file):
+    if not run_script(
+        "fetch_open_prs.py",
+        ["--repos-file", args.repos_file, "--stale-days", str(args.stale_days)],
+        prs_file,
+    ):
         errors += 1
 
-    if not run_script("fetch_ci_status.py",
-                      ["--repos-file", args.repos_file, "--days", str(args.ci_days)],
-                      ci_file):
+    if not run_script("fetch_ci_status.py", ["--repos-file", args.repos_file, "--days", str(args.ci_days)], ci_file):
         errors += 1
 
-    if not run_script("fetch_renovate_prs.py",
-                      ["--repos-file", args.repos_file],
-                      renovate_file):
+    if not run_script("fetch_renovate_prs.py", ["--repos-file", args.repos_file], renovate_file):
         errors += 1
 
     if os.path.exists(args.codecov_config):
-        if not run_script("fetch_codecov.py",
-                          ["--codecov-config", args.codecov_config],
-                          codecov_file):
+        if not run_script("fetch_codecov.py", ["--codecov-config", args.codecov_config], codecov_file):
             errors += 1
     else:
         print(f"WARN: Codecov config not found: {args.codecov_config}", file=sys.stderr)
 
     if include_sonar:
         if os.path.exists(args.sonar_config):
-            if not run_script("fetch_sonar_gates.py",
-                              ["--sonar-config", args.sonar_config],
-                              sonar_file):
+            if not run_script("fetch_sonar_gates.py", ["--sonar-config", args.sonar_config], sonar_file):
                 errors += 1
         else:
             print(f"WARN: Sonar config not found: {args.sonar_config}", file=sys.stderr)
@@ -163,14 +155,17 @@ def main():
     previous_snapshot = os.path.join(args.reports_dir, "previous-snapshot.json")
     changes_file = os.path.join(args.reports_dir, "changes.json")
 
-    print(f"\n{'='*60}", file=sys.stderr)
+    print(f"\n{'=' * 60}", file=sys.stderr)
     print("Diffing against previous snapshot...", file=sys.stderr)
-    print(f"{'='*60}", file=sys.stderr)
+    print(f"{'=' * 60}", file=sys.stderr)
 
     diff_args = [
-        "--previous", previous_snapshot,
-        "--output", changes_file,
-        "--write-previous", previous_snapshot,
+        "--previous",
+        previous_snapshot,
+        "--output",
+        changes_file,
+        "--write-previous",
+        previous_snapshot,
     ]
     if os.path.exists(prs_file):
         diff_args.extend(["--prs", prs_file])
@@ -186,7 +181,7 @@ def main():
     # diff_snapshots writes files itself (not stdout JSON like fetch scripts)
     if any(os.path.exists(f) for f in [prs_file, ci_file, renovate_file]):
         diff_script = os.path.join(SCRIPTS_DIR, "diff_snapshots.py")
-        diff_cmd = [sys.executable, diff_script] + diff_args
+        diff_cmd = [sys.executable, diff_script, *diff_args]
         try:
             diff_result = subprocess.run(diff_cmd, capture_output=True, text=True, timeout=60)
             if diff_result.stderr:
@@ -198,9 +193,9 @@ def main():
             print("WARN: Snapshot diff timed out", file=sys.stderr)
             errors += 1
 
-    print(f"\n{'='*60}", file=sys.stderr)
+    print(f"\n{'=' * 60}", file=sys.stderr)
     print("Generating reports...", file=sys.stderr)
-    print(f"{'='*60}", file=sys.stderr)
+    print(f"{'=' * 60}", file=sys.stderr)
 
     if os.path.exists(prs_file):
         pr_report = os.path.join(args.reports_dir, f"pr-dashboard-{date_str}.md")
@@ -259,9 +254,9 @@ def main():
         except (json.JSONDecodeError, KeyError):
             pass
 
-    print(f"\n{'='*60}", file=sys.stderr)
+    print(f"\n{'=' * 60}", file=sys.stderr)
     print("Guardian check complete!", file=sys.stderr)
-    print(f"{'='*60}", file=sys.stderr)
+    print(f"{'=' * 60}", file=sys.stderr)
     print(f"Mode: {args.mode}", file=sys.stderr)
     print(f"Reports: {args.reports_dir}", file=sys.stderr)
     print(f"Main report: guardian-{args.mode}-{date_str}.md", file=sys.stderr)

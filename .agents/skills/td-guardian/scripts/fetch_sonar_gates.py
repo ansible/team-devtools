@@ -11,6 +11,7 @@ Usage:
 """
 
 import argparse
+import contextlib
 import json
 import os
 import sys
@@ -42,6 +43,7 @@ def sonar_api(base_url, endpoint, token=None):
     req = urllib.request.Request(url)
     if token:
         import base64
+
         credentials = base64.b64encode(f"{token}:".encode()).decode()
         req.add_header("Authorization", f"Basic {credentials}")
 
@@ -50,10 +52,8 @@ def sonar_api(base_url, endpoint, token=None):
             return json.loads(resp.read().decode())
     except urllib.error.HTTPError as e:
         body = ""
-        try:
+        with contextlib.suppress(Exception):
             body = e.read().decode()[:200]
-        except Exception:
-            pass
         print(f"  WARN: {endpoint} -> HTTP {e.code}: {body}", file=sys.stderr)
         return None
     except urllib.error.URLError as e:
@@ -77,13 +77,15 @@ def fetch_quality_gate(base_url, project_key, token=None):
     status = data["projectStatus"]
     conditions = []
     for cond in status.get("conditions", []):
-        conditions.append({
-            "metric": cond.get("metricKey", ""),
-            "status": cond.get("status", ""),
-            "value": cond.get("actualValue", ""),
-            "threshold": cond.get("errorThreshold", ""),
-            "comparator": cond.get("comparator", ""),
-        })
+        conditions.append(
+            {
+                "metric": cond.get("metricKey", ""),
+                "status": cond.get("status", ""),
+                "value": cond.get("actualValue", ""),
+                "threshold": cond.get("errorThreshold", ""),
+                "comparator": cond.get("comparator", ""),
+            },
+        )
 
     return {
         "status": status.get("status", "UNKNOWN"),
@@ -165,14 +167,17 @@ def load_sonar_config(path):
         return json.load(f)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Fetch SonarCloud quality gate status")
     parser.add_argument("--sonar-config", help="Path to sonar.json config file")
     parser.add_argument("--project-key", help="Single SonarCloud project key")
     parser.add_argument("--owner", help="GitHub org (for single project mode)")
     parser.add_argument("--repo", help="Repo name (for single project mode)")
-    parser.add_argument("--base-url", default="https://sonarcloud.io",
-                        help="SonarCloud base URL (default: https://sonarcloud.io)")
+    parser.add_argument(
+        "--base-url",
+        default="https://sonarcloud.io",
+        help="SonarCloud base URL (default: https://sonarcloud.io)",
+    )
     args = parser.parse_args()
 
     token = os.environ.get("SONAR_TOKEN")
@@ -210,12 +215,8 @@ def main():
                 "gate_warn": gate_warn,
                 "gate_unknown": gate_unknown,
                 "total_bugs": sum(r["metrics"].get("bugs", 0) for r in results if not r["error"]),
-                "total_vulnerabilities": sum(
-                    r["metrics"].get("vulnerabilities", 0) for r in results if not r["error"]
-                ),
-                "total_code_smells": sum(
-                    r["metrics"].get("code_smells", 0) for r in results if not r["error"]
-                ),
+                "total_vulnerabilities": sum(r["metrics"].get("vulnerabilities", 0) for r in results if not r["error"]),
+                "total_code_smells": sum(r["metrics"].get("code_smells", 0) for r in results if not r["error"]),
                 "total_security_hotspots": sum(
                     r["metrics"].get("security_hotspots", 0) for r in results if not r["error"]
                 ),

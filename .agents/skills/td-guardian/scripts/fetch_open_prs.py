@@ -17,6 +17,7 @@ python3 scripts/fetch_open_prs.py --repos-file config/repos.json --include-bots
 """
 
 import argparse
+import contextlib
 import json
 import subprocess
 import sys
@@ -76,7 +77,7 @@ def get_check_state(owner, repo, sha):
     return data.get("state", "unknown")
 
 
-def categorize(pr, review_states, check_state, now, stale_days):
+def categorize(pr, review_states, check_state, now, stale_days) -> str:
     """Assign a category to a PR."""
     if pr.get("draft", False):
         return "draft"
@@ -84,7 +85,7 @@ def categorize(pr, review_states, check_state, now, stale_days):
     updated = pr.get("updated_at", "")
     if updated:
         try:
-            updated_dt = datetime.fromisoformat(updated.replace("Z", "+00:00"))
+            updated_dt = datetime.fromisoformat(updated)
             if (now - updated_dt).days >= stale_days:
                 return "stale"
         except (ValueError, TypeError):
@@ -113,11 +114,20 @@ def fetch_repo_prs(owner, repo, stale_days, include_bots):
     prs_raw = gh_api(f"repos/{owner}/{repo}/pulls?state=open&per_page=100")
     if prs_raw is None:
         return {
-            "owner": owner, "repo": repo,
+            "owner": owner,
+            "repo": repo,
             "error": "Failed to fetch PRs",
-            "prs": [], "bot_prs": [],
-            "summary": {"total": 0, "ready_to_merge": 0, "needs_review": 0,
-                        "changes_requested": 0, "draft": 0, "stale": 0, "blocked": 0},
+            "prs": [],
+            "bot_prs": [],
+            "summary": {
+                "total": 0,
+                "ready_to_merge": 0,
+                "needs_review": 0,
+                "changes_requested": 0,
+                "draft": 0,
+                "stale": 0,
+                "blocked": 0,
+            },
             "bot_summary": {"total": 0},
         }
 
@@ -140,10 +150,8 @@ def fetch_repo_prs(owner, repo, stale_days, include_bots):
         created = pr.get("created_at", "")
         age_days = 0
         if created:
-            try:
-                age_days = (now - datetime.fromisoformat(created.replace("Z", "+00:00"))).days
-            except (ValueError, TypeError):
-                pass
+            with contextlib.suppress(ValueError, TypeError):
+                age_days = (now - datetime.fromisoformat(created)).days
 
         entry = {
             "number": pr_number,
@@ -163,14 +171,22 @@ def fetch_repo_prs(owner, repo, stale_days, include_bots):
         else:
             human_prs.append(entry)
 
-    summary = {"total": len(human_prs), "ready_to_merge": 0, "needs_review": 0,
-                "changes_requested": 0, "draft": 0, "stale": 0, "blocked": 0}
+    summary = {
+        "total": len(human_prs),
+        "ready_to_merge": 0,
+        "needs_review": 0,
+        "changes_requested": 0,
+        "draft": 0,
+        "stale": 0,
+        "blocked": 0,
+    }
     for p in human_prs:
         if p["category"] in summary:
             summary[p["category"]] += 1
 
-    result = {
-        "owner": owner, "repo": repo,
+    return {
+        "owner": owner,
+        "repo": repo,
         "fetched_at": now.isoformat(),
         "error": None,
         "prs": human_prs,
@@ -178,7 +194,6 @@ def fetch_repo_prs(owner, repo, stale_days, include_bots):
         "bot_prs": bot_prs if include_bots else [],
         "bot_summary": {"total": len(bot_prs)},
     }
-    return result
 
 
 def load_repos(path):
@@ -187,15 +202,13 @@ def load_repos(path):
         return json.load(f).get("repos", [])
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Fetch open PRs across repos")
     parser.add_argument("owner", nargs="?", help="GitHub org")
     parser.add_argument("repo", nargs="?", help="Repo name")
     parser.add_argument("--repos-file", help="Path to repos.json for batch mode")
-    parser.add_argument("--stale-days", type=int, default=14,
-                        help="Days inactive before marking stale (default: 14)")
-    parser.add_argument("--include-bots", action="store_true",
-                        help="Include bot PR details in output")
+    parser.add_argument("--stale-days", type=int, default=14, help="Days inactive before marking stale (default: 14)")
+    parser.add_argument("--include-bots", action="store_true", help="Include bot PR details in output")
     args = parser.parse_args()
 
     if args.repos_file:

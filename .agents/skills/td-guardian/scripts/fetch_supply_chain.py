@@ -126,13 +126,14 @@ def fetch_pr_commits(owner: str, repo: str, pr_number: int) -> list[dict]:
 
 
 def detect_post_approval_commits(
-    owner: str, repo: str, pr: dict, reviews: list[dict], commits: list[dict],
+    owner: str,
+    repo: str,
+    pr: dict,
+    reviews: list[dict],
+    commits: list[dict],
 ) -> dict | None:
     """Check if commits were pushed after the last approval."""
-    approvals = [
-        r for r in reviews
-        if r.get("state") == "APPROVED" and r.get("submitted_at")
-    ]
+    approvals = [r for r in reviews if r.get("state") == "APPROVED" and r.get("submitted_at")]
     if not approvals:
         return None
 
@@ -155,7 +156,8 @@ def detect_post_approval_commits(
     approver_logins = {a["user"]["login"] for a in approvals}
 
     from_third_party = [
-        c for c in post_approval
+        c
+        for c in post_approval
         if c.get("author", {}).get("login", "") != pr_author
         and c.get("author", {}).get("login", "") not in approver_logins
     ]
@@ -191,21 +193,18 @@ def detect_post_approval_commits(
 
 
 def detect_bot_only_approval(
-    owner: str, repo: str, pr: dict, reviews: list[dict],
+    owner: str,
+    repo: str,
+    pr: dict,
+    reviews: list[dict],
 ) -> dict | None:
     """Check if a PR was merged with only bot approvals."""
-    approvals = [
-        r for r in reviews if r.get("state") == "APPROVED"
-    ]
+    approvals = [r for r in reviews if r.get("state") == "APPROVED"]
     if not approvals:
         return None
 
-    human_approvals = [
-        a for a in approvals if not _is_bot(a.get("user", {}).get("login", ""))
-    ]
-    bot_approvals = [
-        a for a in approvals if _is_bot(a.get("user", {}).get("login", ""))
-    ]
+    human_approvals = [a for a in approvals if not _is_bot(a.get("user", {}).get("login", ""))]
+    bot_approvals = [a for a in approvals if _is_bot(a.get("user", {}).get("login", ""))]
 
     if human_approvals:
         return None
@@ -218,10 +217,7 @@ def detect_bot_only_approval(
     bot_names = list({a["user"]["login"] for a in bot_approvals})
 
     is_bot_pr = _is_bot(pr_author)
-    is_dep_only = any(
-        kw in pr_title.lower()
-        for kw in ("chore(deps)", "bump ", "update dependency", "lock file")
-    )
+    is_dep_only = any(kw in pr_title.lower() for kw in ("chore(deps)", "bump ", "update dependency", "lock file"))
 
     if is_bot_pr and is_dep_only:
         risk = "low"
@@ -272,6 +268,7 @@ def _parse_pyproject(owner: str, repo: str, path: str) -> list[dict]:
         content_data = gh_api(f"repos/{owner}/{repo}/contents/{path}")
         if isinstance(content_data, dict) and content_data.get("encoding") == "base64":
             import base64
+
             content = base64.b64decode(content_data["content"]).decode()
         else:
             return []
@@ -285,11 +282,13 @@ def _parse_pyproject(owner: str, repo: str, path: str) -> list[dict]:
         version_spec = match.group(2).strip()
         version = re.search(r"[\d.]+", version_spec)
         if version:
-            packages.append({
-                "name": name,
-                "version": version.group(),
-                "ecosystem": "PyPI",
-            })
+            packages.append(
+                {
+                    "name": name,
+                    "version": version.group(),
+                    "ecosystem": "PyPI",
+                },
+            )
 
     return packages
 
@@ -300,6 +299,7 @@ def _parse_package_json(owner: str, repo: str, path: str) -> list[dict]:
         content_data = gh_api(f"repos/{owner}/{repo}/contents/{path}")
         if isinstance(content_data, dict) and content_data.get("encoding") == "base64":
             import base64
+
             content = base64.b64decode(content_data["content"]).decode()
             pkg = json.loads(content)
         else:
@@ -312,21 +312,25 @@ def _parse_package_json(owner: str, repo: str, path: str) -> list[dict]:
         for name, version_spec in pkg.get(section, {}).items():
             version = version_spec.lstrip("^~>=<! ")
             if version and version[0].isdigit():
-                packages.append({
-                    "name": name,
-                    "version": version,
-                    "ecosystem": "npm",
-                })
+                packages.append(
+                    {
+                        "name": name,
+                        "version": version,
+                        "ecosystem": "npm",
+                    },
+                )
 
     return packages
 
 
 def query_osv(package: str, version: str, ecosystem: str) -> list[dict]:
     """Query OSV.dev for known vulnerabilities."""
-    payload = json.dumps({
-        "version": version,
-        "package": {"name": package, "ecosystem": ecosystem},
-    }).encode()
+    payload = json.dumps(
+        {
+            "version": version,
+            "package": {"name": package, "ecosystem": ecosystem},
+        },
+    ).encode()
 
     req = Request(OSV_API, data=payload, method="POST")
     req.add_header("Content-Type", "application/json")
@@ -360,22 +364,22 @@ def detect_vulnerabilities(owner: str, repo: str, packages: list[dict]) -> list[
             summary_text = vuln.get("summary", "No description available")
 
             cve_ids = [a for a in aliases if a.startswith("CVE-")]
-            risk = "critical" if any(
-                s in str(severity_data).upper() for s in ("CRITICAL", "HIGH")
-            ) else "medium"
+            risk = "critical" if any(s in str(severity_data).upper() for s in ("CRITICAL", "HIGH")) else "medium"
 
-            findings.append({
-                "category": "vulnerability",
-                "risk": risk,
-                "repo": f"{owner}/{repo}",
-                "package": pkg["name"],
-                "version": pkg["version"],
-                "ecosystem": pkg["ecosystem"],
-                "vuln_id": vuln_id,
-                "cve_ids": cve_ids,
-                "summary": summary_text[:200],
-                "aliases": aliases,
-            })
+            findings.append(
+                {
+                    "category": "vulnerability",
+                    "risk": risk,
+                    "repo": f"{owner}/{repo}",
+                    "package": pkg["name"],
+                    "version": pkg["version"],
+                    "ecosystem": pkg["ecosystem"],
+                    "vuln_id": vuln_id,
+                    "cve_ids": cve_ids,
+                    "summary": summary_text[:200],
+                    "aliases": aliases,
+                },
+            )
 
     return findings
 
@@ -426,13 +430,11 @@ def process_repo(owner: str, repo: str, since: str, scan_vulns: bool = True) -> 
     }
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Fetch supply-chain audit data")
     parser.add_argument("--repos-file", required=True, help="Path to repos.json config")
-    parser.add_argument("--days", type=int, default=7,
-                        help="Look back N days for merged PRs (default: 7)")
-    parser.add_argument("--skip-vulns", action="store_true",
-                        help="Skip vulnerability scanning (faster)")
+    parser.add_argument("--days", type=int, default=7, help="Look back N days for merged PRs (default: 7)")
+    parser.add_argument("--skip-vulns", action="store_true", help="Skip vulnerability scanning (faster)")
     parser.add_argument("--output", "-o", help="Output file (default: stdout)")
     args = parser.parse_args()
 
@@ -468,7 +470,8 @@ def main():
             "total_vulnerabilities": total_vulns,
             "repos_scanned": len(repos),
             "critical_findings": sum(
-                1 for r in results
+                1
+                for r in results
                 for f in r["post_approval"] + r["bot_only"] + r["vulnerabilities"]
                 if f.get("risk") == "critical"
             ),

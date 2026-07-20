@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare Guardian fetch JSON against a previous compact snapshot.
+r"""Compare Guardian fetch JSON against a previous compact snapshot.
 
 Produces reports/changes.json ("what changed since last check") and optionally
 rotates the baseline via --write-previous.
@@ -122,11 +122,17 @@ def build_snapshot(prs_data, ci_data, renovate_data, codecov_data=None, sonar_da
 
     if codecov_data:
         snapshot["aggregates"]["codecov"] = agg(
-            codecov_data, "average_coverage", "repos_below_50", "repos_above_80",
+            codecov_data,
+            "average_coverage",
+            "repos_below_50",
+            "repos_above_80",
         )
     if sonar_data:
         snapshot["aggregates"]["sonar"] = agg(
-            sonar_data, "gate_error", "gate_ok", "total_vulnerabilities",
+            sonar_data,
+            "gate_error",
+            "gate_ok",
+            "total_vulnerabilities",
         )
 
     return snapshot
@@ -183,11 +189,7 @@ def diff_snapshots(previous, current):
     for key, wf in curr_wf.items():
         was = prev_wf.get(key)
         is_fail = wf.get("conclusion") == "failure" and not wf.get("is_flaky")
-        was_fail = (
-            was is not None
-            and was.get("conclusion") == "failure"
-            and not was.get("is_flaky")
-        )
+        was_fail = was is not None and was.get("conclusion") == "failure" and not was.get("is_flaky")
         if is_fail and not was_fail:
             new_failures.append(_entity(wf))
         if wf.get("is_flaky") and not (was and was.get("is_flaky")):
@@ -196,15 +198,16 @@ def diff_snapshots(previous, current):
     for key, wf in prev_wf.items():
         was_fail = wf.get("conclusion") == "failure" and not wf.get("is_flaky")
         now = curr_wf.get(key)
-        now_fail = (
-            now is not None
-            and now.get("conclusion") == "failure"
-            and not now.get("is_flaky")
-        )
+        now_fail = now is not None and now.get("conclusion") == "failure" and not now.get("is_flaky")
         if was_fail and not now_fail:
-            resolved_failures.append(_entity(wf, {
-                "resolved_to": now.get("conclusion") if now else "gone",
-            }))
+            resolved_failures.append(
+                _entity(
+                    wf,
+                    {
+                        "resolved_to": now.get("conclusion") if now else "gone",
+                    },
+                ),
+            )
 
     prev_prs = prev.get("prs", {})
     curr_prs = curr.get("prs", {})
@@ -240,9 +243,14 @@ def diff_snapshots(previous, current):
     for key, pr in prev_ren.items():
         now = curr_ren.get(key)
         if pr.get("is_overdue") and not (now and now.get("is_overdue")):
-            no_longer_overdue.append(_entity(pr, {
-                "reason": "resolved_or_closed" if now is None else "no_longer_overdue",
-            }))
+            no_longer_overdue.append(
+                _entity(
+                    pr,
+                    {
+                        "reason": "resolved_or_closed" if now is None else "no_longer_overdue",
+                    },
+                ),
+            )
 
     summary = {
         "new_failures": len(new_failures),
@@ -283,7 +291,7 @@ def diff_snapshots(previous, current):
     }
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Diff Guardian snapshots for since-last-check deltas",
     )
@@ -298,7 +306,8 @@ def main():
         help="Previous compact snapshot (default: reports/previous-snapshot.json)",
     )
     parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         default="reports/changes.json",
         help="Write changes JSON (default: reports/changes.json)",
     )
@@ -326,7 +335,11 @@ def main():
         sys.exit(1)
 
     current = build_snapshot(
-        prs_data, ci_data, renovate_data, codecov_data, sonar_data,
+        prs_data,
+        ci_data,
+        renovate_data,
+        codecov_data,
+        sonar_data,
     )
     previous = load_json_safe(args.previous)
     if previous is None and args.previous:

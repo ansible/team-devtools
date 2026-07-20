@@ -46,7 +46,7 @@ def parse_timestamp(ts):
     if not ts:
         return None
     try:
-        return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        return datetime.fromisoformat(ts)
     except (ValueError, TypeError):
         return None
 
@@ -74,19 +74,21 @@ def collect_failures(ci_data):
         for wf in repo.get("workflows", []):
             if wf.get("conclusion") != "failure":
                 continue
-            failures.append({
-                "repo": slug,
-                "owner": repo.get("owner", ""),
-                "repo_name": repo.get("repo", ""),
-                "workflow": wf.get("name", ""),
-                "run_id": wf.get("run_id", 0),
-                "url": wf.get("url", ""),
-                "updated_at": wf.get("updated_at", ""),
-                "age_hours": wf.get("age_hours", 0),
-                "head_sha": wf.get("head_sha", ""),
-                "is_flaky": wf.get("is_flaky", False),
-                "failing_jobs": [j.get("name", "") for j in wf.get("failing_jobs", [])],
-            })
+            failures.append(
+                {
+                    "repo": slug,
+                    "owner": repo.get("owner", ""),
+                    "repo_name": repo.get("repo", ""),
+                    "workflow": wf.get("name", ""),
+                    "run_id": wf.get("run_id", 0),
+                    "url": wf.get("url", ""),
+                    "updated_at": wf.get("updated_at", ""),
+                    "age_hours": wf.get("age_hours", 0),
+                    "head_sha": wf.get("head_sha", ""),
+                    "is_flaky": wf.get("is_flaky", False),
+                    "failing_jobs": [j.get("name", "") for j in wf.get("failing_jobs", [])],
+                },
+            )
 
     return failures
 
@@ -111,17 +113,19 @@ def collect_recent_dep_prs(renovate_data, hours=48):
             if (now - created).total_seconds() / 3600 > hours:
                 continue
             package = extract_package_name(pr.get("title", ""))
-            recent.append({
-                "repo": slug,
-                "number": pr.get("number", 0),
-                "title": pr.get("title", ""),
-                "url": pr.get("url", ""),
-                "created_at": pr.get("created_at", ""),
-                "age_days": pr.get("age_days", 0),
-                "update_type": pr.get("update_type", "minor"),
-                "check_state": pr.get("check_state", "unknown"),
-                "package": package,
-            })
+            recent.append(
+                {
+                    "repo": slug,
+                    "number": pr.get("number", 0),
+                    "title": pr.get("title", ""),
+                    "url": pr.get("url", ""),
+                    "created_at": pr.get("created_at", ""),
+                    "age_days": pr.get("age_days", 0),
+                    "update_type": pr.get("update_type", "minor"),
+                    "check_state": pr.get("check_state", "unknown"),
+                    "package": package,
+                },
+            )
 
     return recent
 
@@ -160,17 +164,16 @@ def find_temporal_clusters(failures):
             used.add(i)
             window_start = ts_i.astimezone(IST).strftime("%H:%M IST")
             window_end = (ts_i + timedelta(hours=TEMPORAL_WINDOW_HOURS)).astimezone(IST).strftime("%H:%M IST")
-            clusters.append({
-                "type": "temporal",
-                "description": f"{len(group_repos)} repos failed between {window_start} and {window_end}",
-                "likely_cause": "Infrastructure or runner outage — multiple repos failed in the same time window",
-                "repos": sorted(group_repos),
-                "workflows": [
-                    {"repo": f["repo"], "workflow": f["workflow"], "url": f["url"]}
-                    for f in group
-                ],
-                "window_hours": TEMPORAL_WINDOW_HOURS,
-            })
+            clusters.append(
+                {
+                    "type": "temporal",
+                    "description": f"{len(group_repos)} repos failed between {window_start} and {window_end}",
+                    "likely_cause": "Infrastructure or runner outage — multiple repos failed in the same time window",
+                    "repos": sorted(group_repos),
+                    "workflows": [{"repo": f["repo"], "workflow": f["workflow"], "url": f["url"]} for f in group],
+                    "window_hours": TEMPORAL_WINDOW_HOURS,
+                },
+            )
 
     return clusters
 
@@ -186,20 +189,19 @@ def find_shared_job_clusters(failures):
 
     clusters = []
     for job_name, group in job_to_repos.items():
-        repos = set(f["repo"] for f in group)
+        repos = {f["repo"] for f in group}
         if len(repos) < MIN_CLUSTER_SIZE:
             continue
-        clusters.append({
-            "type": "shared_job",
-            "description": f"Job '{job_name}' failing in {len(repos)} repos",
-            "likely_cause": f"Shared tooling or config issue — the '{job_name}' job is failing across multiple repos",
-            "job_name": job_name,
-            "repos": sorted(repos),
-            "workflows": [
-                {"repo": f["repo"], "workflow": f["workflow"], "url": f["url"]}
-                for f in group
-            ],
-        })
+        clusters.append(
+            {
+                "type": "shared_job",
+                "description": f"Job '{job_name}' failing in {len(repos)} repos",
+                "likely_cause": f"Shared tooling or config issue — the '{job_name}' job is failing across multiple repos",
+                "job_name": job_name,
+                "repos": sorted(repos),
+                "workflows": [{"repo": f["repo"], "workflow": f["workflow"], "url": f["url"]} for f in group],
+            },
+        )
 
     return clusters
 
@@ -224,29 +226,33 @@ def find_dependency_links(failures, dep_prs):
             for f in failing_with_test_jobs:
                 if f["repo"] != pr["repo"]:
                     linked_repos.add(f["repo"])
-                    linked_workflows.append({
-                        "repo": f["repo"],
-                        "workflow": f["workflow"],
-                        "url": f["url"],
-                    })
+                    linked_workflows.append(
+                        {
+                            "repo": f["repo"],
+                            "workflow": f["workflow"],
+                            "url": f["url"],
+                        },
+                    )
 
             if linked_repos:
                 pkg = pr.get("package") or pr.get("title", "")[:40]
-                clusters.append({
-                    "type": "dependency",
-                    "description": f"Dependency update '{pkg}' in {pr['repo']} has failing checks — {len(linked_repos)} other repos also failing tests",
-                    "likely_cause": f"Breaking dependency update: {pkg}",
-                    "dependency_pr": {
-                        "repo": pr["repo"],
-                        "number": pr["number"],
-                        "title": pr["title"],
-                        "url": pr["url"],
-                        "package": pr.get("package"),
-                        "update_type": pr["update_type"],
+                clusters.append(
+                    {
+                        "type": "dependency",
+                        "description": f"Dependency update '{pkg}' in {pr['repo']} has failing checks — {len(linked_repos)} other repos also failing tests",
+                        "likely_cause": f"Breaking dependency update: {pkg}",
+                        "dependency_pr": {
+                            "repo": pr["repo"],
+                            "number": pr["number"],
+                            "title": pr["title"],
+                            "url": pr["url"],
+                            "package": pr.get("package"),
+                            "update_type": pr["update_type"],
+                        },
+                        "repos": sorted(linked_repos),
+                        "workflows": linked_workflows,
                     },
-                    "repos": sorted(linked_repos),
-                    "workflows": linked_workflows,
-                })
+                )
 
     return clusters
 
@@ -256,14 +262,16 @@ def find_isolated(failures, clustered_repos):
     isolated = []
     for f in failures:
         if f["repo"] not in clustered_repos:
-            isolated.append({
-                "repo": f["repo"],
-                "workflow": f["workflow"],
-                "url": f["url"],
-                "failing_jobs": f["failing_jobs"],
-                "is_flaky": f["is_flaky"],
-                "age_hours": f["age_hours"],
-            })
+            isolated.append(
+                {
+                    "repo": f["repo"],
+                    "workflow": f["workflow"],
+                    "url": f["url"],
+                    "failing_jobs": f["failing_jobs"],
+                    "is_flaky": f["is_flaky"],
+                    "age_hours": f["age_hours"],
+                },
+            )
     return isolated
 
 
@@ -295,7 +303,7 @@ def correlate(ci_data, renovate_data):
         clustered_repos.update(c["repos"])
 
     isolated = find_isolated(failures, clustered_repos)
-    isolated_repos = set(f["repo"] for f in isolated)
+    isolated_repos = {f["repo"] for f in isolated}
 
     return {
         "clusters": all_clusters,
@@ -315,7 +323,7 @@ def correlate(ci_data, renovate_data):
     }
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Correlate CI failures across repos")
     parser.add_argument("--ci", required=True, help="CI status JSON file")
     parser.add_argument("--renovate", help="Renovate PR JSON file (optional)")

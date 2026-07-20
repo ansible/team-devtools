@@ -40,11 +40,11 @@ def load_json_safe(path):
 def truncate(text, length=60):
     """Truncate text with ellipsis."""
     if len(text) > length:
-        return text[:length - 3] + "..."
+        return text[: length - 3] + "..."
     return text
 
 
-def health_icon(status):
+def health_icon(status) -> str:
     """Return a text indicator for health status."""
     if status in ("OK", "success", "passing", True):
         return "PASS"
@@ -52,7 +52,7 @@ def health_icon(status):
         return "FAIL"
     if status in ("WARN", "warning", "flaky"):
         return "WARN"
-    if status in ("NONE",):
+    if status == "NONE":
         return "N/A"
     return "?"
 
@@ -60,6 +60,7 @@ def health_icon(status):
 # ---------------------------------------------------------------------------
 # PR Report (existing)
 # ---------------------------------------------------------------------------
+
 
 def generate_pr_report(data):
     """Generate the Open PR dashboard."""
@@ -189,6 +190,7 @@ def generate_pr_report(data):
 # CI Status Report
 # ---------------------------------------------------------------------------
 
+
 def generate_ci_report(data):
     """Generate the CI/Pipeline Health dashboard."""
     now_str = datetime.now(IST).strftime("%Y-%m-%d %H:%M IST")
@@ -254,9 +256,7 @@ def generate_ci_report(data):
         lines.append("|---|---|---|")
         for wf in flaky_workflows:
             lines.append(
-                f"| {wf['_repo']} "
-                f"| [{wf['name']}]({wf.get('url', '')}) "
-                f"| {wf.get('conclusion', '?')} |",
+                f"| {wf['_repo']} | [{wf['name']}]({wf.get('url', '')}) | {wf.get('conclusion', '?')} |",
             )
         lines.append("")
 
@@ -312,6 +312,7 @@ def generate_ci_report(data):
 # ---------------------------------------------------------------------------
 # Renovate / Dependency Report
 # ---------------------------------------------------------------------------
+
 
 def generate_renovate_report(data):
     """Generate the Dependency Update dashboard."""
@@ -444,6 +445,7 @@ def generate_renovate_report(data):
 # SonarCloud Quality Report
 # ---------------------------------------------------------------------------
 
+
 def generate_sonar_report(data):
     """Generate the SonarCloud Quality Gate dashboard."""
     now_str = datetime.now(IST).strftime("%Y-%m-%d %H:%M IST")
@@ -556,6 +558,7 @@ def generate_sonar_report(data):
 # Codecov Coverage Report
 # ---------------------------------------------------------------------------
 
+
 def generate_codecov_report(data):
     """Generate the Code Coverage dashboard from Codecov data."""
     now_str = datetime.now(IST).strftime("%Y-%m-%d %H:%M IST")
@@ -639,6 +642,7 @@ def generate_codecov_report(data):
 # Consolidated Guardian Dashboard
 # ---------------------------------------------------------------------------
 
+
 def format_changes_section(changes_data):
     """Markdown section for since-last-check deltas."""
     lines = []
@@ -666,7 +670,7 @@ def format_changes_section(changes_data):
         lines.append("")
         return lines
 
-    def _bullets(entries, label, fmt):
+    def _bullets(entries, label, fmt) -> None:
         if not entries:
             return
         lines.append(f"### {label} ({len(entries)})")
@@ -675,7 +679,7 @@ def format_changes_section(changes_data):
             lines.append(f"- {fmt(e)}")
         lines.append("")
 
-    def _wf(e):
+    def _wf(e) -> str:
         slug = e.get("repo", "?")
         name = e.get("workflow", "?")
         url = e.get("url", "")
@@ -683,7 +687,7 @@ def format_changes_section(changes_data):
             return f"**[{slug}]({url})** — {name}"
         return f"**{slug}** — {name}"
 
-    def _pr(e):
+    def _pr(e) -> str:
         slug = e.get("repo", "?")
         num = e.get("number", "?")
         title = truncate(e.get("title", ""), 50)
@@ -889,6 +893,7 @@ def generate_guardian_report(prs_data, ci_data, renovate_data, sonar_data, codec
 # Handoff Report
 # ---------------------------------------------------------------------------
 
+
 def generate_handoff_report(prs_data, ci_data, renovate_data, sonar_data, codecov_data=None):
     """Generate a Jira handoff template for the next Guardian."""
     now_str = datetime.now(IST).strftime("%Y-%m-%d %H:%M IST")
@@ -907,16 +912,24 @@ def generate_handoff_report(prs_data, ci_data, renovate_data, sonar_data, codeco
         lines.append(f"- CI: {agg.get('failing', 0)} failing, {agg.get('flaky', 0)} flaky workflows")
     if prs_data:
         agg = prs_data.get("aggregate", prs_data.get("summary", {}))
-        lines.append(f"- PRs: {agg.get('total_prs', 0)} open ({agg.get('ready_to_merge', 0)} ready, {agg.get('stale', 0)} stale)")
+        lines.append(
+            f"- PRs: {agg.get('total_prs', 0)} open ({agg.get('ready_to_merge', 0)} ready, {agg.get('stale', 0)} stale)",
+        )
     if renovate_data:
         agg = renovate_data.get("aggregate", renovate_data.get("summary", {}))
-        lines.append(f"- Dependencies: {agg.get('total_prs', agg.get('total', 0))} open ({agg.get('overdue', 0)} overdue)")
+        lines.append(
+            f"- Dependencies: {agg.get('total_prs', agg.get('total', 0))} open ({agg.get('overdue', 0)} overdue)",
+        )
     if codecov_data:
         agg = codecov_data.get("aggregate", {})
-        lines.append(f"- Coverage: {agg.get('average_coverage', 0)}% avg ({agg.get('repos_below_50', 0)} repos below 50%)")
+        lines.append(
+            f"- Coverage: {agg.get('average_coverage', 0)}% avg ({agg.get('repos_below_50', 0)} repos below 50%)",
+        )
     if sonar_data:
         agg = sonar_data.get("aggregate", {})
-        lines.append(f"- SonarCloud: {agg.get('gate_error', 0)} failing gates, {agg.get('total_vulnerabilities', 0)} vulnerabilities")
+        lines.append(
+            f"- SonarCloud: {agg.get('gate_error', 0)} failing gates, {agg.get('total_vulnerabilities', 0)} vulnerabilities",
+        )
     lines.append("")
 
     lines.append("## Ongoing Issues")
@@ -971,7 +984,9 @@ def generate_handoff_report(prs_data, ci_data, renovate_data, sonar_data, codeco
             slug = f"{repo.get('owner', '?')}/{repo.get('repo', '?')}"
             for pr in repo.get("prs", []):
                 if pr.get("category") == "stale":
-                    stale.append(f"- [{slug}#{pr['number']}]({pr.get('url', '')}) - {truncate(pr['title'], 60)} ({pr.get('age_days', '?')}d)")
+                    stale.append(
+                        f"- [{slug}#{pr['number']}]({pr.get('url', '')}) - {truncate(pr['title'], 60)} ({pr.get('age_days', '?')}d)",
+                    )
         if stale:
             lines.extend(stale)
         else:
@@ -1044,10 +1059,13 @@ SINGLE_INPUT_MODES = {
 MULTI_INPUT_MODES = {"guardian", "handoff"}
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Generate Guardian reports")
-    parser.add_argument("mode", choices=sorted(list(SINGLE_INPUT_MODES.keys()) + list(MULTI_INPUT_MODES)),
-                        help="Report type")
+    parser.add_argument(
+        "mode",
+        choices=sorted(list(SINGLE_INPUT_MODES.keys()) + list(MULTI_INPUT_MODES)),
+        help="Report type",
+    )
     parser.add_argument("input_file", nargs="?", help="JSON data file (for single-input modes)")
     parser.add_argument("--output", "-o", help="Write report to file (default: stdout)")
     parser.add_argument("--prs", help="PR data JSON (for guardian/handoff mode)")
@@ -1074,7 +1092,12 @@ def main():
 
         if args.mode == "guardian":
             report = generate_guardian_report(
-                prs_data, ci_data, renovate_data, sonar_data, codecov_data, changes_data,
+                prs_data,
+                ci_data,
+                renovate_data,
+                sonar_data,
+                codecov_data,
+                changes_data,
             )
         else:
             report = generate_handoff_report(prs_data, ci_data, renovate_data, sonar_data, codecov_data)

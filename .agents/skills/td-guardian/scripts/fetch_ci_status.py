@@ -76,10 +76,12 @@ def get_failing_jobs(owner, repo, run_id):
     failing = []
     for job in data["jobs"]:
         if job.get("conclusion") == "failure":
-            failing.append({
-                "name": job.get("name", ""),
-                "url": job.get("html_url", ""),
-            })
+            failing.append(
+                {
+                    "name": job.get("name", ""),
+                    "url": job.get("html_url", ""),
+                },
+            )
     return failing
 
 
@@ -116,10 +118,7 @@ def fetch_repo_ci(owner, repo, branch, days, event=None, ci_workflow=None):
 
     since = (datetime.now(UTC) - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    endpoint = (
-        f"repos/{owner}/{repo}/actions/runs"
-        f"?branch={branch}&per_page=100&created=%3E{since}"
-    )
+    endpoint = f"repos/{owner}/{repo}/actions/runs?branch={branch}&per_page=100&created=%3E{since}"
     if event:
         endpoint += f"&event={event}"
 
@@ -127,7 +126,9 @@ def fetch_repo_ci(owner, repo, branch, days, event=None, ci_workflow=None):
 
     if data is None or "workflow_runs" not in data:
         return {
-            "owner": owner, "repo": repo, "branch": branch,
+            "owner": owner,
+            "repo": repo,
+            "branch": branch,
             "error": "Failed to fetch workflow runs",
             "workflows": [],
             "primary_ci": None,
@@ -163,25 +164,27 @@ def fetch_repo_ci(owner, repo, branch, days, event=None, ci_workflow=None):
         age_hours = 0
         if updated:
             try:
-                updated_dt = datetime.fromisoformat(updated.replace("Z", "+00:00"))
+                updated_dt = datetime.fromisoformat(updated)
                 age_hours = int((now - updated_dt).total_seconds() / 3600)
             except (ValueError, TypeError):
                 pass
 
-        workflows.append({
-            "name": wf_name,
-            "run_id": run_id,
-            "workflow_id": workflow_id,
-            "status": status,
-            "conclusion": conclusion or status,
-            "url": run.get("html_url", ""),
-            "event": run.get("event", ""),
-            "updated_at": updated,
-            "age_hours": age_hours,
-            "head_sha": run.get("head_sha", "")[:7],
-            "is_flaky": is_flaky,
-            "failing_jobs": failing_jobs,
-        })
+        workflows.append(
+            {
+                "name": wf_name,
+                "run_id": run_id,
+                "workflow_id": workflow_id,
+                "status": status,
+                "conclusion": conclusion or status,
+                "url": run.get("html_url", ""),
+                "event": run.get("event", ""),
+                "updated_at": updated,
+                "age_hours": age_hours,
+                "head_sha": run.get("head_sha", "")[:7],
+                "is_flaky": is_flaky,
+                "failing_jobs": failing_jobs,
+            },
+        )
 
     passing = sum(1 for w in workflows if w["conclusion"] == "success" and not w["is_flaky"])
     failing = sum(1 for w in workflows if w["conclusion"] == "failure" and not w["is_flaky"])
@@ -190,7 +193,9 @@ def fetch_repo_ci(owner, repo, branch, days, event=None, ci_workflow=None):
     primary_ci = fetch_primary_ci_status(owner, repo, branch, ci_workflow)
 
     return {
-        "owner": owner, "repo": repo, "branch": branch,
+        "owner": owner,
+        "repo": repo,
+        "branch": branch,
         "fetched_at": now.isoformat(),
         "error": None,
         "workflows": workflows,
@@ -210,17 +215,14 @@ def load_repos(path):
         return json.load(f).get("repos", [])
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Fetch GitHub Actions CI status")
     parser.add_argument("owner", nargs="?", help="GitHub org")
     parser.add_argument("repo", nargs="?", help="Repo name")
     parser.add_argument("--repos-file", help="Path to repos.json for batch mode")
-    parser.add_argument("--branch", default=None,
-                        help="Branch to check (default: from repos.json or main)")
-    parser.add_argument("--days", type=int, default=3,
-                        help="Days of history to check (default: 3)")
-    parser.add_argument("--event", default=None,
-                        help="Filter runs by event type (e.g. schedule, push)")
+    parser.add_argument("--branch", default=None, help="Branch to check (default: from repos.json or main)")
+    parser.add_argument("--days", type=int, default=3, help="Days of history to check (default: 3)")
+    parser.add_argument("--event", default=None, help="Filter runs by event type (e.g. schedule, push)")
     args = parser.parse_args()
 
     if args.repos_file:
@@ -229,18 +231,11 @@ def main():
         for r in repos:
             branch = args.branch or r.get("default_branch", "main")
             ci_workflow = r.get("ci_workflow")
-            result = fetch_repo_ci(r["owner"], r["repo"], branch, args.days,
-                                   event=args.event, ci_workflow=ci_workflow)
+            result = fetch_repo_ci(r["owner"], r["repo"], branch, args.days, event=args.event, ci_workflow=ci_workflow)
             results.append(result)
 
-        primary_passing = sum(
-            1 for r in results
-            if r.get("primary_ci") and r["primary_ci"].get("status") == "success"
-        )
-        primary_failing = sum(
-            1 for r in results
-            if r.get("primary_ci") and r["primary_ci"].get("status") == "failure"
-        )
+        primary_passing = sum(1 for r in results if r.get("primary_ci") and r["primary_ci"].get("status") == "success")
+        primary_failing = sum(1 for r in results if r.get("primary_ci") and r["primary_ci"].get("status") == "failure")
 
         output = {
             "mode": "batch",
@@ -254,8 +249,7 @@ def main():
                 "flaky": sum(r["summary"]["flaky"] for r in results),
                 "repos_with_errors": sum(1 for r in results if r["error"]),
                 "repos_all_green": sum(
-                    1 for r in results
-                    if not r["error"] and r["summary"]["failing"] == 0 and r["summary"]["flaky"] == 0
+                    1 for r in results if not r["error"] and r["summary"]["failing"] == 0 and r["summary"]["flaky"] == 0
                 ),
                 "primary_ci_passing": primary_passing,
                 "primary_ci_failing": primary_failing,
