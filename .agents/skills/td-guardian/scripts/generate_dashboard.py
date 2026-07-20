@@ -1283,7 +1283,10 @@ def main() -> None:
         help="Full security audit JSON file (from convert_audit.py)",
     )
     parser.add_argument("--changes", help="Since-last-check delta JSON (from diff_snapshots.py)")
-    parser.add_argument("--gh-token", help="GitHub PAT for refresh button (or set GUARDIAN_GH_TOKEN env var)")
+    parser.add_argument(
+        "--gh-token",
+        help="Optional GitHub token for local dashboard refresh button only (never embed in Pages)",
+    )
     parser.add_argument("--output", "-o", default="docs/index.html", help="Output HTML file (default: docs/index.html)")
     args = parser.parse_args()
 
@@ -1300,7 +1303,8 @@ def main() -> None:
         print("ERROR: No data files provided or loadable", file=sys.stderr)
         sys.exit(1)
 
-    gh_token = args.gh_token or os.environ.get("GUARDIAN_GH_TOKEN", "")
+    # Do not read GUARDIAN_GH_TOKEN — Pages must not embed PATs.
+    gh_token = args.gh_token or ""
     html = generate_dashboard(
         prs_data,
         ci_data,

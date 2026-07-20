@@ -1,9 +1,9 @@
 ---
 name: Guardian On-Demand
 
-# Manual Sonar / Codecov / supply-chain fetches without committing to protected main.
-# Reports are uploaded as Actions artifacts. For a full dashboard refresh, run
-# Guardian Daily (or Weekly) instead — or set deploy_pages to dispatch Daily.
+# Manual Sonar / Codecov / light supply-chain fetches without committing to main.
+# Uses only GITHUB_TOKEN (+ optional SONAR_TOKEN). For a Pages refresh, run
+# Guardian Daily or Weekly manually from the Actions tab.
 
 on:
   workflow_dispatch:
@@ -13,17 +13,13 @@ on:
         type: boolean
         default: true
       supply_chain:
-        description: "Fetch supply-chain signals"
+        description: "Fetch light supply-chain signals (artifact only)"
         type: boolean
         default: true
-      deploy_pages:
-        description: "Also dispatch Guardian Daily (Pages dashboard refresh)"
-        type: boolean
-        default: false
 
 permissions:
   contents: read
-  actions: write
+  actions: read
 
 concurrency:
   group: guardian-on-demand
@@ -71,7 +67,7 @@ jobs:
           --days 7 --skip-vulns
           -o "${SKILL_ROOT}/reports/supply-chain.json"
         env:
-          GH_TOKEN: ${{ secrets.AUDIT_GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload report artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -79,16 +75,3 @@ jobs:
           name: guardian-on-demand-reports
           path: .agents/skills/td-guardian/reports/
           if-no-files-found: warn
-
-      - name: Dispatch Guardian Daily for Pages refresh
-        if: ${{ inputs.deploy_pages }}
-        env:
-          GH_TOKEN: ${{ secrets.GUARDIAN_GH_TOKEN }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          if [ -z "$GH_TOKEN" ]; then
-            echo "::error::GUARDIAN_GH_TOKEN is required to dispatch guardian-daily.yml"
-            exit 1
-          fi
-          gh workflow run guardian-daily.yml
-          echo "Dispatched guardian-daily.yml at $(date -u +%Y-%m-%dT%H:%M:%SZ)"

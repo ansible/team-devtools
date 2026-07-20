@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
-  actions: write
+  actions: read
   issues: write
 
 concurrency:
@@ -20,7 +20,7 @@ jobs:
   check-daily:
     runs-on: ubuntu-24.04
     outputs:
-      daily_dispatched: ${{ steps.dispatch.outputs.dispatched }}
+      daily_stale: ${{ steps.check.outputs.daily_stale }}
       daily_failed: ${{ steps.failure.outputs.daily_failed }}
       daily_failed_url: ${{ steps.failure.outputs.daily_failed_url }}
     steps:
@@ -102,26 +102,15 @@ jobs:
             echo "daily_failed=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Dispatch daily workflow
-        id: dispatch
+      - name: Manual recovery note
         if: steps.check.outputs.daily_stale == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GUARDIAN_GH_TOKEN }}
-          GH_REPO: ${{ github.repository }}
         run: |
-          if [ -z "$GH_TOKEN" ]; then
-            echo "::error::GUARDIAN_GH_TOKEN is not set — cannot dispatch recovery run"
-            exit 1
-          fi
-          echo "Dispatching guardian-daily.yml..."
-          gh workflow run guardian-daily.yml
-          echo "dispatched=true" >> "$GITHUB_OUTPUT"
-          echo "Daily workflow dispatched at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "::warning::Daily workflow is stale. GITHUB_TOKEN cannot trigger other workflows — re-run guardian-daily.yml manually from Actions."
 
   check-weekly:
     runs-on: ubuntu-24.04
     outputs:
-      weekly_dispatched: ${{ steps.dispatch.outputs.dispatched }}
+      weekly_stale: ${{ steps.check.outputs.weekly_stale }}
       weekly_failed: ${{ steps.failure.outputs.weekly_failed }}
       weekly_failed_url: ${{ steps.failure.outputs.weekly_failed_url }}
     steps:
@@ -214,29 +203,18 @@ jobs:
             echo "weekly_failed=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Dispatch weekly workflow
-        id: dispatch
+      - name: Manual recovery note
         if: steps.check.outputs.weekly_stale == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GUARDIAN_GH_TOKEN }}
-          GH_REPO: ${{ github.repository }}
         run: |
-          if [ -z "$GH_TOKEN" ]; then
-            echo "::error::GUARDIAN_GH_TOKEN is not set — cannot dispatch recovery run"
-            exit 1
-          fi
-          echo "Dispatching guardian-weekly.yml..."
-          gh workflow run guardian-weekly.yml
-          echo "dispatched=true" >> "$GITHUB_OUTPUT"
-          echo "Weekly workflow dispatched at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "::warning::Weekly workflow is stale. GITHUB_TOKEN cannot trigger other workflows — re-run guardian-weekly.yml manually from Actions."
 
   notify:
     runs-on: ubuntu-24.04
     needs: [check-daily, check-weekly]
     if: |
       always() && (
-        needs.check-daily.outputs.daily_dispatched == 'true' ||
-        needs.check-weekly.outputs.weekly_dispatched == 'true' ||
+        needs.check-daily.outputs.daily_stale == 'true' ||
+        needs.check-weekly.outputs.weekly_stale == 'true' ||
         needs.check-daily.outputs.daily_failed == 'true' ||
         needs.check-weekly.outputs.weekly_failed == 'true'
       )
@@ -245,8 +223,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-          DAILY_DISPATCHED: ${{ needs.check-daily.outputs.daily_dispatched }}
-          WEEKLY_DISPATCHED: ${{ needs.check-weekly.outputs.weekly_dispatched }}
+          DAILY_STALE: ${{ needs.check-daily.outputs.daily_stale }}
+          WEEKLY_STALE: ${{ needs.check-weekly.outputs.weekly_stale }}
           DAILY_FAILED: ${{ needs.check-daily.outputs.daily_failed }}
           WEEKLY_FAILED: ${{ needs.check-weekly.outputs.weekly_failed }}
           DAILY_FAILED_URL: ${{ needs.check-daily.outputs.daily_failed_url }}
@@ -273,11 +251,11 @@ jobs:
             fi
             BODY+="\n"
           fi
-          if [ "$DAILY_DISPATCHED" = "true" ]; then
-            BODY+="- :warning: **Daily workflow** was stale — dispatched recovery run\n"
+          if [ "$DAILY_STALE" = "true" ]; then
+            BODY+="- :warning: **Daily workflow** is stale — please re-run \`guardian-daily.yml\` manually (GITHUB_TOKEN cannot auto-dispatch)\n"
           fi
-          if [ "$WEEKLY_DISPATCHED" = "true" ]; then
-            BODY+="- :warning: **Weekly workflow** was stale — dispatched recovery run\n"
+          if [ "$WEEKLY_STALE" = "true" ]; then
+            BODY+="- :warning: **Weekly workflow** is stale — please re-run \`guardian-weekly.yml\` manually (GITHUB_TOKEN cannot auto-dispatch)\n"
           fi
 
           BODY+="\n---\n"
@@ -312,11 +290,11 @@ jobs:
               fi
               COMMENT+="\n"
             fi
-            if [ "$DAILY_DISPATCHED" = "true" ]; then
-              COMMENT+="- Dispatched daily recovery run\n"
+            if [ "$DAILY_STALE" = "true" ]; then
+              COMMENT+="- Daily still stale — manual re-run needed\n"
             fi
-            if [ "$WEEKLY_DISPATCHED" = "true" ]; then
-              COMMENT+="- Dispatched weekly recovery run\n"
+            if [ "$WEEKLY_STALE" = "true" ]; then
+              COMMENT+="- Weekly still stale — manual re-run needed\n"
             fi
             gh issue comment "$EXISTING_NUM" --body "$(echo -e "$COMMENT")"
           else
