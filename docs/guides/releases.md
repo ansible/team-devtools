@@ -18,6 +18,7 @@ One person within the devtools team will act as **release manager** each month. 
 
 Stage 1, release below if needed (no devtools runtime deps):
 
+- [abbenay](https://github.com/redhat-developer/abbenay/releases)
 - [ansible-compat](https://github.com/ansible/ansible-compat/releases)
 - [ansible-creator](https://github.com/ansible/ansible-creator/releases)
 - [ansible-dev-environment](https://github.com/ansible/ansible-dev-environment/releases)
