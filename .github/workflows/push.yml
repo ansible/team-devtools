@@ -2,6 +2,8 @@
 # push workflow is shared and expected to perform actions after a merge happens
 # on a maintenance branch (default or release). For example updating the
 # draft release-notes.
+# Permissions stay at workflow level so workflow_call consumers that only set
+# contents: read (or omit permissions) are not capped below what release-drafter needs.
 name: push
 
 permissions:

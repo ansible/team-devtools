@@ -20,18 +20,19 @@ on:
         default: "false"
   schedule:
     - cron: "0 0 * * *"
+
 permissions:
-  contents: write
-  id-token: write
-  packages: write
-  pull-requests: write
-  checks: write
+  contents: read
+
 jobs:
   lint:
     runs-on: ubuntu-24.04
     environment:
       name: ack # BOT_PAT
       deployment: false
+    permissions:
+      contents: write # commit & push lint autofixes
+      pull-requests: write # comment on unfixed lint errors
     steps:
       - name: Dump event information
         run: |
@@ -42,15 +43,15 @@ jobs:
           echo "github.event.action: ${{ github.event.action }}"
           echo "github.event.inputs: ${{ github.event.inputs }}"
 
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           fetch-depth: 0
           ref: ${{ github.head_ref }}
           token: ${{ secrets.BOT_PAT }}
 
-      - uses: astral-sh/setup-uv@v8.3.2
+      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
 
-      - uses: j178/prek-action@v2
+      - uses: j178/prek-action@5337cb91e0fa35a7ff31b9ca345126d8bbbcdf16 # v2.0.6
         id: prek
         with:
           extra-args: --config .pre-commit-config.yaml --all-files
@@ -88,6 +89,12 @@ jobs:
   test:
     needs:
       - lint
+    permissions:
+      checks: read
+      contents: read
+      id-token: write
+      packages: write # some tox environments might produce containers
+      pull-requests: write # allow commenting on unsigned commits
     # tests reusable tox workflow
     uses: ./.github/workflows/tox.yml
     with:
@@ -113,10 +120,13 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Decide whether the needed jobs succeeded or failed
-        uses: re-actors/alls-green@release/v1
+        uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe # v1.2.2
         with:
           jobs: ${{ toJSON(needs) }}
   push:
     if: github.event_name == 'push'
+    permissions:
+      contents: write
+      pull-requests: read
     uses: ./.github/workflows/push.yml
     secrets: inherit
