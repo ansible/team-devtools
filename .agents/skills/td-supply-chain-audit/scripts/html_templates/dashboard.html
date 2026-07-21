@@ -236,6 +236,7 @@ td code {
 }
 .badge-critical { background: rgba(248, 81, 73, 0.2); color: var(--critical); }
 .badge-high { background: rgba(219, 109, 40, 0.2); color: var(--high); }
+.text-muted { color: var(--text-muted); font-size: 0.85em; }
 .badge-medium { background: rgba(210, 153, 34, 0.2); color: var(--medium); }
 .badge-low { background: rgba(63, 185, 80, 0.2); color: var(--low); }
 .badge-info { background: rgba(139, 148, 158, 0.2); color: var(--info); }
@@ -270,6 +271,26 @@ td code {
 .package-focus h3 { color: var(--accent); margin-top: 0; }
 
 .no-data { color: var(--text-muted); font-style: italic; padding: 2rem; text-align: center; }
+.finding-item {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.finding-item-hidden { display: none; }
+.show-more-btn {
+  display: block;
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.55rem 1rem;
+  background: var(--surface-2);
+  color: var(--accent);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+.show-more-btn:hover { background: var(--border); }
 .footer {
   margin-top: 3rem;
   padding-top: 1rem;
@@ -348,6 +369,7 @@ a:hover { text-decoration: underline; }
     <li><strong>Post-approval PR integrity:</strong> All commits within each PR branch inspected for pushes after the last review approval — especially from unexpected authors</li>
     <li><strong>Human review requirement:</strong> Every merged PR must have at least one approval from a human reviewer (bot-only approvals flagged)</li>
     <li><strong>Squash/merge via GitHub UI:</strong> Accepted as legitimate when they are the merge commit of a reviewed PR</li>
+    <li><strong>OpenSSF Scorecard:</strong> Each repo should run <code>ossf/scorecard-action</code> (push + weekly schedule) and publish results. The audit prefers published OpenSSF API scores and falls back to a local <code>scorecard</code> CLI run when the API has no data; weak critical checks are flagged either way</li>
   </ul>
 </div>
 
@@ -412,6 +434,9 @@ a:hover { text-decoration: underline; }
 
 <!-- Renovate Cooldown Policy -->
 {{renovate_section}}
+
+<!-- OpenSSF Scorecard -->
+{{scorecard_section}}
 
 <!-- Suspicious Patterns -->
 {{findings_details_section}}
@@ -485,6 +510,15 @@ document.querySelectorAll('.collapsible-header').forEach(header => {
     body.classList.toggle('open');
   });
 });
+
+function showMoreFindings(btn) {
+  const body = btn.closest('.collapsible-body');
+  if (!body) return;
+  body.querySelectorAll('.finding-item-hidden').forEach(el => {
+    el.classList.remove('finding-item-hidden');
+  });
+  btn.remove();
+}
 </script>
 </body>
 </html>

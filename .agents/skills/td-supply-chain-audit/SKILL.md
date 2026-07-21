@@ -76,8 +76,11 @@ The compromise-date is the date the package is suspected to have been compromise
 
 - `gh` CLI installed and authenticated (`gh auth status` must succeed)
 - `python3` available (3.10+)
-- Network access to GitHub API and PyPI/npm registries
+- Network access to GitHub API, PyPI/npm registries, and GitHub releases (for Scorecard CLI auto-bootstrap)
+- GitHub token available to `gh` / `GH_TOKEN` (Scorecard CLI uses it for API rate limits)
 - `playwright` Python package with Chromium (for PDF export): `pip install playwright && playwright install chromium`
+
+Do **not** ask the user to install Scorecard manually. `collect.py` auto-downloads the pinned `scorecard` binary into `.supply-chain-audit/bin/` when missing (**macOS, Linux, and Windows** — amd64/arm64), then scores every target repo that has no published OpenSSF API result. The CLI fallback runs the full Scorecard suite **except** `Vulnerabilities` (OSV dependency scan) — that check can hang for 15+ minutes on larger repos, and dependency CVEs are already covered by the audit's separate OSV.dev inventory pass.
 
 ## Instructions
 
@@ -113,10 +116,13 @@ This will:
 - Fetch commits, PRs, check suites, and dependency diffs for all target repos
 - Fetch all individual commits and review timelines within each merged PR
 - Fetch branch protection rules and rulesets for each repo
+- Detect OpenSSF Scorecard workflow presence and fetch published scores from the Scorecard API
+- Auto-bootstrap the Scorecard CLI if needed, then score every repo with no API result (all target environments/repos; skip only with `--skip-scorecard-cli`)
+- When commit/PR data is cached but Scorecard scores are still missing, automatically re-run Scorecard collection for those repos
 - Store results as JSON in the cache directory
 - Write a `manifest.json` for reproducibility
 
-The script is idempotent: if cache files already exist for the same time frame, they are reused without re-fetching.
+The script is idempotent: if cache files already exist for the same time frame, they are reused without re-fetching (Scorecard is refreshed automatically when scores are still unavailable).
 
 Monitor progress output. The script prints per-repo status. If rate-limited, it will back off automatically.
 
@@ -127,7 +133,7 @@ python3 .agents/skills/td-supply-chain-audit/scripts/analyze.py \
   --cache-dir ".supply-chain-audit/cache"
 ```
 
-This detects (13 passes):
+This detects (14 passes):
 - Unsigned commits
 - GitHub-web-signed commits (signer is GitHub, not a personal key)
 - Orphan commits (no associated PR)
@@ -141,6 +147,7 @@ This detects (13 passes):
 - Bot-only approvals (PRs merged without any human review)
 - Self-approved PRs (author approved their own code with no independent review)
 - Known vulnerabilities (all current packages scanned against OSV.dev)
+- OpenSSF Scorecard gaps (unpublished results, low published API aggregate score, weak critical checks; missing workflows are table-only, not findings)
 
 Output: `findings.json` in the cache directory.
 
@@ -165,12 +172,13 @@ After analysis completes, **you** (the agent) must read the findings and write a
 2. If you need more detail on specific findings, read the full: `.supply-chain-audit/cache/<hash>/findings.json`
 3. Read the protection rules: `.supply-chain-audit/cache/<hash>/protection/*.json`
 4. Read the renovate configs: `.supply-chain-audit/cache/<hash>/renovate/*.json`
-5. Reason about the most impactful actions the team should take based on:
+5. Read the Scorecard data: `.supply-chain-audit/cache/<hash>/scorecard/*.json`
+6. Reason about the most impactful actions the team should take based on:
    - Severity and count of findings by category
    - Patterns across repos (e.g., many repos missing the same protection)
    - Quick wins vs. systemic improvements
    - What would prevent the *worst* findings from recurring
-5. Write `.supply-chain-audit/cache/<hash>/recommendations.json` as a JSON array of objects:
+7. Write `.supply-chain-audit/cache/<hash>/recommendations.json` as a JSON array of objects:
 
 ```json
 [
@@ -206,6 +214,7 @@ This produces a standalone HTML file (no CDN dependencies) with:
 - Timeline visualization (SVG)
 - Commit integrity table (sortable, filterable)
 - Dependency changes table with release dates
+- OpenSSF Scorecard workflow and score table
 - Suspicious patterns grouped by category
 - Security recommendations (from step 5)
 - Package focus section (if Phase 2 data exists)

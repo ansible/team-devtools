@@ -1,8 +1,8 @@
 """Anomaly detection engine for supply chain audit.
 
-Processes cached data to detect 13 categories of supply chain anomalies
+Processes cached data to detect 14 categories of supply chain anomalies
 including commit integrity, CI integrity, dependency provenance, review
-integrity, and known vulnerabilities.
+integrity, known vulnerabilities, and OpenSSF Scorecard posture.
 """
 # pylint: disable=too-many-lines
 
@@ -20,6 +20,9 @@ if TYPE_CHECKING:
 
 try:
     from audit_models import (  # pylint: disable=import-error
+        SCORECARD_CRITICAL_CHECKS,
+        SCORECARD_HIGH_THRESHOLD,
+        SCORECARD_MEDIUM_THRESHOLD,
         Finding,
         FindingCategory,
         RiskLevel,
@@ -32,6 +35,7 @@ try:
         get_all_cached_protection,
         get_all_cached_prs,
         get_all_cached_renovate,
+        get_all_cached_scorecard,
         get_all_cached_vulns,
         read_manifest,
         write_findings,
@@ -39,6 +43,9 @@ try:
 except ImportError:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from audit_models import (
+        SCORECARD_CRITICAL_CHECKS,
+        SCORECARD_HIGH_THRESHOLD,
+        SCORECARD_MEDIUM_THRESHOLD,
         Finding,
         FindingCategory,
         RiskLevel,
@@ -51,6 +58,7 @@ except ImportError:
         get_all_cached_protection,
         get_all_cached_prs,
         get_all_cached_renovate,
+        get_all_cached_scorecard,
         get_all_cached_vulns,
         read_manifest,
         write_findings,
@@ -999,6 +1007,278 @@ def detect_bot_only_approval(pr_audits: list[dict], prs: list[dict]) -> list[Fin
     return findings
 
 
+def _scorecard_overall_risk(score: float) -> RiskLevel | None:
+    """Map an overall OpenSSF Scorecard score to a risk level.
+
+    Args:
+        score: Aggregate Scorecard score (0-10).
+
+    Returns:
+        Risk level, or ``None`` when the score is acceptable.
+
+    """
+    if score < SCORECARD_HIGH_THRESHOLD:
+        return RiskLevel.HIGH
+    if score < SCORECARD_MEDIUM_THRESHOLD:
+        return RiskLevel.MEDIUM
+    return None
+
+
+def _scorecard_check_risk(name: str, score: float | None) -> RiskLevel | None:
+    """Map an individual Scorecard check score to a risk level.
+
+    Args:
+        name: Scorecard check name.
+        score: Check score (``-1`` means not applicable).
+
+    Returns:
+        Risk level for weak critical checks, else ``None``.
+
+    """
+    if name not in SCORECARD_CRITICAL_CHECKS:
+        return None
+    if not isinstance(score, (int, float)) or score < 0:
+        return None
+    if score == 0:
+        return RiskLevel.HIGH
+    if score < SCORECARD_HIGH_THRESHOLD:
+        return RiskLevel.MEDIUM
+    return None
+
+
+def _scorecard_workflow_findings(repo: str, workflow: dict) -> list[Finding]:
+    """Build findings for Scorecard workflow hygiene gaps.
+
+    Missing workflows are intentionally omitted (table-only). When a workflow
+    exists, flag incorrect action usage or incomplete publish/schedule/SARIF setup.
+
+    Args:
+        repo: Repository name (``org/repo``).
+        workflow: Cached workflow metadata.
+
+    Returns:
+        Zero or more Scorecard findings.
+
+    """
+    if not workflow.get("present"):
+        return []
+
+    if workflow.get("uses_scorecard_action") is False:
+        return [
+            Finding(
+                category=FindingCategory.SCORECARD,
+                risk_level=RiskLevel.MEDIUM,
+                repo=repo,
+                summary="Scorecard workflow does not use ossf/scorecard-action",
+                details=(
+                    f"{repo} has a Scorecard-named workflow at "
+                    f"`{workflow.get('path')}` but it does not reference "
+                    f"`ossf/scorecard-action`. Verify the workflow matches the "
+                    f"OpenSSF Scorecard supply-chain security pattern."
+                ),
+                evidence={"workflow": workflow},
+            ),
+        ]
+
+    findings: list[Finding] = []
+    if workflow.get("publish_results") is False:
+        findings.append(
+            Finding(
+                category=FindingCategory.SCORECARD,
+                risk_level=RiskLevel.MEDIUM,
+                repo=repo,
+                summary="Scorecard publish_results disabled",
+                details=(
+                    f"{repo} runs Scorecard but `publish_results` is false, so "
+                    f"results are not published to the OpenSSF API / badge. "
+                    f"Enable `publish_results: true` on the default branch."
+                ),
+                evidence={"workflow": workflow},
+            ),
+        )
+    if not workflow.get("has_schedule"):
+        findings.append(
+            Finding(
+                category=FindingCategory.SCORECARD,
+                risk_level=RiskLevel.LOW,
+                repo=repo,
+                summary="Scorecard workflow lacks a schedule trigger",
+                details=(
+                    f"{repo} Scorecard workflow at `{workflow.get('path')}` has "
+                    f"no `schedule` trigger. Add a weekly cron so the Maintained "
+                    f"check and score stay current."
+                ),
+                evidence={"workflow": workflow},
+            ),
+        )
+    if not workflow.get("uploads_sarif"):
+        findings.append(
+            Finding(
+                category=FindingCategory.SCORECARD,
+                risk_level=RiskLevel.LOW,
+                repo=repo,
+                summary="Scorecard results not uploaded to code scanning",
+                details=(
+                    f"{repo} Scorecard workflow does not upload SARIF via "
+                    f"`github/codeql-action/upload-sarif` (or artifact upload). "
+                    f"Upload results so findings appear in the code scanning dashboard."
+                ),
+                evidence={"workflow": workflow},
+            ),
+        )
+    return findings
+
+
+def _scorecard_score_findings(
+    repo: str,
+    workflow: dict,
+    score_data: dict,
+) -> list[Finding]:
+    """Build findings from Scorecard aggregate and per-check scores.
+
+    Args:
+        repo: Repository name (``org/repo``).
+        workflow: Cached workflow metadata.
+        score_data: Cached score payload.
+
+    Returns:
+        Zero or more Scorecard findings.
+
+    """
+    findings: list[Finding] = []
+
+    if not score_data.get("available"):
+        if workflow.get("present"):
+            findings.append(
+                Finding(
+                    category=FindingCategory.SCORECARD,
+                    risk_level=RiskLevel.INFO,
+                    repo=repo,
+                    summary="Scorecard results not yet published to OpenSSF API",
+                    details=(
+                        f"{repo} has a Scorecard workflow but no published results at "
+                        f"{score_data.get('api_url')}. Results appear after a successful "
+                        f"run on the default branch with `publish_results: true`. "
+                        f"The audit auto-bootstraps the Scorecard CLI to evaluate the "
+                        f"repo locally when the API has no score."
+                    ),
+                    evidence={
+                        "workflow": workflow,
+                        "error": score_data.get("error"),
+                        "cli_error": score_data.get("cli_error"),
+                        "api_url": score_data.get("api_url"),
+                    },
+                ),
+            )
+        return findings
+
+    if score_data.get("source") == "cli":
+        findings.append(
+            Finding(
+                category=FindingCategory.SCORECARD,
+                risk_level=RiskLevel.INFO,
+                repo=repo,
+                summary="Scorecard score from local CLI (not published to OpenSSF API)",
+                details=(
+                    f"{repo} was scored locally via the Scorecard CLI "
+                    f"(score={score_data.get('score')}/10). Add/enable "
+                    f"`scorecard.yml` with `publish_results: true` so consumers "
+                    f"and badges can use the public OpenSSF API."
+                ),
+                date=score_data.get("date"),
+                evidence={
+                    "source": "cli",
+                    "score": score_data.get("score"),
+                    "api_error": score_data.get("api_error"),
+                    "api_url": score_data.get("api_url"),
+                },
+            ),
+        )
+
+    # Aggregate thresholds apply to published API scores only. CLI runs omit
+    # Vulnerabilities, so the aggregate is not comparable to the full suite.
+    overall = score_data.get("score")
+    source = score_data.get("source") or "api"
+    if source != "cli" and isinstance(overall, (int, float)):
+        overall_risk = _scorecard_overall_risk(float(overall))
+        if overall_risk is not None:
+            findings.append(
+                Finding(
+                    category=FindingCategory.SCORECARD,
+                    risk_level=overall_risk,
+                    repo=repo,
+                    summary=f"OpenSSF Scorecard score is {overall}/10",
+                    details=(
+                        f"{repo} Scorecard score is {overall}/10 via published OpenSSF API "
+                        f"(date={score_data.get('date')}). Improve failing checks "
+                        f"(token permissions, pinned actions, branch protection, "
+                        f"code review) and keep publishing results with a Scorecard workflow."
+                    ),
+                    date=score_data.get("date"),
+                    evidence={
+                        "score": overall,
+                        "source": source,
+                        "date": score_data.get("date"),
+                        "api_url": score_data.get("api_url"),
+                        "badge_url": score_data.get("badge_url"),
+                    },
+                ),
+            )
+
+    for check in score_data.get("checks") or []:
+        name = check.get("name", "")
+        check_score = check.get("score")
+        check_risk = _scorecard_check_risk(name, check_score)
+        if check_risk is None:
+            continue
+        findings.append(
+            Finding(
+                category=FindingCategory.SCORECARD,
+                risk_level=check_risk,
+                repo=repo,
+                summary=f"Scorecard check {name} scored {check_score}/10",
+                details=(
+                    f"{repo}: OpenSSF Scorecard check `{name}` scored "
+                    f"{check_score}/10. Reason: {check.get('reason') or 'n/a'}. "
+                    f"See {check.get('documentation_url') or score_data.get('api_url')}."
+                ),
+                date=score_data.get("date"),
+                evidence={
+                    "check": name,
+                    "score": check_score,
+                    "reason": check.get("reason"),
+                    "api_url": score_data.get("api_url"),
+                },
+            ),
+        )
+    return findings
+
+
+def detect_scorecard_issues(scorecards: dict[str, dict]) -> list[Finding]:
+    """Detect weak OpenSSF Scorecard scores and workflow hygiene issues.
+
+    Missing Scorecard workflows are reported in the Scorecard table only,
+    not as anomaly findings.
+
+    Args:
+        scorecards: Scorecard payloads keyed by repo.
+
+    Returns:
+        Findings for low aggregate scores, weak checks, and workflow gaps
+        when a Scorecard workflow is already present.
+
+    """
+    findings: list[Finding] = []
+
+    for repo, data in sorted(scorecards.items()):
+        workflow = data.get("workflow") or {}
+        score_data = data.get("scorecard") or {}
+        findings.extend(_scorecard_workflow_findings(repo, workflow))
+        findings.extend(_scorecard_score_findings(repo, workflow, score_data))
+
+    return findings
+
+
 def detect_self_approval(pr_audits: list[dict]) -> list[Finding]:
     """Detect PRs where the author approved their own PR with no independent review.
 
@@ -1081,7 +1361,7 @@ def detect_self_approval(pr_audits: list[dict]) -> list[Finding]:
     return findings
 
 
-def _print_cache_stats(  # pylint: disable=too-many-positional-arguments
+def _print_cache_stats(  # pylint: disable=too-many-positional-arguments,too-many-arguments
     commits: list[dict],
     prs: list[dict],
     checks: dict[str, list[dict]],
@@ -1090,6 +1370,7 @@ def _print_cache_stats(  # pylint: disable=too-many-positional-arguments
     pr_audits: list[dict],
     renovate_configs: dict[str, dict],
     vulns: dict[str, list[dict]],
+    scorecards: dict[str, dict],
 ) -> None:
     """Print summary statistics for loaded cache data.
 
@@ -1102,6 +1383,7 @@ def _print_cache_stats(  # pylint: disable=too-many-positional-arguments
         pr_audits: PR audit data.
         renovate_configs: Renovate configs keyed by repo.
         vulns: Vulnerability results keyed by repo.
+        scorecards: Scorecard payloads keyed by repo.
 
     """
     print(f"  Commits on main: {len(commits)}")
@@ -1115,6 +1397,21 @@ def _print_cache_stats(  # pylint: disable=too-many-positional-arguments
     )
     print(
         f"  Repos with vulnerability data: {len(vulns)} ({sum(len(v) for v in vulns.values())} affected packages)",
+    )
+    workflows_present = sum(1 for s in scorecards.values() if (s.get("workflow") or {}).get("present"))
+    scores_api = sum(
+        1
+        for s in scorecards.values()
+        if (s.get("scorecard") or {}).get("available") and (s.get("scorecard") or {}).get("source") == "api"
+    )
+    scores_cli = sum(
+        1
+        for s in scorecards.values()
+        if (s.get("scorecard") or {}).get("available") and (s.get("scorecard") or {}).get("source") == "cli"
+    )
+    print(
+        f"  Repos with Scorecard data: {len(scorecards)} "
+        f"({workflows_present} workflows, {scores_api} API scores, {scores_cli} CLI scores)",
     )
 
 
@@ -1142,7 +1439,7 @@ def _run_detection_pass(
     return findings
 
 
-def _run_detection_passes(  # pylint: disable=too-many-positional-arguments
+def _run_detection_passes(  # pylint: disable=too-many-positional-arguments,too-many-arguments
     commits: list[dict],
     prs: list[dict],
     checks: dict[str, list[dict]],
@@ -1151,6 +1448,7 @@ def _run_detection_passes(  # pylint: disable=too-many-positional-arguments
     pr_audits: list[dict],
     renovate_configs: dict[str, dict],
     vulns: dict[str, list[dict]],
+    scorecards: dict[str, dict],
 ) -> list[Finding]:
     """Execute all detection passes and return combined findings.
 
@@ -1163,6 +1461,7 @@ def _run_detection_passes(  # pylint: disable=too-many-positional-arguments
         pr_audits: PR audit data.
         renovate_configs: Renovate configs keyed by repo.
         vulns: Vulnerability results keyed by repo.
+        scorecards: Scorecard payloads keyed by repo.
 
     Returns:
         Combined findings from all passes.
@@ -1172,43 +1471,43 @@ def _run_detection_passes(  # pylint: disable=too-many-positional-arguments
 
     pass_specs: list[tuple[str, str, Callable[[], list[Finding]], Callable[[list[Finding]], str]]] = [
         (
-            "[1/12]",
+            "[1/14]",
             "Unsigned commits",
             lambda: detect_unsigned_commits(commits),
             lambda findings: f"Found {len(findings)} unsigned commits",
         ),
         (
-            "[2/12]",
+            "[2/14]",
             "GitHub-web-signed commits (excluding PR merges)",
             lambda: detect_github_web_signed(commits, prs),
             lambda findings: f"Found {len(findings)} GitHub-web-signed commits (non-merge)",
         ),
         (
-            "[3/12]",
+            "[3/14]",
             "Orphan commits (no PR)",
             lambda: detect_orphan_commits(commits, prs),
             lambda findings: f"Found {len(findings)} orphan commits",
         ),
         (
-            "[4/12]",
+            "[4/14]",
             "Bypassed CI (required checks only)",
             lambda: detect_bypassed_ci(commits, prs, checks, protection),
             lambda findings: f"Found {len(findings)} bypassed CI instances",
         ),
         (
-            "[5/12]",
+            "[5/14]",
             "Post-merge pushes",
             lambda: detect_post_merge_pushes(commits, prs),
             lambda findings: f"Found {len(findings)} post-merge pushes",
         ),
         (
-            "[6/12]",
+            "[6/14]",
             "Replicated commit messages",
             lambda: detect_replicated_messages(commits),
             lambda findings: f"Found {len(findings)} replicated messages",
         ),
         (
-            "[7/12]",
+            "[7/14]",
             "Dependency cooldown policy check",
             lambda: detect_suspicious_dep_timing(deps, renovate_configs),
             lambda findings: (
@@ -1219,40 +1518,46 @@ def _run_detection_passes(  # pylint: disable=too-many-positional-arguments
             ),
         ),
         (
-            "[8/12]",
+            "[8/14]",
             "Yanked/deleted versions",
             lambda: detect_yanked_versions(deps),
             lambda findings: f"Found {len(findings)} yanked versions",
         ),
         (
-            "[9/12]",
+            "[9/14]",
             "Branch protection changes",
             lambda: detect_protection_changes(protection),
             lambda findings: f"Found {len(findings)} protection findings",
         ),
         (
-            "[10/12]",
+            "[10/14]",
             "Post-approval commits in PRs",
             lambda: detect_post_approval_commits(pr_audits),
             lambda findings: f"Found {len(findings)} PRs with post-approval commits",
         ),
         (
-            "[11/13]",
+            "[11/14]",
             "Bot-only approvals (no human review)",
             lambda: detect_bot_only_approval(pr_audits, prs),
             lambda findings: f"Found {len(findings)} PRs with bot-only approval",
         ),
         (
-            "[12/13]",
+            "[12/14]",
             "Self-approved PRs",
             lambda: detect_self_approval(pr_audits),
             lambda findings: f"Found {len(findings)} self-approved PRs",
         ),
         (
-            "[13/13]",
+            "[13/14]",
             "Known vulnerabilities (OSV.dev)",
             lambda: detect_known_vulnerabilities(vulns),
             lambda findings: f"Found {len(findings)} known vulnerabilities",
+        ),
+        (
+            "[14/14]",
+            "OpenSSF Scorecard workflow and scores",
+            lambda: detect_scorecard_issues(scorecards),
+            lambda findings: f"Found {len(findings)} Scorecard findings",
         ),
     ]
 
@@ -1301,6 +1606,7 @@ def run_analysis(cache_dir: Path) -> list[Finding]:
     pr_audits = get_all_cached_pr_audits(cache_dir)
     renovate_configs = get_all_cached_renovate(cache_dir)
     vulns = get_all_cached_vulns(cache_dir)
+    scorecards = get_all_cached_scorecard(cache_dir)
 
     _print_cache_stats(
         commits,
@@ -1311,6 +1617,7 @@ def run_analysis(cache_dir: Path) -> list[Finding]:
         pr_audits,
         renovate_configs,
         vulns,
+        scorecards,
     )
 
     all_findings = _run_detection_passes(
@@ -1322,6 +1629,7 @@ def run_analysis(cache_dir: Path) -> list[Finding]:
         pr_audits,
         renovate_configs,
         vulns,
+        scorecards,
     )
     _print_risk_summary(all_findings)
 
