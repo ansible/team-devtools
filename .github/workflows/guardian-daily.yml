@@ -99,6 +99,25 @@ jobs:
             rm -f "${SKILL_ROOT}/reports/previous-snapshot.json"
           fi
 
+      - name: Preserve supply-chain audit artifacts from Pages
+        run: |
+          # Daily deploys replace the whole Pages site. Re-fetch last weekly
+          # audit.html + security-audit.json so the Security Audit link survives.
+          PAGES_BASE="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          if curl -fsSL "${PAGES_BASE}/audit.html" -o "${SITE_DIR}/audit.html"; then
+            echo "Preserved audit.html from Pages"
+          else
+            echo "No audit.html on Pages yet (weekly has not published one)"
+            rm -f "${SITE_DIR}/audit.html"
+          fi
+          if curl -fsSL "${PAGES_BASE}/security-audit.json" -o "${SKILL_ROOT}/reports/security-audit.json"; then
+            echo "Loaded security-audit.json from Pages"
+            cp "${SKILL_ROOT}/reports/security-audit.json" "${SITE_DIR}/security-audit.json"
+          else
+            echo "No security-audit.json on Pages yet"
+            rm -f "${SKILL_ROOT}/reports/security-audit.json"
+          fi
+
       - name: Diff against previous snapshot
         run: |
           python3 "${SKILL_ROOT}/scripts/diff_snapshots.py" \
@@ -113,6 +132,10 @@ jobs:
 
       - name: Generate HTML dashboard
         run: |
+          EXTRA_ARGS=()
+          if [ -f "${SKILL_ROOT}/reports/security-audit.json" ]; then
+            EXTRA_ARGS+=(--security-audit "${SKILL_ROOT}/reports/security-audit.json")
+          fi
           python3 "${SKILL_ROOT}/scripts/generate_dashboard.py" \
             --prs "${SKILL_ROOT}/reports/open-prs.json" \
             --ci "${SKILL_ROOT}/reports/ci-status.json" \
@@ -121,12 +144,16 @@ jobs:
             --sonar "${SKILL_ROOT}/reports/sonar-gates.json" \
             --correlation "${SKILL_ROOT}/reports/correlation.json" \
             --changes "${SKILL_ROOT}/reports/changes.json" \
+            "${EXTRA_ARGS[@]}" \
             --output "${SITE_DIR}/index.html"
 
       - name: Publish snapshot baseline with Pages
         run: |
           cp "${SKILL_ROOT}/reports/previous-snapshot.json" "${SITE_DIR}/snapshot.json"
           cp "${SKILL_ROOT}/reports/changes.json" "${SITE_DIR}/changes.json"
+          if [ -f "${SKILL_ROOT}/reports/security-audit.json" ]; then
+            cp "${SKILL_ROOT}/reports/security-audit.json" "${SITE_DIR}/security-audit.json"
+          fi
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
