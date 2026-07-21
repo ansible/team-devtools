@@ -102,7 +102,7 @@ jobs:
           python3 "${AUDIT_ROOT}/scripts/analyze.py" \
             --cache-dir "$CACHE_DIR"
         env:
-          GH_TOKEN: ${{ secrets.AUDIT_GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PYTHONUNBUFFERED: "1"
 
       - name: Convert audit to dashboard format
@@ -153,8 +153,6 @@ jobs:
             --security-audit "${SKILL_ROOT}/reports/security-audit.json" \
             --changes "${SKILL_ROOT}/reports/changes.json" \
             --output "${SITE_DIR}/index.html"
-        env:
-          GUARDIAN_GH_TOKEN: ${{ secrets.GUARDIAN_GH_TOKEN }}
 
       - name: Publish snapshot baseline with Pages
         run: |

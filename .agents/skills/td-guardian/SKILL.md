@@ -62,7 +62,6 @@ SKILL_ROOT=".agents/skills/td-guardian"   # or ~/.agents/skills/td-guardian
 - `python3` available (3.10+)
 - No external Python dependencies — scripts use only the stdlib
 - Optional: `SONAR_TOKEN` for SonarCloud (`sonar` / weekly audit)
-- Optional: Codecov token if private coverage data is required
 
 ## Commands
 
@@ -238,11 +237,14 @@ Expected Pages URL once enabled:
 
 1. **Settings → Pages** — Source: GitHub Actions
 2. Create environment **`github-pages`** (used by daily/weekly deploy jobs)
-3. Add repository (or org) secrets:
-   - `SONAR_TOKEN` — SonarCloud API
-   - `AUDIT_GH_TOKEN` — PAT for supply-chain / cross-repo audit fetches
-   - `GUARDIAN_GH_TOKEN` — PAT that can `workflow_dispatch` guardian workflows
-     (and powers the dashboard refresh button)
+3. Secrets:
+   - **None required** for core Daily/Weekly — workflows use the built-in `GITHUB_TOKEN`
+   - Optional: `SONAR_TOKEN` — SonarCloud API (Sonar cards stay empty without it)
+
+Notes without a PAT:
+- Watchdog **alerts** (issues) but does **not** auto-re-dispatch workflows (`GITHUB_TOKEN` cannot trigger other workflows)
+- Dashboard **Refresh Data** opens a modal with a copyable `gh workflow run` command (no token in HTML)
+- Private / SAML-gated repos may show gaps vs a fine-grained PAT
 
 ## Reference
 

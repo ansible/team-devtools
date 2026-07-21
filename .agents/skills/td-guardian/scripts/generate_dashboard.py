@@ -1025,75 +1025,116 @@ TOOLBAR_CSS = """
 .live-dot.fetching { background: var(--warn); }
 .live-dot.error { background: var(--error); animation: none; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-#refresh-status { font-size: 0.78rem; color: var(--text-muted); }
-#rate-limit { font-size: 0.72rem; color: var(--text-dim); }
+.refresh-modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 1000;
+  background: rgba(15, 23, 42, 0.45); align-items: center; justify-content: center;
+  padding: 16px;
+}
+.refresh-modal-overlay.open { display: flex; }
+.refresh-modal {
+  width: min(560px, 100%); background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-md); padding: 20px 22px;
+}
+.refresh-modal h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 8px; }
+.refresh-modal p { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px; line-height: 1.5; }
+.refresh-cmd-row {
+  display: flex; gap: 8px; align-items: stretch; margin-bottom: 10px;
+}
+.refresh-cmd-row input {
+  flex: 1; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78rem; padding: 10px 12px; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); background: var(--bg); color: var(--text);
+}
+.refresh-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.refresh-copy-status { font-size: 0.78rem; color: var(--ok-text); min-height: 1.2em; }
+.refresh-workflow-tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.refresh-workflow-tabs button[aria-pressed="true"] {
+  background: var(--accent-bg); border-color: var(--accent); color: var(--accent);
+}
 """
 
 TOOLBAR_JS = """
 const REPO = 'ansible/team-devtools';
-const WORKFLOW = 'guardian-daily.yml';
-const MAX_DAILY_TRIGGERS = 12;
 const AUTO_REFRESH_MS = 30 * 60 * 1000;
-const GH_TOKEN = '%GH_TOKEN%';
+const WORKFLOWS = {
+  daily: {
+    label: 'Daily check',
+    file: 'guardian-daily.yml',
+    hint: 'Re-runs the full dashboard scan and republishes GitHub Pages (~3 min).'
+  },
+  weekly: {
+    label: 'Weekly security audit',
+    file: 'guardian-weekly.yml',
+    hint: 'Re-runs the weekly security audit and updates the Security Audit report.'
+  }
+};
 
 const REPOS = %REPOS_JSON%;
 
+let selectedWorkflow = 'daily';
+
+function refreshCommand(key) {
+  const wf = WORKFLOWS[key] || WORKFLOWS.daily;
+  return 'gh workflow run ' + wf.file + ' --repo ' + REPO;
+}
+
+function openRefreshModal() {
+  const overlay = document.getElementById('refresh-modal');
+  if (!overlay) return;
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden', 'false');
+  setRefreshWorkflow(selectedWorkflow);
+  const input = document.getElementById('refresh-cmd');
+  if (input) input.focus();
+}
+
+function closeRefreshModal() {
+  const overlay = document.getElementById('refresh-modal');
+  if (!overlay) return;
+  overlay.classList.remove('open');
+  overlay.setAttribute('aria-hidden', 'true');
+  const status = document.getElementById('refresh-copy-status');
+  if (status) status.textContent = '';
+}
+
+function setRefreshWorkflow(key) {
+  selectedWorkflow = WORKFLOWS[key] ? key : 'daily';
+  const wf = WORKFLOWS[selectedWorkflow];
+  const input = document.getElementById('refresh-cmd');
+  const hint = document.getElementById('refresh-hint');
+  if (input) input.value = refreshCommand(selectedWorkflow);
+  if (hint) hint.textContent = wf.hint;
+  document.querySelectorAll('.refresh-workflow-tabs button').forEach(btn => {
+    btn.setAttribute('aria-pressed', btn.dataset.workflow === selectedWorkflow ? 'true' : 'false');
+  });
+  const status = document.getElementById('refresh-copy-status');
+  if (status) status.textContent = '';
+}
+
+async function copyRefreshCommand() {
+  const input = document.getElementById('refresh-cmd');
+  const status = document.getElementById('refresh-copy-status');
+  if (!input) return;
+  const cmd = input.value;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(cmd);
+    } else {
+      input.select();
+      document.execCommand('copy');
+    }
+    if (status) status.textContent = 'Copied — paste into a terminal where you are logged in with gh.';
+  } catch (e) {
+    input.select();
+    if (status) status.textContent = 'Select the command and copy manually (Ctrl/Cmd+C).';
+  }
+}
+
 async function ghApi(endpoint) {
   const opts = {headers: {'Accept': 'application/vnd.github+json'}};
-  if (GH_TOKEN) opts.headers['Authorization'] = 'Bearer ' + GH_TOKEN;
   const r = await fetch('https://api.github.com/' + endpoint, opts);
   if (!r.ok) return null;
   return r.json();
-}
-
-async function countTodayTriggers() {
-  const today = new Date().toISOString().split('T')[0];
-  const data = await ghApi(
-    'repos/' + REPO + '/actions/workflows/' + WORKFLOW + '/runs?per_page=50&created=>' + today
-  );
-  if (!data || !data.workflow_runs) return 0;
-  return data.workflow_runs.filter(r => r.event === 'workflow_dispatch').length;
-}
-
-async function updateRateLimit() {
-  const count = await countTodayTriggers();
-  const el = document.getElementById('rate-limit');
-  if (el) el.textContent = count + '/' + MAX_DAILY_TRIGGERS + ' refreshes today';
-  const btn = document.getElementById('refresh-btn');
-  if (btn && count >= MAX_DAILY_TRIGGERS) {
-    btn.disabled = true;
-    btn.title = 'Daily limit reached';
-  }
-  return count;
-}
-
-async function triggerRefresh() {
-  const btn = document.getElementById('refresh-btn');
-  const status = document.getElementById('refresh-status');
-  if (!GH_TOKEN) { status.textContent = 'No token configured'; return; }
-
-  const count = await countTodayTriggers();
-  if (count >= MAX_DAILY_TRIGGERS) { status.textContent = 'Daily limit reached (' + MAX_DAILY_TRIGGERS + ')'; return; }
-
-  btn.disabled = true;
-  status.textContent = 'Triggering full scan...';
-
-  try {
-    const r = await fetch('https://api.github.com/repos/' + REPO + '/actions/workflows/' + WORKFLOW + '/dispatches', {
-      method: 'POST',
-      headers: {'Authorization': 'Bearer ' + GH_TOKEN, 'Accept': 'application/vnd.github+json'},
-      body: JSON.stringify({ref: 'main'})
-    });
-    if (r.status === 204) {
-      status.textContent = 'Scan triggered — dashboard will update in ~3 min';
-      setTimeout(() => location.reload(), 180000);
-    } else {
-      status.textContent = 'Failed (HTTP ' + r.status + ')';
-    }
-  } catch (e) {
-    status.textContent = 'Error: ' + e.message;
-  }
-  setTimeout(() => { btn.disabled = false; updateRateLimit(); }, 5000);
 }
 
 async function fetchLiveStatus() {
@@ -1121,9 +1162,15 @@ async function fetchLiveStatus() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  updateRateLimit();
-  if (GH_TOKEN) fetchLiveStatus();
-  setInterval(() => { if (GH_TOKEN) fetchLiveStatus(); }, AUTO_REFRESH_MS);
+  fetchLiveStatus();
+  setInterval(fetchLiveStatus, AUTO_REFRESH_MS);
+  const overlay = document.getElementById('refresh-modal');
+  if (overlay) {
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeRefreshModal(); });
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeRefreshModal();
+  });
 });
 """
 
@@ -1137,7 +1184,6 @@ def generate_dashboard(
     codecov_data=None,
     security_audit_data=None,
     changes_data=None,
-    gh_token="",
 ) -> str:
     now_str = datetime.now(IST).strftime("%Y-%m-%d %H:%M IST")
 
@@ -1152,10 +1198,7 @@ def generate_dashboard(
                 },
             )
 
-    js = TOOLBAR_JS.replace("%GH_TOKEN%", esc(gh_token)).replace(
-        "%REPOS_JSON%",
-        json.dumps(repos_list),
-    )
+    js = TOOLBAR_JS.replace("%REPOS_JSON%", json.dumps(repos_list))
 
     health_cards = build_health_cards(prs_data, ci_data, renovate_data, sonar_data, codecov_data, security_audit_data)
     changes_section = build_changes_section(changes_data)
@@ -1185,18 +1228,35 @@ def generate_dashboard(
 
     toolbar_html = """<div class="toolbar">
   <div class="toolbar-left">
-    <button class="btn btn-primary" id="refresh-btn" onclick="triggerRefresh()">Refresh Data</button>
-    <span id="refresh-status"></span>
+    <button class="btn btn-primary" id="refresh-btn" type="button" onclick="openRefreshModal()">Refresh Data</button>
   </div>
   <div class="toolbar-right">
     <span><span class="live-dot" id="live-dot"></span> <span id="live-time">Live: --</span></span>
     <span id="live-ci-count"></span>
-    <span id="rate-limit">--/12 refreshes today</span>
     <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">
       <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m8.66-13.66l-.71.71M4.05 19.95l-.71.71M21 12h-1M4 12H3m16.66 7.66l-.71-.71M4.05 4.05l-.71-.71M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
       <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="display:none"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
       <span id="theme-label">Dark</span>
     </button>
+  </div>
+</div>
+<div class="refresh-modal-overlay" id="refresh-modal" aria-hidden="true" role="dialog" aria-labelledby="refresh-modal-title">
+  <div class="refresh-modal">
+    <h3 id="refresh-modal-title">Refresh dashboard data</h3>
+    <p>Org policy blocks embedding a GitHub token in Pages. Copy a GitHub CLI command, run it locally (requires <code>gh</code> auth and write access to Actions), then reload this page after the workflow finishes.</p>
+    <div class="refresh-workflow-tabs" role="tablist">
+      <button type="button" class="btn" data-workflow="daily" aria-pressed="true" onclick="setRefreshWorkflow('daily')">Daily check</button>
+      <button type="button" class="btn" data-workflow="weekly" aria-pressed="false" onclick="setRefreshWorkflow('weekly')">Weekly security audit</button>
+    </div>
+    <p id="refresh-hint"></p>
+    <div class="refresh-cmd-row">
+      <input id="refresh-cmd" type="text" readonly aria-label="GitHub CLI refresh command" value="gh workflow run guardian-daily.yml --repo ansible/team-devtools">
+      <button type="button" class="btn btn-primary" onclick="copyRefreshCommand()">Copy</button>
+    </div>
+    <div class="refresh-copy-status" id="refresh-copy-status" aria-live="polite"></div>
+    <div class="refresh-modal-actions">
+      <button type="button" class="btn" onclick="closeRefreshModal()">Close</button>
+    </div>
   </div>
 </div>"""
 
@@ -1283,7 +1343,6 @@ def main() -> None:
         help="Full security audit JSON file (from convert_audit.py)",
     )
     parser.add_argument("--changes", help="Since-last-check delta JSON (from diff_snapshots.py)")
-    parser.add_argument("--gh-token", help="GitHub PAT for refresh button (or set GUARDIAN_GH_TOKEN env var)")
     parser.add_argument("--output", "-o", default="docs/index.html", help="Output HTML file (default: docs/index.html)")
     args = parser.parse_args()
 
@@ -1300,7 +1359,6 @@ def main() -> None:
         print("ERROR: No data files provided or loadable", file=sys.stderr)
         sys.exit(1)
 
-    gh_token = args.gh_token or os.environ.get("GUARDIAN_GH_TOKEN", "")
     html = generate_dashboard(
         prs_data,
         ci_data,
@@ -1310,7 +1368,6 @@ def main() -> None:
         codecov_data,
         security_audit_data,
         changes_data,
-        gh_token,
     )
 
     os.makedirs(os.path.dirname(os.path.abspath(args.output)), exist_ok=True)

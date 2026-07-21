@@ -122,8 +122,6 @@ jobs:
             --correlation "${SKILL_ROOT}/reports/correlation.json" \
             --changes "${SKILL_ROOT}/reports/changes.json" \
             --output "${SITE_DIR}/index.html"
-        env:
-          GUARDIAN_GH_TOKEN: ${{ secrets.GUARDIAN_GH_TOKEN }}
 
       - name: Publish snapshot baseline with Pages
         run: |
