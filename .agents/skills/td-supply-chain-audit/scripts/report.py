@@ -1027,6 +1027,40 @@ def generate_scorecard_section(
     )
 
 
+def _format_finding_item(finding: dict, *, hidden: bool = False) -> str:
+    """Render a single finding row for the Anomaly Details section.
+
+    Args:
+        finding: Finding dict.
+        hidden: When True, mark the row as initially collapsed (show-more).
+
+    Returns:
+        HTML fragment for one finding.
+
+    """
+    pr_num = finding.get("pr_number")
+    repo = finding.get("repo", "")
+    pr_link = ""
+    if pr_num:
+        repo_gh = repo if "/" in repo else f"ansible/{repo}"
+        pr_link = (
+            f' <a href="https://github.com/{repo_gh}/pull/{pr_num}" '
+            f'target="_blank" rel="noopener noreferrer">PR #{pr_num}</a>'
+        )
+    summary_html = _linkify_advisory_ids(esc(finding.get("summary", "")))
+    details_html = _linkify_advisory_ids(esc(finding.get("details", "")[:300]))
+    hidden_attr = ' class="finding-item finding-item-hidden"' if hidden else ' class="finding-item"'
+    return (
+        f"<div{hidden_attr}>"
+        f'<span class="badge badge-{finding.get("risk_level", "info")}">'
+        f'{finding.get("risk_level", "")}</span> '
+        f"<strong>{esc(repo)}</strong>{pr_link} \u2014 {summary_html}"
+        f'<div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.3rem;">'
+        f"{details_html}</div>"
+        f"</div>"
+    )
+
+
 def generate_findings_details(findings: list[dict]) -> str:
     """Generate collapsible findings detail sections.
 
@@ -1059,29 +1093,17 @@ def generate_findings_details(findings: list[dict]) -> str:
         max_risk = cat_findings[0].get("risk_level", "info") if cat_findings else "info"
 
         items_html = []
-        for f in cat_findings[:MAX_FINDINGS_PER_CATEGORY]:
-            pr_num = f.get("pr_number")
-            repo = f.get("repo", "")
-            pr_link = ""
-            if pr_num:
-                repo_gh = repo if "/" in repo else f"ansible/{repo}"
-                pr_link = (
-                    f' <a href="https://github.com/{repo_gh}/pull/{pr_num}" '
-                    f'target="_blank" rel="noopener noreferrer">PR #{pr_num}</a>'
-                )
-            summary_html = _linkify_advisory_ids(esc(f.get("summary", "")))
-            details_html = _linkify_advisory_ids(esc(f.get("details", "")[:300]))
+        for idx, f in enumerate(cat_findings):
             items_html.append(
-                f'<div style="padding: 0.5rem 0; border-bottom: 1px solid var(--border);">'
-                f'<span class="badge badge-{f.get("risk_level", "info")}">{f.get("risk_level", "")}</span> '
-                f"<strong>{esc(repo)}</strong>{pr_link} \u2014 {summary_html}"
-                f'<div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.3rem;">'
-                f"{details_html}</div>"
-                f"</div>",
+                _format_finding_item(f, hidden=idx >= MAX_FINDINGS_PER_CATEGORY),
             )
-        if count > MAX_FINDINGS_PER_CATEGORY:
+        remaining = count - MAX_FINDINGS_PER_CATEGORY
+        if remaining > 0:
             items_html.append(
-                f'<div class="no-data">... and {count - MAX_FINDINGS_PER_CATEGORY} more</div>',
+                f'<button type="button" class="show-more-btn" '
+                f'data-remaining="{remaining}" '
+                f'onclick="showMoreFindings(this)">'
+                f"Show {remaining} more</button>",
             )
 
         section = (

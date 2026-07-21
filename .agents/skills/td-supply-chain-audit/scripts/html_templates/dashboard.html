@@ -271,6 +271,26 @@ td code {
 .package-focus h3 { color: var(--accent); margin-top: 0; }
 
 .no-data { color: var(--text-muted); font-style: italic; padding: 2rem; text-align: center; }
+.finding-item {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.finding-item-hidden { display: none; }
+.show-more-btn {
+  display: block;
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.55rem 1rem;
+  background: var(--surface-2);
+  color: var(--accent);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+.show-more-btn:hover { background: var(--border); }
 .footer {
   margin-top: 3rem;
   padding-top: 1rem;
@@ -490,6 +510,15 @@ document.querySelectorAll('.collapsible-header').forEach(header => {
     body.classList.toggle('open');
   });
 });
+
+function showMoreFindings(btn) {
+  const body = btn.closest('.collapsible-body');
+  if (!body) return;
+  body.querySelectorAll('.finding-item-hidden').forEach(el => {
+    el.classList.remove('finding-item-hidden');
+  });
+  btn.remove();
+}
 </script>
 </body>
 </html>
