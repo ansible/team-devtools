@@ -155,11 +155,7 @@ def build_fleet_strip(ci_data, prs_data=None, renovate_data=None) -> str:
             f"<span>{esc(short)}</span></a>",
         )
 
-    return (
-        '<div class="fleet-strip" role="list" aria-label="Fleet status by repository">'
-        + "".join(cells)
-        + "</div>"
-    )
+    return '<div class="fleet-strip" role="list" aria-label="Fleet status by repository">' + "".join(cells) + "</div>"
 
 
 def build_hero(now_str, signal_count, fleet_html) -> str:
@@ -291,12 +287,7 @@ def build_action_items(prs_data, ci_data, renovate_data, sonar_data) -> str:
                 items.append(("warn", "SONAR GATE", f"{esc(slug)} — quality gate failing"))
 
     if not items:
-        return (
-            '<div class="action-items ok">'
-            "<h3>Do next</h3>"
-            "<p>Nothing queued — the fleet is holding.</p>"
-            "</div>"
-        )
+        return '<div class="action-items ok"><h3>Do next</h3><p>Nothing queued — the fleet is holding.</p></div>'
 
     rows = ""
     for cls, tag, detail in items:
