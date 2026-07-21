@@ -585,3 +585,67 @@ package inventory:
 4. Assess whether the vulnerable code path is actually exercised
 5. For critical/high: open an issue or PR to update immediately
 6. For medium/low: schedule update via normal renovate cycle
+
+---
+
+## 14. OpenSSF Scorecard
+
+**Category:** `scorecard`
+**Default Risk:** High (published API score &lt; 5), Medium (API score &lt; 7 or weak
+checks), Low/Info (workflow hygiene / CLI-only snapshot). Missing workflows are
+shown in the Scorecard table only (not anomaly findings).
+
+### What it detects
+
+Gaps in OpenSSF Scorecard adoption and published posture for each audited repo:
+
+1. **Incomplete workflow** — present but missing `publish_results`, schedule
+   trigger, or SARIF/code-scanning upload (or wrong action)
+2. **Unpublished results** — workflow exists but OpenSSF API has no score yet
+3. **Low aggregate score** — published API score below 7 (medium) or 5 (high);
+   not applied to CLI snapshots (CLI omits `Vulnerabilities`)
+4. **Weak critical checks** — Token-Permissions, Dangerous-Workflow,
+   Branch-Protection, Code-Review, Maintained, Pinned-Dependencies, or
+   Security-Policy scoring below 5
+5. **Missing workflow** — tracked in the report table only (no finding spam)
+
+### Why it matters
+
+Scorecard is the ecosystem-standard continuous signal for supply-chain
+hygiene. Without the workflow (as introduced for abbenay in
+[PR #57](https://github.com/redhat-developer/abbenay/pull/57)), scores drift,
+badges stay stale, and code-scanning never receives SARIF findings. Weak
+checks such as token permissions or unpinned actions are common entry points
+for workflow compromise.
+
+### Data sources
+
+- GitHub Contents API: `.github/workflows/*scorecard*`
+- OpenSSF Scorecard API:
+  `https://api.securityscorecards.dev/projects/github.com/{org}/{repo}`
+- Local Scorecard CLI fallback (`scorecard --repo=github.com/{org}/{repo}
+  --format=json --checks=...`) when the API returns no published score.
+  `collect.py` auto-downloads a pinned CLI into `.supply-chain-audit/bin/` on
+  macOS, Linux, and Windows (amd64/arm64) and uses `gh`/env GitHub tokens for
+  rate limits. CLI runs omit the `Vulnerabilities` check (slow OSV walk;
+  covered by the audit's separate OSV.dev pass) and are labeled `source=cli`
+  with `cli_checks_excluded: ["Vulnerabilities"]`. CLI scores do not publish
+  to OpenSSF.
+
+### False positive scenarios
+
+- Brand-new repos where Scorecard has not completed a default-branch run yet
+  (INFO: unpublished results)
+- Checks scored `-1` (not applicable) — ignored by the analyzer
+- Private repos that cannot publish results without a PAT
+- CLI scores may differ slightly from a later published API score (timing /
+  Scorecard version); treat CLI as an audit-time snapshot until workflows publish
+
+### Investigation steps
+
+1. Confirm whether `.github/workflows/scorecard.yml` exists on the default branch
+2. Verify triggers include `push` to default branch, weekly `schedule`, and
+   optionally `branch_protection_rule`
+3. Ensure `publish_results: true` and SARIF upload to code scanning
+4. Open the OpenSSF API URL / badge and remediate failing critical checks
+5. Re-run the workflow on `main` after fixes and re-audit

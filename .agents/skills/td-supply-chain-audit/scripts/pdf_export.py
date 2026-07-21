@@ -36,6 +36,8 @@ PRINT_CSS = """
     line-height: 1.4 !important;
   }
   .controls, .filter-btn { display: none !important; }
+  .show-more-btn { display: none !important; }
+  .finding-item-hidden { display: block !important; }
   .collapsible-body { display: block !important; }
   .collapsible-header .arrow { display: none !important; }
   .collapsible-header { cursor: default !important; }

@@ -16,6 +16,11 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 try:
+    from audit_models import (  # pylint: disable=import-error
+        SCORECARD_CRITICAL_CHECKS,
+        SCORECARD_HIGH_THRESHOLD,
+        SCORECARD_MEDIUM_THRESHOLD,
+    )
     from cache_utils import (  # pylint: disable=import-error
         get_all_cached_checks,
         get_all_cached_commits,
@@ -24,12 +29,18 @@ try:
         get_all_cached_protection,
         get_all_cached_prs,
         get_all_cached_renovate,
+        get_all_cached_scorecard,
         read_findings,
         read_manifest,
         read_package_focus,
     )
 except ImportError:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from audit_models import (
+        SCORECARD_CRITICAL_CHECKS,
+        SCORECARD_HIGH_THRESHOLD,
+        SCORECARD_MEDIUM_THRESHOLD,
+    )
     from cache_utils import (
         get_all_cached_checks,
         get_all_cached_commits,
@@ -38,6 +49,7 @@ except ImportError:
         get_all_cached_protection,
         get_all_cached_prs,
         get_all_cached_renovate,
+        get_all_cached_scorecard,
         read_findings,
         read_manifest,
         read_package_focus,
@@ -68,6 +80,7 @@ CATEGORY_LABELS = {
     "cooldown_violated": "Renovate Cooldown Violated",
     "known_vulnerability": "Known Vulnerabilities (OSV.dev)",
     "self_approved": "Self-Approved PRs",
+    "scorecard": "OpenSSF Scorecard",
 }
 
 
@@ -875,6 +888,179 @@ def generate_renovate_config_table(
     )
 
 
+def _format_scorecard_score(score: object) -> str:
+    """Format an OpenSSF Scorecard aggregate score with a risk badge.
+
+    Args:
+        score: Numeric score or ``None``.
+
+    Returns:
+        HTML fragment.
+
+    """
+    if not isinstance(score, (int, float)):
+        return f'<span class="badge badge-medium">{EM_DASH}</span>'
+    if score < SCORECARD_HIGH_THRESHOLD:
+        badge = "badge-critical"
+    elif score < SCORECARD_MEDIUM_THRESHOLD:
+        badge = "badge-high"
+    else:
+        badge = "badge-low"
+    return f'<span class="badge {badge}">{score}</span>'
+
+
+def _format_scorecard_workflow(workflow: dict) -> str:
+    """Format Scorecard workflow presence for the report table.
+
+    Args:
+        workflow: Workflow metadata dict.
+
+    Returns:
+        HTML fragment.
+
+    """
+    if not workflow.get("present"):
+        return '<span class="badge badge-high">missing</span>'
+    path = esc(workflow.get("path") or "scorecard.yml")
+    flags = []
+    if workflow.get("publish_results") is True:
+        flags.append("publish")
+    elif workflow.get("publish_results") is False:
+        flags.append("no-publish")
+    if workflow.get("has_schedule"):
+        flags.append("schedule")
+    if workflow.get("uploads_sarif"):
+        flags.append("sarif")
+    flag_str = ", ".join(flags) if flags else "present"
+    return f'<code>{path}</code> <span class="text-muted">({flag_str})</span>'
+
+
+def _weak_scorecard_checks(checks: list[dict]) -> str:
+    """Summarize weak critical Scorecard checks for display.
+
+    Args:
+        checks: Scorecard check dicts.
+
+    Returns:
+        Comma-separated weak check summary, or em dash.
+
+    """
+    weak = []
+    for check in checks:
+        name = check.get("name", "")
+        score = check.get("score")
+        if (
+            name in SCORECARD_CRITICAL_CHECKS
+            and isinstance(score, (int, float))
+            and 0 <= score < SCORECARD_HIGH_THRESHOLD
+        ):
+            weak.append(f"{name}={score}")
+    return esc(", ".join(weak)) if weak else EM_DASH
+
+
+def generate_scorecard_section(
+    scorecards: dict[str, dict],
+    repos: list[str],
+) -> str:
+    """Generate the OpenSSF Scorecard status table.
+
+    Args:
+        scorecards: Scorecard payloads keyed by repo.
+        repos: Repository names.
+
+    Returns:
+        HTML section string.
+
+    """
+    if not scorecards and not repos:
+        return ""
+
+    rows = []
+    for repo in sorted(repos):
+        data = scorecards.get(repo, {})
+        workflow = data.get("workflow") or {}
+        score_data = data.get("scorecard") or {}
+        score_cell = _format_scorecard_score(score_data.get("score"))
+        source = score_data.get("source")
+        if score_data.get("available") and score_data.get("api_url") and source == "api":
+            score_cell = (
+                f'<a href="{esc(score_data["api_url"])}" target="_blank" rel="noopener noreferrer">{score_cell}</a>'
+            )
+        if source == "api":
+            source_cell = '<span class="badge badge-low">API</span>'
+        elif source == "cli":
+            source_cell = '<span class="badge badge-medium">CLI</span>'
+        else:
+            source_cell = f'<span class="badge badge-medium">{EM_DASH}</span>'
+        date_str = esc(score_data.get("date") or EM_DASH)
+        weak = _weak_scorecard_checks(score_data.get("checks") or [])
+        rows.append(
+            "<tr>"
+            f"<td>{esc(repo)}</td>"
+            f"<td>{_format_scorecard_workflow(workflow)}</td>"
+            f"<td>{score_cell}</td>"
+            f"<td>{source_cell}</td>"
+            f"<td>{date_str}</td>"
+            f"<td>{weak}</td>"
+            "</tr>",
+        )
+
+    return (
+        "<h2>OpenSSF Scorecard</h2>"
+        "<p>Per-repository Scorecard workflow presence and scores. Scores come from "
+        "the public OpenSSF API when published, otherwise from a local "
+        "<code>scorecard</code> CLI run during collection (CLI omits the "
+        "Vulnerabilities check). Missing workflows are shown in this table only; "
+        "weak critical checks and low <em>published</em> API scores are raised as "
+        "findings.</p>"
+        '<div style="overflow-x: auto;">'
+        '<table id="scorecardTable"><thead><tr>'
+        '<th onclick="sortTable(\'scorecardTable\', 0)">Repository <span class="sort-arrow">\u25be</span></th>'
+        "<th>Workflow</th>"
+        '<th onclick="sortTable(\'scorecardTable\', 2)">Score <span class="sort-arrow">\u25be</span></th>'
+        "<th>Source</th>"
+        "<th>Date</th>"
+        "<th>Weak Critical Checks</th>"
+        "</tr></thead>"
+        f"<tbody>{''.join(rows)}</tbody>"
+        "</table></div>"
+    )
+
+
+def _format_finding_item(finding: dict, *, hidden: bool = False) -> str:
+    """Render a single finding row for the Anomaly Details section.
+
+    Args:
+        finding: Finding dict.
+        hidden: When True, mark the row as initially collapsed (show-more).
+
+    Returns:
+        HTML fragment for one finding.
+
+    """
+    pr_num = finding.get("pr_number")
+    repo = finding.get("repo", "")
+    pr_link = ""
+    if pr_num:
+        repo_gh = repo if "/" in repo else f"ansible/{repo}"
+        pr_link = (
+            f' <a href="https://github.com/{repo_gh}/pull/{pr_num}" '
+            f'target="_blank" rel="noopener noreferrer">PR #{pr_num}</a>'
+        )
+    summary_html = _linkify_advisory_ids(esc(finding.get("summary", "")))
+    details_html = _linkify_advisory_ids(esc(finding.get("details", "")[:300]))
+    hidden_attr = ' class="finding-item finding-item-hidden"' if hidden else ' class="finding-item"'
+    return (
+        f"<div{hidden_attr}>"
+        f'<span class="badge badge-{finding.get("risk_level", "info")}">'
+        f"{finding.get('risk_level', '')}</span> "
+        f"<strong>{esc(repo)}</strong>{pr_link} \u2014 {summary_html}"
+        f'<div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.3rem;">'
+        f"{details_html}</div>"
+        f"</div>"
+    )
+
+
 def generate_findings_details(findings: list[dict]) -> str:
     """Generate collapsible findings detail sections.
 
@@ -907,29 +1093,17 @@ def generate_findings_details(findings: list[dict]) -> str:
         max_risk = cat_findings[0].get("risk_level", "info") if cat_findings else "info"
 
         items_html = []
-        for f in cat_findings[:MAX_FINDINGS_PER_CATEGORY]:
-            pr_num = f.get("pr_number")
-            repo = f.get("repo", "")
-            pr_link = ""
-            if pr_num:
-                repo_gh = repo if "/" in repo else f"ansible/{repo}"
-                pr_link = (
-                    f' <a href="https://github.com/{repo_gh}/pull/{pr_num}" '
-                    f'target="_blank" rel="noopener noreferrer">PR #{pr_num}</a>'
-                )
-            summary_html = _linkify_advisory_ids(esc(f.get("summary", "")))
-            details_html = _linkify_advisory_ids(esc(f.get("details", "")[:300]))
+        for idx, f in enumerate(cat_findings):
             items_html.append(
-                f'<div style="padding: 0.5rem 0; border-bottom: 1px solid var(--border);">'
-                f'<span class="badge badge-{f.get("risk_level", "info")}">{f.get("risk_level", "")}</span> '
-                f"<strong>{esc(repo)}</strong>{pr_link} \u2014 {summary_html}"
-                f'<div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.3rem;">'
-                f"{details_html}</div>"
-                f"</div>",
+                _format_finding_item(f, hidden=idx >= MAX_FINDINGS_PER_CATEGORY),
             )
-        if count > MAX_FINDINGS_PER_CATEGORY:
+        remaining = count - MAX_FINDINGS_PER_CATEGORY
+        if remaining > 0:
             items_html.append(
-                f'<div class="no-data">... and {count - MAX_FINDINGS_PER_CATEGORY} more</div>',
+                f'<button type="button" class="show-more-btn" '
+                f'data-remaining="{remaining}" '
+                f'onclick="showMoreFindings(this)">'
+                f"Show {remaining} more</button>",
             )
 
         section = (
@@ -1069,6 +1243,7 @@ def _load_report_data(cache_dir: Path) -> dict:
     protection = get_all_cached_protection(cache_dir)
     pr_audits = get_all_cached_pr_audits(cache_dir)
     renovate_configs = get_all_cached_renovate(cache_dir)
+    scorecards = get_all_cached_scorecard(cache_dir)
     findings = read_findings(cache_dir)
     package_data = read_package_focus(cache_dir)
 
@@ -1085,6 +1260,7 @@ def _load_report_data(cache_dir: Path) -> dict:
         "protection": protection,
         "pr_audits": pr_audits,
         "renovate_configs": renovate_configs,
+        "scorecards": scorecards,
         "findings": findings,
         "package_data": package_data,
         "total_check_suites": total_check_suites,
@@ -1132,6 +1308,7 @@ def _generate_report_sections(data: dict) -> dict[str, str]:
     findings = data["findings"]
     protection = data["protection"]
     renovate_configs = data["renovate_configs"]
+    scorecards = data["scorecards"]
     package_data = data["package_data"]
     total_prs = data["total_prs"]
 
@@ -1158,6 +1335,7 @@ def _generate_report_sections(data: dict) -> dict[str, str]:
         ),
         "dep_section": generate_dep_section(deps, prs),
         "renovate_section": generate_renovate_config_table(renovate_configs, repos),
+        "scorecard_section": generate_scorecard_section(scorecards, repos),
         "findings_details_section": generate_findings_details(findings),
         "package_focus_section": generate_package_focus_section(package_data),
     }
