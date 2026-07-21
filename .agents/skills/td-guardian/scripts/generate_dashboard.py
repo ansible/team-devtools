@@ -61,7 +61,12 @@ def status_label(status):
 
 def card_html(title, status, detail) -> str:
     cls = status_class(status)
-    return f"""<div class="card {cls}">
+    weight = ""
+    if cls == "error":
+        weight = " card-weight-hot"
+    elif cls == "warn":
+        weight = " card-weight-warm"
+    return f"""<div class="card {cls}{weight}">
   <div class="card-title">{esc(title)}</div>
   <div class="card-status">{esc(status_label(status))}</div>
   <div class="card-detail">{esc(detail)}</div>
@@ -75,6 +80,107 @@ def section_html(section_id, title, count, content, collapsed=False) -> str:
 </details>"""
 
 
+def count_signals(prs_data, ci_data, renovate_data, sonar_data) -> int:
+    """Count actionable signals for the hero thesis line."""
+    n = 0
+    if ci_data:
+        for repo in ci_data.get("results", [ci_data]):
+            for wf in repo.get("workflows", []):
+                if wf.get("conclusion") == "failure" and not wf.get("is_flaky"):
+                    n += 1
+    if prs_data:
+        for repo in prs_data.get("results", [prs_data]):
+            for pr in repo.get("prs", []):
+                if pr.get("category") == "ready_to_merge":
+                    n += 1
+    if renovate_data:
+        for repo in renovate_data.get("results", [renovate_data]):
+            for pr in repo.get("prs", []):
+                if pr.get("is_overdue") and pr.get("update_type") == "security":
+                    n += 1
+    if sonar_data:
+        for proj in sonar_data.get("results", [sonar_data]):
+            if proj.get("gate_status") == "ERROR":
+                n += 1
+    return n
+
+
+def build_fleet_strip(ci_data, prs_data=None, renovate_data=None) -> str:
+    """Signature element: one cell per repo (teal / amber / red)."""
+    status_by_slug = {}
+
+    if ci_data:
+        for repo in ci_data.get("results", []):
+            slug = f"{repo.get('owner', '?')}/{repo.get('repo', '?')}"
+            s = repo.get("summary", {})
+            if repo.get("error") or s.get("failing", 0) > 0:
+                status_by_slug[slug] = "error"
+            elif s.get("flaky", 0) > 0:
+                status_by_slug[slug] = "warn"
+            else:
+                status_by_slug[slug] = "ok"
+
+    if prs_data:
+        for repo in prs_data.get("results", []):
+            slug = f"{repo.get('owner', '?')}/{repo.get('repo', '?')}"
+            status_by_slug.setdefault(slug, "ok")
+            for pr in repo.get("prs", []):
+                if pr.get("category") == "blocked":
+                    status_by_slug[slug] = "error"
+                elif pr.get("category") == "stale" and status_by_slug.get(slug) != "error":
+                    status_by_slug[slug] = "warn"
+
+    if renovate_data:
+        for repo in renovate_data.get("results", []):
+            slug = f"{repo.get('owner', '?')}/{repo.get('repo', '?')}"
+            status_by_slug.setdefault(slug, "ok")
+            for pr in repo.get("prs", []):
+                if pr.get("is_overdue") and pr.get("update_type") == "security":
+                    status_by_slug[slug] = "error"
+                elif pr.get("is_overdue") and status_by_slug.get(slug) != "error":
+                    status_by_slug[slug] = "warn"
+
+    if not status_by_slug:
+        return ""
+
+    cells = []
+    for slug in sorted(status_by_slug):
+        st = status_by_slug[slug]
+        name = slug.split("/", 1)[-1]
+        short = name.replace("ansible-", "").replace("ansible_", "")[:10]
+        url = f"https://github.com/{slug}"
+        cells.append(
+            f'<a class="fleet-cell {st}" href="{esc(url)}" target="_blank" '
+            f'title="{esc(slug)} — {st}" aria-label="{esc(slug)} {st}">'
+            f"<span>{esc(short)}</span></a>",
+        )
+
+    return (
+        '<div class="fleet-strip" role="list" aria-label="Fleet status by repository">'
+        + "".join(cells)
+        + "</div>"
+    )
+
+
+def build_hero(now_str, signal_count, fleet_html) -> str:
+    if signal_count <= 0:
+        thesis = "Fleet is quiet. Nothing needs you right now."
+        thesis_cls = "quiet"
+    elif signal_count == 1:
+        thesis = "1 signal needs you."
+        thesis_cls = "hot"
+    else:
+        thesis = f"{signal_count} signals need you."
+        thesis_cls = "hot"
+
+    return f"""<header class="hero">
+  <p class="brand">Guardian</p>
+  <h1 class="thesis {thesis_cls}">{esc(thesis)}</h1>
+  <p class="subtitle">Ansible DevTools fleet · full scan {esc(now_str)}</p>
+  {fleet_html}
+</header>"""
+
+
 def build_changes_section(changes_data) -> str:
     """Render a Since last check delta panel from changes.json."""
     if not changes_data:
@@ -83,8 +189,8 @@ def build_changes_section(changes_data) -> str:
     if not changes_data.get("has_baseline", True):
         return (
             '<div class="action-items changes-section">'
-            "<h3>Since Last Check</h3>"
-            "<p>No previous snapshot yet — delta starts next run.</p>"
+            "<h3>Since last check</h3>"
+            "<p>No baseline yet. The next scan starts the delta.</p>"
             "</div>"
         )
 
@@ -95,8 +201,8 @@ def build_changes_section(changes_data) -> str:
     if total == 0:
         return (
             f'<div class="action-items ok changes-section">'
-            f"<h3>Since Last Check</h3>"
-            f"<p>No material changes since {esc(compared)}.</p>"
+            f"<h3>Since last check</h3>"
+            f"<p>Quiet since {esc(compared)} — no material moves.</p>"
             f"</div>"
         )
 
@@ -137,7 +243,7 @@ def build_changes_section(changes_data) -> str:
     rows += _items(ren.get("no_longer_overdue", []), "DEP OK", "ok", _pr_link)
 
     badges = f'<span class="badge">{total}</span> <span class="changes-meta">vs {esc(compared)}</span>'
-    return f'<div class="action-items changes-section"><h3>Since Last Check {badges}</h3><ul>{"".join(rows)}</ul></div>'
+    return f'<div class="action-items changes-section"><h3>Since last check {badges}</h3><ul>{"".join(rows)}</ul></div>'
 
 
 def build_action_items(prs_data, ci_data, renovate_data, sonar_data) -> str:
@@ -185,13 +291,18 @@ def build_action_items(prs_data, ci_data, renovate_data, sonar_data) -> str:
                 items.append(("warn", "SONAR GATE", f"{esc(slug)} — quality gate failing"))
 
     if not items:
-        return '<div class="action-items ok"><h3>Priority Actions</h3><p>All systems healthy. No urgent action items.</p></div>'
+        return (
+            '<div class="action-items ok">'
+            "<h3>Do next</h3>"
+            "<p>Nothing queued — the fleet is holding.</p>"
+            "</div>"
+        )
 
     rows = ""
     for cls, tag, detail in items:
         rows += f'<li><span class="status {cls}">{tag}</span> {detail}</li>'
 
-    return f'<div class="action-items"><h3>Priority Actions <span class="badge">{len(items)}</span></h3><ul>{rows}</ul></div>'
+    return f'<div class="action-items"><h3>Do next <span class="badge">{len(items)}</span></h3><ul>{rows}</ul></div>'
 
 
 def build_health_cards(prs_data, ci_data, renovate_data, sonar_data, codecov_data=None, security_audit_data=None):
@@ -265,14 +376,11 @@ def build_health_cards(prs_data, ci_data, renovate_data, sonar_data, codecov_dat
             badges += f'<span class="status {bcls}" style="margin-left:0.5rem;padding:0.15rem 0.5rem;font-size:0.8rem;">{count} {level}</span>'
 
         cards_html += (
-            f'<a href="audit.html" target="_blank" style="text-decoration:none;display:block;'
-            f"margin:-12px 0 24px;padding:10px 16px;border-radius:8px;"
-            f"border:1px solid var(--border);"
-            f'background:var(--card-bg);color:var(--text);">'
-            f'<span style="font-weight:600;">Security Audit</span>'
+            f'<a href="audit.html" target="_blank" class="security-audit-banner">'
+            f'<span class="security-audit-title">Security Audit</span>'
             f"{badges}"
-            f'<span style="color:var(--text-muted);margin-left:0.75rem;font-size:0.85rem;">{esc(window)}</span>'
-            f'<span style="float:right;font-weight:600;color:var(--accent);">View Full Report &rarr;</span>'
+            f'<span class="security-audit-window">{esc(window)}</span>'
+            f'<span class="security-audit-cta">View full report &rarr;</span>'
             f"</a>"
         )
 
@@ -535,43 +643,52 @@ def build_sonar_section(sonar_data):
 
 CSS = """
 :root {
-  --bg: #f1f5f9;
-  --surface: #ffffff;
-  --surface-hover: #f8fafc;
-  --border: #e2e8f0;
-  --border-subtle: #edf2f7;
-  --text: #1e293b;
-  --text-muted: #64748b;
-  --text-dim: #94a3b8;
-  --accent: #3C50E0;
-  --accent-hover: #3545C8;
-  --accent-bg: rgba(60, 80, 224, 0.08);
-  --accent-light: #2d3cc4;
-  --ok: #10B981;
-  --ok-bg: rgba(16, 185, 129, 0.08);
-  --ok-text: #059669;
-  --warn: #F59E0B;
-  --warn-bg: rgba(245, 158, 11, 0.08);
-  --warn-text: #D97706;
-  --error: #EF4444;
-  --error-bg: rgba(239, 68, 68, 0.08);
-  --error-text: #DC2626;
-  --neutral: #cbd5e1;
-  --neutral-text: #64748b;
-  --link: #3C50E0;
-  --radius: 12px;
-  --radius-sm: 8px;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.04);
+  --bg: #eef2f6;
+  --bg-wash: #e4ebf2;
+  --surface: #f8fafc;
+  --surface-raised: #ffffff;
+  --surface-hover: #f1f5f9;
+  --border: #d5dde8;
+  --border-subtle: #e8eef5;
+  --text: #151a21;
+  --text-muted: #5a6573;
+  --text-dim: #8b97a8;
+  --accent: #C9190B;
+  --accent-hover: #a31509;
+  --accent-bg: rgba(201, 25, 11, 0.08);
+  --accent-light: #e03a2d;
+  --ok: #0d9488;
+  --ok-bg: rgba(13, 148, 136, 0.1);
+  --ok-text: #0f766e;
+  --warn: #d97706;
+  --warn-bg: rgba(217, 119, 6, 0.1);
+  --warn-text: #b45309;
+  --error: #C9190B;
+  --error-bg: rgba(201, 25, 11, 0.1);
+  --error-text: #a31509;
+  --neutral: #c5ced9;
+  --neutral-text: #5a6573;
+  --link: #0f766e;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow-sm: 0 1px 2px rgba(21, 26, 33, 0.04);
+  --shadow-md: 0 8px 24px rgba(21, 26, 33, 0.08);
   --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  background: var(--bg); color: var(--text); line-height: 1.6;
-  padding: 24px 32px; max-width: 1280px; margin: 0 auto;
+  font-family: var(--font-body);
+  background:
+    radial-gradient(1200px 480px at 8% -10%, rgba(13, 148, 136, 0.07), transparent 55%),
+    radial-gradient(900px 420px at 100% 0%, rgba(201, 25, 11, 0.05), transparent 50%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg-wash) 100%);
+  color: var(--text); line-height: 1.55;
+  padding: 28px 32px 48px; max-width: 1200px; margin: 0 auto;
   min-height: 100vh; -webkit-font-smoothing: antialiased;
 }
 
@@ -580,46 +697,86 @@ body {
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
 
-header { margin-bottom: 24px; }
-header h1 {
-  font-size: 1.6rem; font-weight: 700; color: var(--text); letter-spacing: -0.02em;
+.hero { margin-bottom: 28px; }
+.hero .brand {
+  font-family: var(--font-display); font-size: clamp(2.4rem, 6vw, 3.6rem);
+  font-weight: 700; letter-spacing: -0.04em; line-height: 1; color: var(--text);
+  margin: 0 0 10px;
 }
-header .subtitle { color: var(--text-muted); font-size: 0.85rem; margin-top: 4px; }
-header .accent-line {
-  height: 3px; width: 48px; margin-top: 12px; border-radius: 2px;
-  background: var(--accent);
+.hero .thesis {
+  font-family: var(--font-display); font-size: clamp(1.15rem, 2.6vw, 1.55rem);
+  font-weight: 500; letter-spacing: -0.02em; margin: 0 0 8px; max-width: 36ch;
 }
+.hero .thesis.hot { color: var(--error-text); }
+.hero .thesis.quiet { color: var(--ok-text); }
+.hero .subtitle {
+  color: var(--text-muted); margin: 0 0 18px;
+  font-family: var(--font-mono); font-size: 0.78rem;
+}
+
+.fleet-strip {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 6px; margin-top: 4px;
+}
+.fleet-cell {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 44px; padding: 8px 4px; border-radius: var(--radius-sm);
+  font-family: var(--font-mono); font-size: 0.62rem; font-weight: 500;
+  letter-spacing: -0.02em; text-decoration: none; color: #fff;
+  transition: transform var(--transition), filter var(--transition);
+}
+.fleet-cell:hover { transform: translateY(-2px); filter: brightness(1.06); }
+.fleet-cell:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.fleet-cell.ok { background: var(--ok); }
+.fleet-cell.warn { background: var(--warn); color: #1a1205; }
+.fleet-cell.error { background: var(--error); }
 
 a { color: var(--link); text-decoration: none; transition: color var(--transition); }
-a:hover { color: var(--accent-light); }
+a:hover { color: var(--accent); }
 
-/* --- Health Cards --- */
-.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; margin-bottom: 24px; }
+.cards {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px; margin-bottom: 22px; align-items: stretch;
+}
 .card {
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 20px 24px; border-left: 3px solid var(--neutral);
-  box-shadow: var(--shadow-sm); transition: box-shadow var(--transition);
+  background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px 18px; border-left: 3px solid var(--neutral);
+  box-shadow: var(--shadow-sm); transition: transform var(--transition), box-shadow var(--transition);
 }
 .card:hover { box-shadow: var(--shadow-md); }
 .card.ok { border-left-color: var(--ok); }
 .card.error { border-left-color: var(--error); }
 .card.warn { border-left-color: var(--warn); }
+.card-weight-hot { transform: scale(1.04); z-index: 1; box-shadow: var(--shadow-md); }
+.card-weight-warm { transform: scale(1.02); }
 .card-title {
-  font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;
-  letter-spacing: 0.08em; font-weight: 600;
+  font-family: var(--font-mono); font-size: 0.65rem; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500;
 }
-.card-status { font-size: 1.5rem; font-weight: 700; margin: 6px 0; }
+.card-status {
+  font-family: var(--font-display); font-size: 1.45rem; font-weight: 700;
+  margin: 6px 0; letter-spacing: -0.02em;
+}
 .card.ok .card-status { color: var(--ok-text); }
 .card.error .card-status { color: var(--error-text); }
 .card.warn .card-status { color: var(--warn-text); }
 .card-detail { font-size: 0.8rem; color: var(--text-muted); }
 
-/* --- Nav Bar --- */
+.security-audit-banner {
+  text-decoration: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin: -8px 0 22px; padding: 12px 16px; border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--surface-raised); color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+.security-audit-title { font-family: var(--font-display); font-weight: 600; }
+.security-audit-window { color: var(--text-muted); font-size: 0.85rem; font-family: var(--font-mono); }
+.security-audit-cta { margin-left: auto; font-weight: 600; color: var(--accent); font-size: 0.85rem; }
+
 .nav-bar {
   display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
   position: sticky; top: 0; z-index: 100;
-  padding: 8px 12px; margin-bottom: 20px;
-  background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  padding: 8px 12px; margin-bottom: 18px;
+  background: rgba(248, 250, 252, 0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border); border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
 }
@@ -629,14 +786,13 @@ a:hover { color: var(--accent-light); }
 }
 .nav-bar a:hover { background: var(--accent-bg); color: var(--accent); }
 
-/* --- Sections --- */
 .section {
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-  margin-bottom: 16px; scroll-margin-top: 3.5rem;
+  background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius);
+  margin-bottom: 14px; scroll-margin-top: 3.5rem;
   box-shadow: var(--shadow-sm);
 }
 .section summary {
-  cursor: pointer; padding: 16px 20px; list-style: none;
+  cursor: pointer; padding: 14px 18px; list-style: none;
   transition: background var(--transition); border-radius: var(--radius);
 }
 .section summary::-webkit-details-marker { display: none; }
@@ -647,46 +803,53 @@ a:hover { color: var(--accent-light); }
 }
 .section[open] summary::before { transform: rotate(90deg); }
 .section summary:hover { background: var(--surface-hover); }
-.section summary h2 { display: inline; font-size: 1rem; font-weight: 600; vertical-align: middle; }
-.section > :not(summary) { padding: 0 20px 20px; }
-
+.section summary h2 {
+  display: inline; font-family: var(--font-display); font-size: 1.05rem; font-weight: 600;
+  letter-spacing: -0.02em; vertical-align: middle;
+}
+.section > :not(summary) { padding: 0 18px 18px; }
 .badge {
+  display: inline-block; padding: 2px 8px; border-radius: 999px;
   background: var(--accent-bg); color: var(--accent); font-size: 0.7rem; font-weight: 600;
-  padding: 2px 8px; border-radius: 9999px; vertical-align: middle;
+  font-family: var(--font-mono); margin-left: 6px; vertical-align: middle;
 }
 
-h3 { font-size: 0.9rem; font-weight: 600; margin: 20px 0 8px; color: var(--text); }
+h3 {
+  font-family: var(--font-display); font-size: 0.95rem; font-weight: 600;
+  margin: 16px 0 10px; letter-spacing: -0.01em; color: var(--text);
+}
 
-/* --- Tables --- */
-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.82rem; margin-bottom: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-bottom: 12px; }
 thead th {
-  text-align: left; padding: 12px 16px; color: var(--text-muted); font-weight: 500;
-  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em;
-  background: #f8fafc; border-bottom: 1px solid var(--border);
+  text-align: left; padding: 10px 12px; background: var(--surface);
+  border-bottom: 1px solid var(--border); font-family: var(--font-mono);
+  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-muted); font-weight: 500;
 }
-thead th:first-child { border-radius: var(--radius-sm) 0 0 0; }
-thead th:last-child { border-radius: 0 var(--radius-sm) 0 0; }
-td { padding: 14px 16px; border-bottom: 1px solid var(--border-subtle); }
-tbody tr { transition: background var(--transition); }
-tbody tr:hover { background: #f8fafc; }
+td { padding: 10px 12px; border-bottom: 1px solid var(--border-subtle); vertical-align: top; }
+tbody tr:hover { background: var(--surface-hover); }
+tr.error td { background: var(--error-bg); }
+tr.warn td { background: var(--warn-bg); }
 
-/* --- Status Badges --- */
 .status {
-  display: inline-block; padding: 3px 10px; border-radius: 9999px;
-  font-size: 0.72rem; font-weight: 500;
+  display: inline-block; padding: 2px 8px; border-radius: 4px;
+  font-family: var(--font-mono); font-size: 0.68rem; font-weight: 500;
+  letter-spacing: 0.02em;
 }
 .status.ok { background: var(--ok-bg); color: var(--ok-text); }
 .status.error { background: var(--error-bg); color: var(--error-text); }
 .status.warn { background: var(--warn-bg); color: var(--warn-text); }
-.status.neutral { background: #f1f5f9; color: var(--neutral-text); }
+.status.neutral { background: #eef2f6; color: var(--neutral-text); }
 
-/* --- Action Items --- */
 .action-items {
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 20px 24px; margin-bottom: 24px; border-left: 3px solid var(--accent);
+  background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 18px 20px; margin-bottom: 20px; border-left: 3px solid var(--accent);
   box-shadow: var(--shadow-sm);
 }
-.action-items h3 { margin: 0 0 12px; font-size: 1rem; font-weight: 600; }
+.action-items h3 {
+  margin: 0 0 12px; font-size: 1rem; font-weight: 600;
+  font-family: var(--font-display);
+}
 .action-items.ok { border-left-color: var(--ok); }
 .action-items.ok p { color: var(--ok-text); margin: 0; font-weight: 500; }
 .action-items ul { list-style: none; padding: 0; margin: 0; }
@@ -700,49 +863,53 @@ tbody tr:hover { background: #f8fafc; }
 .action-items .status { margin-right: 8px; }
 .changes-section .changes-meta {
   font-size: 0.8rem; font-weight: 400; color: var(--text-muted); margin-left: 6px;
+  font-family: var(--font-body);
 }
 .changes-section p { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
 
 ul { list-style: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
 li { margin-bottom: 4px; font-size: 0.85rem; }
 
-/* --- Footer --- */
 .footer {
-  text-align: center; padding: 24px 0 16px; margin-top: 32px;
+  text-align: center; padding: 24px 0 16px; margin-top: 28px;
   border-top: 1px solid var(--border); color: var(--text-dim); font-size: 0.8rem;
+  font-family: var(--font-mono);
 }
 .footer span { color: var(--accent); font-weight: 600; }
 
 [data-theme="dark"] {
-  --bg: #1A222C;
-  --surface: #24303F;
-  --surface-hover: #2E3A4A;
-  --border: #2E3A47;
-  --border-subtle: #333A48;
-  --text: #DEE4EE;
-  --text-muted: #8A99AF;
-  --text-dim: #6B7B93;
-  --accent-bg: rgba(60, 80, 224, 0.15);
-  --accent-light: #80CAEE;
-  --ok-bg: rgba(16, 185, 129, 0.12);
-  --ok-text: #34D399;
-  --warn-bg: rgba(245, 158, 11, 0.12);
-  --warn-text: #FBBF24;
-  --error-bg: rgba(239, 68, 68, 0.12);
-  --error-text: #F87171;
-  --neutral: #333A48;
-  --neutral-text: #8A99AF;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.15);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.25), 0 2px 4px rgba(0,0,0,0.15);
+  --bg: #12161c;
+  --bg-wash: #0e1217;
+  --surface: #1a212b;
+  --surface-raised: #1e2733;
+  --surface-hover: #263041;
+  --border: #2c3644;
+  --border-subtle: #243040;
+  --text: #e8edf4;
+  --text-muted: #9aa8b8;
+  --text-dim: #6f7f92;
+  --accent-bg: rgba(201, 25, 11, 0.18);
+  --accent-light: #f07167;
+  --ok-bg: rgba(13, 148, 136, 0.16);
+  --ok-text: #5eead4;
+  --warn-bg: rgba(217, 119, 6, 0.16);
+  --warn-text: #fbbf24;
+  --error-bg: rgba(201, 25, 11, 0.18);
+  --error-text: #f87171;
+  --neutral: #2c3644;
+  --neutral-text: #9aa8b8;
+  --link: #5eead4;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md: 0 8px 24px rgba(0,0,0,0.4);
 }
-[data-theme="dark"] thead th { background: #2E3A47; }
-[data-theme="dark"] tbody tr:hover { background: rgba(255,255,255,0.02); }
-[data-theme="dark"] .status.neutral { background: rgba(51,58,72,0.5); }
-[data-theme="dark"] .nav-bar { background: rgba(26,34,44,0.92); }
+[data-theme="dark"] thead th { background: #1a212b; }
+[data-theme="dark"] tbody tr:hover { background: rgba(255,255,255,0.03); }
+[data-theme="dark"] .status.neutral { background: rgba(44,54,68,0.6); }
+[data-theme="dark"] .nav-bar { background: rgba(18, 22, 28, 0.92); }
 
 .theme-toggle {
   display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px;
-  border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface);
+  border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-raised);
   color: var(--text-muted); font-size: 0.78rem; font-weight: 500;
   cursor: pointer; transition: all var(--transition);
 }
@@ -751,14 +918,23 @@ li { margin-bottom: 4px; font-size: 0.85rem; }
 
 @media (max-width: 768px) {
   body { padding: 16px; }
-  .cards { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .cards { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .card-weight-hot, .card-weight-warm { transform: none; }
   table { font-size: 0.72rem; }
   td, th { padding: 8px; }
-  header h1 { font-size: 1.25rem; }
+  .hero .brand { font-size: 2.2rem; }
   .nav-bar a { font-size: 0.7rem; padding: 4px 8px; }
+  .fleet-strip { grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); }
 }
 @media (max-width: 480px) {
   .cards { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .card-weight-hot, .card-weight-warm { transform: none; }
 }
 """
 
@@ -1002,15 +1178,15 @@ TOOLBAR_CSS = """
 .toolbar {
   display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
   gap: 12px; margin-bottom: 20px; padding: 10px 16px;
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
 }
 .toolbar-left { display: flex; align-items: center; gap: 12px; }
 .toolbar-right { display: flex; align-items: center; gap: 16px; font-size: 0.78rem; color: var(--text-muted); }
 .btn {
   display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
-  border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface);
-  color: var(--text); font-size: 0.82rem; font-weight: 500;
+  border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-raised);
+  color: var(--text); font-size: 0.82rem; font-weight: 500; font-family: var(--font-body);
   cursor: pointer; transition: all var(--transition);
 }
 .btn:hover { background: var(--surface-hover); border-color: var(--text-dim); }
@@ -1032,16 +1208,16 @@ TOOLBAR_CSS = """
 }
 .refresh-modal-overlay.open { display: flex; }
 .refresh-modal {
-  width: min(560px, 100%); background: var(--surface); border: 1px solid var(--border);
+  width: min(560px, 100%); background: var(--surface-raised); border: 1px solid var(--border);
   border-radius: var(--radius); box-shadow: var(--shadow-md); padding: 20px 22px;
 }
-.refresh-modal h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 8px; }
+.refresh-modal h3 { font-family: var(--font-display); font-size: 1.05rem; font-weight: 600; margin-bottom: 8px; }
 .refresh-modal p { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px; line-height: 1.5; }
 .refresh-cmd-row {
   display: flex; gap: 8px; align-items: stretch; margin-bottom: 10px;
 }
 .refresh-cmd-row input {
-  flex: 1; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  flex: 1; font-family: var(--font-mono);
   font-size: 0.78rem; padding: 10px 12px; border: 1px solid var(--border);
   border-radius: var(--radius-sm); background: var(--bg); color: var(--text);
 }
@@ -1200,6 +1376,10 @@ def generate_dashboard(
 
     js = TOOLBAR_JS.replace("%REPOS_JSON%", json.dumps(repos_list))
 
+    signal_count = count_signals(prs_data, ci_data, renovate_data, sonar_data)
+    fleet_html = build_fleet_strip(ci_data, prs_data, renovate_data)
+    hero_html = build_hero(now_str, signal_count, fleet_html)
+
     health_cards = build_health_cards(prs_data, ci_data, renovate_data, sonar_data, codecov_data, security_audit_data)
     changes_section = build_changes_section(changes_data)
     action_items = build_action_items(prs_data, ci_data, renovate_data, sonar_data)
@@ -1265,10 +1445,10 @@ def generate_dashboard(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Guardian Dashboard — Ansible Devtools</title>
+<title>Guardian — Ansible DevTools</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>{CSS}
 {TOOLBAR_CSS}</style>
 <script>
@@ -1277,11 +1457,7 @@ def generate_dashboard(
 </head>
 <body>
 
-<header>
-  <h1>Guardian Dashboard</h1>
-  <p class="subtitle">Ansible Devtools — Full scan: {esc(now_str)}</p>
-  <div class="accent-line"></div>
-</header>
+{hero_html}
 
 {toolbar_html}
 
