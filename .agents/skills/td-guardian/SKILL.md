@@ -243,7 +243,7 @@ Expected Pages URL once enabled:
 
 Notes without a PAT:
 - Watchdog **alerts** (issues) but does **not** auto-re-dispatch workflows (`GITHUB_TOKEN` cannot trigger other workflows)
-- Dashboard **Refresh Data** is disabled on Pages (no token embedded in HTML)
+- Dashboard **Refresh Data** opens a modal with a copyable `gh workflow run` command (no token in HTML)
 - Private / SAML-gated repos may show gaps vs a fine-grained PAT
 
 ## Reference
