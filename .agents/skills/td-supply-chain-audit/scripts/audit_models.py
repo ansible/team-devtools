@@ -44,6 +44,7 @@ class FindingCategory(enum.Enum):
         COOLDOWN_VIOLATED: Merged before cooldown elapsed.
         KNOWN_VULNERABILITY: Known CVE in dependency.
         SELF_APPROVED: Author approved their own PR.
+        SCORECARD: OpenSSF Scorecard workflow or score issues.
 
     """
 
@@ -61,6 +62,23 @@ class FindingCategory(enum.Enum):
     COOLDOWN_VIOLATED = "cooldown_violated"
     KNOWN_VULNERABILITY = "known_vulnerability"
     SELF_APPROVED = "self_approved"
+    SCORECARD = "scorecard"
+
+
+# Shared OpenSSF Scorecard risk thresholds / critical checks (analyze + report).
+SCORECARD_HIGH_THRESHOLD = 5.0
+SCORECARD_MEDIUM_THRESHOLD = 7.0
+SCORECARD_CRITICAL_CHECKS = frozenset(
+    {
+        "Token-Permissions",
+        "Dangerous-Workflow",
+        "Branch-Protection",
+        "Code-Review",
+        "Maintained",
+        "Pinned-Dependencies",
+        "Security-Policy",
+    },
+)
 
 
 @dataclass

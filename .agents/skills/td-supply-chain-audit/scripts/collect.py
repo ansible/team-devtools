@@ -10,10 +10,16 @@ from __future__ import annotations
 
 import argparse
 import base64
+import contextlib
 import json
+import os
+import platform
 import re
+import shutil
 import subprocess
 import sys
+import tarfile
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -68,6 +74,35 @@ REGISTRY_REQUEST_TIMEOUT_SECONDS = 10
 OSV_REQUEST_TIMEOUT_SECONDS = 30
 OSV_BATCH_SIZE = 1000
 OSV_BATCH_SLEEP_SECONDS = 1
+SCORECARD_REQUEST_TIMEOUT_SECONDS = 20
+SCORECARD_CLI_TIMEOUT_SECONDS = 300
+SCORECARD_CLI_DOWNLOAD_TIMEOUT_SECONDS = 120
+SCORECARD_CLI_BIN = "scorecard"
+# Pinned release used when auto-bootstrapping the CLI (linux/mac).
+SCORECARD_CLI_VERSION = "v5.5.0"
+# Full Scorecard suite minus Vulnerabilities. That check walks OSV for the
+# dependency graph and can hang for 15+ minutes on larger repos (e.g.
+# ansible-builder). Dependency CVEs are already covered by the audit's
+# separate OSV.dev inventory pass.
+SCORECARD_CLI_CHECKS = (
+    "Binary-Artifacts,"
+    "Branch-Protection,"
+    "CI-Tests,"
+    "CII-Best-Practices,"
+    "Code-Review,"
+    "Contributors,"
+    "Dangerous-Workflow,"
+    "Dependency-Update-Tool,"
+    "Fuzzing,"
+    "License,"
+    "Maintained,"
+    "Packaging,"
+    "Pinned-Dependencies,"
+    "SAST,"
+    "Security-Policy,"
+    "Signed-Releases,"
+    "Token-Permissions"
+)
 MAX_COMMIT_MSG_LEN = 120
 GITHUB_EXT_PREFIX_LEN = 7
 GITHUB_EXT_EXPECTED_PARTS = 2
@@ -75,6 +110,31 @@ CVSS_CRITICAL_THRESHOLD = 9.0
 CVSS_HIGH_THRESHOLD = 7.0
 CVSS_MEDIUM_THRESHOLD = 4.0
 DATE_FORMAT = "%Y-%m-%d"
+SCORECARD_WORKFLOW_NAMES = {
+    "scorecard.yml",
+    "scorecard.yaml",
+    "ossf-scorecard.yml",
+    "ossf-scorecard.yaml",
+    "openssf-scorecard.yml",
+    "openssf-scorecard.yaml",
+}
+SCORECARD_ACTION_RE = re.compile(
+    r"uses:\s*['\"]?ossf/scorecard-action@",
+    re.IGNORECASE,
+)
+SCORECARD_PUBLISH_RE = re.compile(
+    r"publish_results\s*:\s*(true|false)",
+    re.IGNORECASE,
+)
+SCORECARD_SCHEDULE_RE = re.compile(r"^\s*schedule\s*:", re.MULTILINE)
+SCORECARD_BRANCH_PROTECTION_RE = re.compile(
+    r"^\s*branch_protection_rule\s*:",
+    re.MULTILINE,
+)
+SCORECARD_SARIF_UPLOAD_RE = re.compile(
+    r"codeql-action/upload-sarif",
+    re.IGNORECASE,
+)
 
 DEP_FILES_PYTHON = {
     "pyproject.toml",
@@ -1336,6 +1396,557 @@ def collect_protection_changes(repo: str, start_date: str, end_date: str) -> lis
     return changes
 
 
+def _empty_scorecard_workflow() -> dict:
+    """Return the default workflow metadata when no Scorecard workflow exists."""
+    return {
+        "present": False,
+        "path": None,
+        "publish_results": None,
+        "has_schedule": False,
+        "has_branch_protection_trigger": False,
+        "uploads_sarif": False,
+        "uses_scorecard_action": False,
+    }
+
+
+def _analyze_scorecard_workflow(content: str, path: str) -> dict:
+    """Parse Scorecard workflow YAML text into normalized metadata.
+
+    Args:
+        content: Raw workflow file contents.
+        path: Repository-relative workflow path.
+
+    Returns:
+        Workflow metadata dict.
+
+    """
+    publish_match = SCORECARD_PUBLISH_RE.search(content)
+    publish_results = None
+    if publish_match:
+        publish_results = publish_match.group(1).lower() == "true"
+
+    return {
+        "present": True,
+        "path": path,
+        "publish_results": publish_results,
+        "has_schedule": bool(SCORECARD_SCHEDULE_RE.search(content)),
+        "has_branch_protection_trigger": bool(
+            SCORECARD_BRANCH_PROTECTION_RE.search(content),
+        ),
+        "uploads_sarif": bool(SCORECARD_SARIF_UPLOAD_RE.search(content)),
+        "uses_scorecard_action": bool(SCORECARD_ACTION_RE.search(content)),
+    }
+
+
+def _find_scorecard_workflow(repo: str) -> dict:
+    """Locate and analyze a Scorecard GitHub Actions workflow in a repo.
+
+    Args:
+        repo: Repository name (``org/repo``).
+
+    Returns:
+        Workflow metadata dict.
+
+    """
+    workflows = gh_api(f"repos/{repo}/contents/.github/workflows")
+    if not workflows or not isinstance(workflows, list):
+        return _empty_scorecard_workflow()
+
+    candidates = []
+    for entry in workflows:
+        name = (entry.get("name") or "").lower()
+        path = entry.get("path") or ""
+        if name in SCORECARD_WORKFLOW_NAMES or "scorecard" in name:
+            candidates.append(path)
+
+    if not candidates:
+        return _empty_scorecard_workflow()
+
+    # Prefer canonical scorecard.yml / scorecard.yaml names.
+    candidates.sort(
+        key=lambda p: (0 if Path(p).name.lower() in SCORECARD_WORKFLOW_NAMES else 1, p),
+    )
+    path = candidates[0]
+    data = gh_api(f"repos/{repo}/contents/{path}")
+    if not data or not isinstance(data, dict) or "content" not in data:
+        result = _empty_scorecard_workflow()
+        result["present"] = True
+        result["path"] = path
+        return result
+
+    try:
+        content = base64.b64decode(data["content"]).decode("utf-8")
+    except (ValueError, UnicodeDecodeError):
+        result = _empty_scorecard_workflow()
+        result["present"] = True
+        result["path"] = path
+        return result
+
+    return _analyze_scorecard_workflow(content, path)
+
+
+def _empty_scorecard_score(api_url: str) -> dict:
+    """Return the default Scorecard score payload.
+
+    Args:
+        api_url: OpenSSF Scorecard API URL for the repo.
+
+    Returns:
+        Empty normalized score dict.
+
+    """
+    return {
+        "available": False,
+        "source": None,
+        "score": None,
+        "date": None,
+        "scorecard_version": None,
+        "commit": None,
+        "checks": [],
+        "api_url": api_url,
+        "badge_url": f"{api_url}/badge",
+        "error": None,
+    }
+
+
+def _normalize_scorecard_payload(data: dict, *, source: str, api_url: str) -> dict:
+    """Normalize OpenSSF API or Scorecard CLI JSON into a common shape.
+
+    Args:
+        data: Raw Scorecard JSON document.
+        source: ``api`` or ``cli``.
+        api_url: Public OpenSSF API URL for the repository.
+
+    Returns:
+        Normalized score payload with ``available=True``.
+
+    """
+    checks = []
+    for check in data.get("checks") or []:
+        documentation = check.get("documentation") or {}
+        doc_url = documentation.get("url", "")
+        if not doc_url and isinstance(check.get("details"), list):
+            # CLI JSON sometimes omits documentation; keep empty.
+            doc_url = ""
+        checks.append(
+            {
+                "name": check.get("name", ""),
+                "score": check.get("score"),
+                "reason": check.get("reason", ""),
+                "documentation_url": doc_url,
+            },
+        )
+
+    scorecard_meta = data.get("scorecard") or {}
+    repo_meta = data.get("repo") or {}
+    return {
+        "available": True,
+        "source": source,
+        "score": data.get("score"),
+        "date": data.get("date"),
+        "scorecard_version": scorecard_meta.get("version"),
+        "commit": repo_meta.get("commit"),
+        "checks": checks,
+        "api_url": api_url,
+        "badge_url": f"{api_url}/badge",
+        "error": None,
+    }
+
+
+def _fetch_openssf_scorecard(repo: str) -> dict:
+    """Fetch published OpenSSF Scorecard results for a repository.
+
+    Args:
+        repo: Repository name (``org/repo``).
+
+    Returns:
+        Normalized score payload with availability flag.
+
+    """
+    api_url = f"https://api.securityscorecards.dev/projects/github.com/{repo}"
+    result = _empty_scorecard_score(api_url)
+    try:
+        req = urllib.request.Request(  # noqa: S310
+            api_url,
+            headers={"User-Agent": "supply-chain-audit/1.0", "Accept": "application/json"},
+        )
+        with urllib.request.urlopen(  # noqa: S310
+            req,
+            timeout=SCORECARD_REQUEST_TIMEOUT_SECONDS,
+        ) as resp:
+            data = json.loads(resp.read())
+    except urllib.error.HTTPError as exc:
+        result["error"] = f"http_{exc.code}"
+        return result
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+        result["error"] = type(exc).__name__
+        return result
+
+    if not isinstance(data, dict) or data.get("score") is None:
+        result["error"] = "api_payload_invalid"
+        return result
+    return _normalize_scorecard_payload(data, source="api", api_url=api_url)
+
+
+def _resolve_github_token() -> str | None:
+    """Resolve a GitHub token for Scorecard CLI rate limits.
+
+    Returns:
+        Token string, or ``None`` if unavailable.
+
+    """
+    for key in ("GITHUB_AUTH_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"):
+        value = os.environ.get(key, "").strip()
+        if value:
+            return value
+    try:
+        result = subprocess.run(
+            ["gh", "auth", "token"],
+            capture_output=True,
+            text=True,
+            timeout=GH_VERSION_TIMEOUT_SECONDS,
+            check=False,
+        )
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return None
+    token = (result.stdout or "").strip()
+    return token or None
+
+
+def _scorecard_managed_bin_dir() -> Path:
+    """Return the directory used for auto-downloaded Scorecard binaries."""
+    return Path(".supply-chain-audit") / "bin"
+
+
+def _scorecard_platform_triple() -> tuple[str, str] | None:
+    """Map the current OS/arch to a Scorecard release asset triple.
+
+    Returns:
+        ``(goos, goarch)`` such as ``("darwin", "arm64")`` or
+        ``("windows", "amd64")``, or ``None``.
+
+    """
+    system = platform.system().lower()
+    machine = platform.machine().lower()
+    if system == "darwin":
+        goos = "darwin"
+    elif system == "linux":
+        goos = "linux"
+    elif system == "windows":
+        goos = "windows"
+    else:
+        return None
+
+    if machine in {"x86_64", "amd64"}:
+        goarch = "amd64"
+    elif machine in {"arm64", "aarch64"}:
+        goarch = "arm64"
+    else:
+        return None
+    return goos, goarch
+
+
+def _scorecard_binary_name() -> str:
+    """Return the Scorecard executable filename for the current OS."""
+    if platform.system().lower() == "windows":
+        return f"{SCORECARD_CLI_BIN}.exe"
+    return SCORECARD_CLI_BIN
+
+
+def _scorecard_release_asset_name(goos: str, goarch: str) -> str:
+    """Build the Scorecard release tarball name for an OS/arch pair."""
+    version = SCORECARD_CLI_VERSION.lstrip("v")
+    return f"scorecard_{version}_{goos}_{goarch}.tar.gz"
+
+
+def _scorecard_archive_member_names() -> tuple[str, ...]:
+    """Filenames accepted inside a Scorecard release archive."""
+    return (SCORECARD_CLI_BIN, f"{SCORECARD_CLI_BIN}.exe")
+
+
+def _extract_scorecard_from_tar(tmp_path: Path, dest: Path) -> bool:
+    """Extract the Scorecard binary from a release tarball.
+
+    Args:
+        tmp_path: Downloaded ``.tar.gz`` path.
+        dest: Destination executable path.
+
+    Returns:
+        ``True`` on success.
+
+    """
+    with tarfile.open(tmp_path, "r:gz") as tar:
+        member = None
+        for entry in tar.getmembers():
+            name = Path(entry.name).name
+            if name in _scorecard_archive_member_names() and entry.isfile():
+                member = entry
+                break
+        if member is None:
+            print("  Scorecard CLI archive missing scorecard binary", file=sys.stderr)
+            return False
+        member.name = dest.name
+        try:
+            tar.extract(member, path=dest.parent, filter="data")
+        except TypeError:
+            # Python < 3.12 has no filter= argument.
+            tar.extract(member, path=dest.parent)
+    extracted = dest.parent / dest.name
+    if extracted != dest:
+        extracted.replace(dest)
+    # Windows may not support POSIX mode bits; execution still works.
+    with contextlib.suppress(OSError):
+        dest.chmod(0o755)
+    return True
+
+
+def _download_scorecard_cli(dest: Path) -> str | None:
+    """Download and extract the pinned Scorecard CLI into ``dest``.
+
+    Args:
+        dest: Destination path for the ``scorecard`` / ``scorecard.exe`` binary.
+
+    Returns:
+        Path string on success, or ``None`` on failure.
+
+    """
+    triple = _scorecard_platform_triple()
+    if not triple:
+        print(
+            f"  Scorecard CLI auto-install unsupported on {platform.system()}/{platform.machine()}",
+            file=sys.stderr,
+        )
+        return None
+
+    goos, goarch = triple
+    asset = _scorecard_release_asset_name(goos, goarch)
+    url = f"https://github.com/ossf/scorecard/releases/download/{SCORECARD_CLI_VERSION}/{asset}"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    print(f"  Bootstrapping Scorecard CLI {SCORECARD_CLI_VERSION} ({goos}/{goarch})...")
+
+    try:
+        req = urllib.request.Request(  # noqa: S310
+            url,
+            headers={"User-Agent": "supply-chain-audit/1.0"},
+        )
+        with (
+            urllib.request.urlopen(  # noqa: S310
+                req,
+                timeout=SCORECARD_CLI_DOWNLOAD_TIMEOUT_SECONDS,
+            ) as resp,
+            tempfile.NamedTemporaryFile(suffix=".tar.gz", delete=False) as tmp,
+        ):
+            shutil.copyfileobj(resp, tmp)
+            tmp_path = Path(tmp.name)
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        print(f"  Scorecard CLI download failed: {exc}", file=sys.stderr)
+        return None
+
+    try:
+        if not _extract_scorecard_from_tar(tmp_path, dest):
+            return None
+    except (tarfile.TarError, OSError) as exc:
+        print(f"  Scorecard CLI extract failed: {exc}", file=sys.stderr)
+        return None
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+    print(f"  Scorecard CLI ready: {dest}")
+    return str(dest)
+
+
+def _managed_scorecard_binary() -> Path:
+    """Return the managed Scorecard binary path for this OS."""
+    return _scorecard_managed_bin_dir() / _scorecard_binary_name()
+
+
+def _is_usable_executable(path: Path) -> bool:
+    """Return whether ``path`` looks like a usable Scorecard binary."""
+    if not path.is_file():
+        return False
+    if platform.system().lower() == "windows":
+        return True
+    return os.access(path, os.X_OK)
+
+
+def _ensure_scorecard_cli() -> str | None:
+    """Locate the pinned managed Scorecard CLI, downloading it if needed.
+
+    Prefers the audit-managed binary (pinned ``SCORECARD_CLI_VERSION``) over any
+    ``scorecard`` on ``PATH`` so audits are reproducible and a poisoned PATH
+    cannot override the pinned tool.
+
+    Returns:
+        Absolute path to the binary, or ``None`` if unavailable.
+
+    """
+    managed = _managed_scorecard_binary()
+    if _is_usable_executable(managed):
+        return str(managed.resolve())
+
+    downloaded = _download_scorecard_cli(managed)
+    if downloaded:
+        return downloaded
+
+    # Last resort: PATH (may differ from the pinned version).
+    return shutil.which(SCORECARD_CLI_BIN) or shutil.which(f"{SCORECARD_CLI_BIN}.exe")
+
+
+def _parse_scorecard_cli_stdout(stdout: str) -> dict | None:
+    """Parse Scorecard CLI JSON from stdout, tolerating leading log lines.
+
+    Args:
+        stdout: Captured CLI standard output.
+
+    Returns:
+        Parsed JSON object, or ``None`` when no valid object is found.
+
+    """
+    text = stdout.strip()
+    if not text:
+        return None
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError:
+        payload = None
+        for raw_line in reversed(text.splitlines()):
+            candidate = raw_line.strip()
+            if candidate.startswith("{") and candidate.endswith("}"):
+                try:
+                    payload = json.loads(candidate)
+                    break
+                except json.JSONDecodeError:
+                    continue
+    return payload if isinstance(payload, dict) else None
+
+
+def _run_scorecard_cli(repo: str) -> dict:
+    """Run the local Scorecard CLI against a repository.
+
+    Args:
+        repo: Repository name (``org/repo``).
+
+    Returns:
+        Normalized score payload (``available`` may be false on failure).
+
+    """
+    api_url = f"https://api.securityscorecards.dev/projects/github.com/{repo}"
+    result = _empty_scorecard_score(api_url)
+    cli = _ensure_scorecard_cli()
+    if not cli:
+        result["error"] = "scorecard_cli_not_installed"
+        return result
+
+    env = os.environ.copy()
+    token = _resolve_github_token()
+    if token:
+        # Scorecard accepts any of these; set all common variants.
+        env.setdefault("GITHUB_AUTH_TOKEN", token)
+        env.setdefault("GH_TOKEN", token)
+        env.setdefault("GITHUB_TOKEN", token)
+
+    cmd = [
+        cli,
+        f"--repo=github.com/{repo}",
+        "--format=json",
+        "--show-details=false",
+        f"--checks={SCORECARD_CLI_CHECKS}",
+    ]
+    try:
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=SCORECARD_CLI_TIMEOUT_SECONDS,
+            check=False,
+            env=env,
+        )
+    except subprocess.TimeoutExpired:
+        result["error"] = "scorecard_cli_timeout"
+        return result
+    except OSError as exc:
+        result["error"] = f"scorecard_cli_oserror:{type(exc).__name__}"
+        return result
+
+    stdout = proc.stdout or ""
+    payload = _parse_scorecard_cli_stdout(stdout)
+    if payload is None:
+        kind = "empty_output" if not stdout.strip() else "bad_json"
+        result["error"] = f"scorecard_cli_{kind}:exit_{proc.returncode}"
+        return result
+
+    normalized = _normalize_scorecard_payload(payload, source="cli", api_url=api_url)
+    if proc.returncode != 0 and normalized.get("score") is None:
+        result["error"] = f"scorecard_cli_exit_{proc.returncode}"
+        return result
+    # Record that CLI scores intentionally omit the OSV Vulnerabilities check.
+    normalized["cli_checks_excluded"] = ["Vulnerabilities"]
+    return normalized
+
+
+def _print_scorecard_status(scorecard: dict) -> None:
+    """Print a one-line Scorecard collection summary for a repo.
+
+    Args:
+        scorecard: Combined Scorecard audit payload.
+
+    """
+    workflow = scorecard.get("workflow") or {}
+    score_data = scorecard.get("scorecard") or {}
+    score_val = score_data.get("score")
+    source = score_data.get("source") or "none"
+    available = bool(score_data.get("available"))
+    if available:
+        score_msg = f"score={score_val} via {source}"
+    else:
+        err = score_data.get("error") or "unpublished"
+        score_msg = f"score=unavailable ({err})"
+
+    if workflow.get("present"):
+        wf_path = workflow.get("path") or "scorecard.yml"
+        print(f"  Scorecard workflow: {wf_path} ({score_msg})")
+    else:
+        print(f"  Scorecard workflow: missing ({score_msg})")
+
+
+def collect_scorecard(repo: str, *, use_cli: bool = True) -> dict:
+    """Collect Scorecard workflow presence and scores (API, then CLI fallback).
+
+    Prefers the public OpenSSF Scorecard API. When no published score exists and
+    ``use_cli`` is true, runs the local ``scorecard`` binary to evaluate the
+    repo (requires CLI install + GitHub token for rate limits).
+
+    Args:
+        repo: Repository name (``org/repo``).
+        use_cli: Whether to fall back to the Scorecard CLI.
+
+    Returns:
+        Combined Scorecard audit payload for caching.
+
+    """
+    workflow = _find_scorecard_workflow(repo)
+    score = _fetch_openssf_scorecard(repo)
+    # Prefer published API scores; only fall back to CLI when API has nothing.
+    if not score.get("available") and use_cli:
+        print("  OpenSSF API miss — running Scorecard CLI...")
+        cli_score = _run_scorecard_cli(repo)
+        if cli_score.get("available"):
+            # Keep API error for diagnostics while using CLI results.
+            cli_score["api_error"] = score.get("error")
+            score = cli_score
+        else:
+            score["cli_error"] = cli_score.get("error")
+            print(
+                f"  Scorecard CLI unavailable for {repo}: {cli_score.get('error')}",
+            )
+    return {
+        "repo": repo,
+        "workflow": workflow,
+        "scorecard": score,
+        "collected_at": datetime.now(UTC).isoformat(),
+    }
+
+
 def _load_cached_repo_counts(cache_dir: Path, repo: str) -> tuple[int, int]:
     """Return commit and PR counts from cached repo data.
 
@@ -1391,13 +2002,20 @@ def _scan_osv_for_repo(repo: str) -> list[dict]:
     return vuln_results
 
 
-def _collect_repo_artifacts(repo: str, start_date: str, end_date: str) -> dict:
+def _collect_repo_artifacts(
+    repo: str,
+    start_date: str,
+    end_date: str,
+    *,
+    use_scorecard_cli: bool = True,
+) -> dict:
     """Collect all audit artifacts for a single repo.
 
     Args:
         repo: Repository name.
         start_date: Audit window start (YYYY-MM-DD).
         end_date: Audit window end (YYYY-MM-DD).
+        use_scorecard_cli: Fall back to local Scorecard CLI when API has no score.
 
     Returns:
         Dict of collected artifact categories.
@@ -1445,6 +2063,10 @@ def _collect_repo_artifacts(repo: str, start_date: str, end_date: str) -> dict:
     protection_changes = collect_protection_changes(repo, start_date, end_date)
     print(f"  Protection changes in window: {len(protection_changes)}")
 
+    print("  Fetching OpenSSF Scorecard status...")
+    scorecard = collect_scorecard(repo, use_cli=use_scorecard_cli)
+    _print_scorecard_status(scorecard)
+
     return {
         "commits": commits,
         "prs": prs,
@@ -1455,6 +2077,7 @@ def _collect_repo_artifacts(repo: str, start_date: str, end_date: str) -> dict:
         "vuln_results": vuln_results,
         "protection": protection,
         "protection_changes": protection_changes,
+        "scorecard": scorecard,
     }
 
 
@@ -1489,6 +2112,28 @@ def _write_repo_cache_files(cache_dir: Path, repo: str, artifacts: dict) -> None
             "changes": artifacts["protection_changes"],
         },
     )
+    write_cache_file(cache_dir, "scorecard", cache_name, artifacts["scorecard"])
+
+
+def _collect_and_cache_scorecard(
+    repo: str,
+    cache_dir: Path,
+    *,
+    use_scorecard_cli: bool = True,
+) -> None:
+    """Collect Scorecard data for a repo and write it to cache.
+
+    Args:
+        repo: Repository name.
+        cache_dir: Root cache directory.
+        use_scorecard_cli: Fall back to local Scorecard CLI when API has no score.
+
+    """
+    print("  Fetching OpenSSF Scorecard status...")
+    scorecard = collect_scorecard(repo, use_cli=use_scorecard_cli)
+    cache_name = f"{repo_cache_name(repo)}.json"
+    write_cache_file(cache_dir, "scorecard", cache_name, scorecard)
+    _print_scorecard_status(scorecard)
 
 
 def collect_repo(
@@ -1498,6 +2143,8 @@ def collect_repo(
     cache_dir: Path,
     *,
     force: bool = False,
+    use_scorecard_cli: bool = True,
+    refresh_scorecard: bool = False,
 ) -> tuple[int, int]:
     """Collect all data for a single repo.
 
@@ -1507,6 +2154,8 @@ def collect_repo(
         end_date: Audit window end (YYYY-MM-DD).
         cache_dir: Root cache directory.
         force: Re-collect even if cached data exists.
+        use_scorecard_cli: Fall back to local Scorecard CLI when API has no score.
+        refresh_scorecard: Re-collect Scorecard even when other artifacts are cached.
 
     Returns:
         Tuple of (commit_count, pr_count).
@@ -1519,9 +2168,42 @@ def collect_repo(
 
     if not force and has_cached_data(cache_dir, repo, "commits"):
         print(f"  [cached] Skipping {repo} (already collected)")
+        # Backfill/refresh Scorecard when missing, forced, or still unscored
+        # so CLI auto-bootstrap fills gaps without a full re-collect.
+        existing = read_cache_file(
+            cache_dir,
+            "scorecard",
+            f"{repo_cache_name(repo)}.json",
+        )
+        score_meta = (existing.get("scorecard") or {}) if isinstance(existing, dict) else {}
+        score_available = bool(score_meta.get("available"))
+        cli_only = score_available and score_meta.get("source") == "cli"
+        if refresh_scorecard or existing is None or not score_available:
+            _collect_and_cache_scorecard(
+                repo,
+                cache_dir,
+                use_scorecard_cli=use_scorecard_cli,
+            )
+        elif cli_only:
+            # Re-check OpenSSF API only; keep the CLI snapshot if still unpublished.
+            print("  Checking whether OpenSSF API score is now published...")
+            api_only = collect_scorecard(repo, use_cli=False)
+            if (api_only.get("scorecard") or {}).get("available"):
+                write_cache_file(
+                    cache_dir,
+                    "scorecard",
+                    f"{repo_cache_name(repo)}.json",
+                    api_only,
+                )
+                _print_scorecard_status(api_only)
         return _load_cached_repo_counts(cache_dir, repo)
 
-    artifacts = _collect_repo_artifacts(repo, start_date, end_date)
+    artifacts = _collect_repo_artifacts(
+        repo,
+        start_date,
+        end_date,
+        use_scorecard_cli=use_scorecard_cli,
+    )
     _write_repo_cache_files(cache_dir, repo, artifacts)
 
     commits = artifacts["commits"]
@@ -1553,6 +2235,24 @@ def main() -> None:
         nargs="*",
         help="Specific repos to collect (default: all)",
     )
+    parser.add_argument(
+        "--scorecard-cli",
+        dest="scorecard_cli",
+        action="store_true",
+        default=True,
+        help="Fall back to local Scorecard CLI when OpenSSF API has no score (default)",
+    )
+    parser.add_argument(
+        "--skip-scorecard-cli",
+        dest="scorecard_cli",
+        action="store_false",
+        help="Do not run the local Scorecard CLI; use OpenSSF API only",
+    )
+    parser.add_argument(
+        "--refresh-scorecard",
+        action="store_true",
+        help="Re-fetch Scorecard (API/CLI) even when other repo data is cached",
+    )
     args = parser.parse_args()
 
     try:
@@ -1570,6 +2270,17 @@ def main() -> None:
         )
         sys.exit(1)
     print(f"Using: {gh_version}")
+    if args.scorecard_cli:
+        # Lazy bootstrap: download only when a repo actually needs the CLI.
+        managed = _managed_scorecard_binary()
+        if _is_usable_executable(managed):
+            print(f"Scorecard CLI: {managed.resolve()} (pinned {SCORECARD_CLI_VERSION})")
+        else:
+            print(
+                f"Scorecard CLI: will auto-bootstrap {SCORECARD_CLI_VERSION} when OpenSSF API has no score",
+            )
+    else:
+        print("Scorecard CLI: disabled (--skip-scorecard-cli)")
 
     repos = [normalize_repo(r) for r in (args.repos or TARGET_REPOS)]
     cache_dir = get_cache_dir(args.cache_dir, args.start, args.end)
@@ -1584,7 +2295,15 @@ def main() -> None:
     total_prs = 0
 
     for repo in repos:
-        c, p = collect_repo(repo, args.start, args.end, cache_dir, force=args.force)
+        c, p = collect_repo(
+            repo,
+            args.start,
+            args.end,
+            cache_dir,
+            force=args.force,
+            use_scorecard_cli=args.scorecard_cli,
+            refresh_scorecard=args.refresh_scorecard,
+        )
         total_commits += c
         total_prs += p
 

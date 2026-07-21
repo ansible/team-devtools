@@ -110,7 +110,17 @@ def ensure_cache_structure(cache_dir: Path) -> None:
         cache_dir: Root cache directory.
 
     """
-    subdirs = ["commits", "prs", "checks", "deps"]
+    subdirs = [
+        "commits",
+        "prs",
+        "checks",
+        "deps",
+        "scorecard",
+        "protection",
+        "renovate",
+        "vulns",
+        "pr_audits",
+    ]
     for sub in subdirs:
         (cache_dir / sub).mkdir(parents=True, exist_ok=True)
 
@@ -494,3 +504,27 @@ def get_all_cached_pr_audits(cache_dir: Path) -> list[dict[str, object]]:
                 if isinstance(data, list):
                     all_audits.extend(data)
     return all_audits
+
+
+def get_all_cached_scorecard(cache_dir: Path) -> dict[str, dict[str, object]]:
+    """Load all cached OpenSSF Scorecard data, keyed by repo name.
+
+    Args:
+        cache_dir: Root cache directory.
+
+    Returns:
+        Scorecard data grouped by repository.
+
+    """
+    scorecards: dict[str, dict[str, object]] = {}
+    scorecard_dir = cache_dir / "scorecard"
+    if not scorecard_dir.exists():
+        return {}
+    for f in sorted(scorecard_dir.iterdir()):
+        if f.suffix == ".json":
+            repo_name = repo_from_cache_name(f.stem)
+            with f.open(encoding="utf-8") as fh:
+                data = json.load(fh)
+                if isinstance(data, dict):
+                    scorecards[repo_name] = data
+    return scorecards
