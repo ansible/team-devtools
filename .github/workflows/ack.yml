@@ -13,6 +13,10 @@ on:
     secrets:
       BOT_PAT:
         required: false
+
+permissions:
+  contents: read
+
 jobs:
   ack:
     runs-on: ubuntu-24.04

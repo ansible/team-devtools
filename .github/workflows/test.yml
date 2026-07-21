@@ -31,7 +31,7 @@ jobs:
       name: ack # BOT_PAT
       deployment: false
     permissions:
-      contents: write # commit & push lint autofixes
+      # git commit/push use BOT_PAT from checkout; GITHUB_TOKEN only comments
       pull-requests: write # comment on unfixed lint errors
     steps:
       - name: Dump event information
