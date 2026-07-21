@@ -368,7 +368,7 @@ def build_health_cards(prs_data, ci_data, renovate_data, sonar_data, codecov_dat
 
         cards_html += (
             f'<a href="audit.html" target="_blank" class="security-audit-banner">'
-            f'<span class="security-audit-title">Security Audit</span>'
+            f'<span class="security-audit-title">Supply Chain Audit</span>'
             f"{badges}"
             f'<span class="security-audit-window">{esc(window)}</span>'
             f'<span class="security-audit-cta">View full report &rarr;</span>'
@@ -1393,6 +1393,8 @@ def generate_dashboard(
     ]
 
     nav_links = "".join(f'<a href="#{sid}">{label}</a>' for sid, label, html in section_list if html)
+    if security_audit_data:
+        nav_links += '<a href="audit.html" target="_blank">Supply Chain Audit</a>'
     nav_html = f'<nav class="nav-bar">{nav_links}</nav>' if nav_links else ""
 
     sections = "\n".join(html for _, _, html in section_list if html)

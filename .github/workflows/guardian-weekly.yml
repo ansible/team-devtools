@@ -158,6 +158,8 @@ jobs:
         run: |
           cp "${SKILL_ROOT}/reports/previous-snapshot.json" "${SITE_DIR}/snapshot.json"
           cp "${SKILL_ROOT}/reports/changes.json" "${SITE_DIR}/changes.json"
+          # Publish JSON so daily deploys can keep the Security Audit banner/link
+          cp "${SKILL_ROOT}/reports/security-audit.json" "${SITE_DIR}/security-audit.json"
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
