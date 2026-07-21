@@ -30,18 +30,18 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.BOT_PAT }}
 
-      - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
         with:
           python-version: "3.14"
 
       - name: Install antsibull-changelog, antsichaut
-        run: >
-          python3 -m pip install
-          antsibull-changelog
-          git+https://github.com/ansible-community/antsichaut.git
-          pre-commit
-          --disable-pip-version-check
+        run: |
+          set -euo pipefail
+          uv tool install antsibull-changelog
+          uv tool install pre-commit
+          uv tool install git+https://github.com/ansible-community/antsichaut.git
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Run release drafter
         id: release_drafter
@@ -59,7 +59,7 @@ jobs:
 
       - name: Get previous tag
         id: previoustag
-        uses: WyriHaximus/github-action-get-previous-tag@master
+        uses: WyriHaximus/github-action-get-previous-tag@61819f33034117e6c686e6a31dba995a85afc9de # v2.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

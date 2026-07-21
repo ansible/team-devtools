@@ -11,6 +11,9 @@ on:
       ah_token:
         required: true
 
+permissions:
+  contents: read
+
 jobs:
   refresh:
     runs-on: ubuntu-24.04

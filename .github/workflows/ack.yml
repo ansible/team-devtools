@@ -35,7 +35,7 @@ jobs:
           ${{ toJson(github) }}
           EOF_GITHUB_CONTEXT
 
-      - uses: release-drafter/release-drafter/autolabeler@v7
+      - uses: release-drafter/release-drafter/autolabeler@4d75298e00d9e34c483e5ff8c68d0ea1c1940c1e # v7
 
       - name: Verify PR label action
         if: github.event_name != 'merge_group'
@@ -72,7 +72,7 @@ jobs:
         # from external orgs (e.g. from ansible-automation-platform org).
         # See https://github.com/actions/add-to-project/issues/389
         continue-on-error: true
-        uses: actions/add-to-project@main
+        uses: actions/add-to-project@5afcf98fcd03f1c2f92c3c83f58ae24323cc57fd # v2.0.0
         with:
           project-url: https://github.com/orgs/ansible/projects/86
           # Do not use secrets.GITHUB_TOKEN here because it does not have

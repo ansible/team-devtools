@@ -21,6 +21,9 @@ on:
       ansible_galaxy_api_key:
         required: false
 
+permissions:
+  contents: read
+
 jobs:
   release_automation_hub:
     uses: ansible/team-devtools/.github/workflows/release_ah.yml@main
