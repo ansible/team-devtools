@@ -1053,7 +1053,7 @@ def _format_finding_item(finding: dict, *, hidden: bool = False) -> str:
     return (
         f"<div{hidden_attr}>"
         f'<span class="badge badge-{finding.get("risk_level", "info")}">'
-        f'{finding.get("risk_level", "")}</span> '
+        f"{finding.get('risk_level', '')}</span> "
         f"<strong>{esc(repo)}</strong>{pr_link} \u2014 {summary_html}"
         f'<div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.3rem;">'
         f"{details_html}</div>"
