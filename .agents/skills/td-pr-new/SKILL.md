@@ -109,7 +109,11 @@ module** surrounding each changed hunk — not just the hunk itself.
    function, construct one realistic failure case: an edge-case input,
    an empty-but-not-falsy value, a timeout, a concurrent access. Trace
    it through the code path. If it fails silently or violates the
-   declared type, that's a finding.
+   declared type, that's a finding. Also inspect **test helpers**:
+   allocation/probe helpers that silently return sentinel values
+   (port `0`, empty host, `-1`) instead of failing hide infrastructure
+   errors and cause confusing flakes — prefer fail-fast with an
+   `error` path and a clear rejection when the result is unusable.
 
 9. **Do inherited contracts hold?** When implementing a Protocol or
    extending a base class, check that the subclass honors the full
