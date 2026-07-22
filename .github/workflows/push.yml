@@ -2,13 +2,11 @@
 # push workflow is shared and expected to perform actions after a merge happens
 # on a maintenance branch (default or release). For example updating the
 # draft release-notes.
-# Permissions stay at workflow level so workflow_call consumers that only set
-# contents: read (or omit permissions) are not capped below what release-drafter needs.
+# Callers must grant contents: write on the calling job for release-drafter.
 name: push
 
 permissions:
-  contents: write
-  pull-requests: read
+  contents: read
 
 on:
   workflow_call: # allows reuse of this workflow from other devtools repos
@@ -16,6 +14,9 @@ on:
 jobs:
   update_release_draft:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write # release-drafter updates draft releases
+      pull-requests: read
     steps:
       - uses: release-drafter/release-drafter@4d75298e00d9e34c483e5ff8c68d0ea1c1940c1e # v7
         env:

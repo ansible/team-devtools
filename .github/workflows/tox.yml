@@ -79,16 +79,11 @@ on:
         description: Paths to log files to upload as artifacts.
         required: false
         type: string
-# Keep permissions at top level for reusable workflow_call consumers.
-# Callers often set workflow-level contents: read only; job-scoped elevation
-# here would be capped by the caller and break artifact upload / OIDC / PR comments.
-# See OpenSSF Scorecard Token-Permissions follow-up: update callers first, then tighten.
+# Top-level read-only for OpenSSF Scorecard Token-Permissions; writes are job-scoped.
+# If the caller caps GITHUB_TOKEN (e.g. workflow contents: read), the calling job must
+# grant any write scopes this workflow needs — called workflows cannot expand the token.
 permissions:
-  checks: read
   contents: read
-  id-token: write
-  packages: write # some tox environments might produce containers
-  pull-requests: write # allow commenting on unsigned commits / codenotify
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # might be needed by tox commands
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -102,6 +97,9 @@ jobs:
     environment:
       name: ${{ inputs.environment }}
       deployment: false
+    permissions:
+      contents: read
+      pull-requests: write # comment when commits lack verified signatures
     outputs:
       matrix: ${{ steps.generate_matrix.outputs.matrix }}
     steps:
@@ -145,6 +143,10 @@ jobs:
     environment:
       name: ${{ inputs.environment }}
       deployment: false
+    permissions:
+      contents: read
+      id-token: write # codecov OIDC
+      packages: write # some tox environments might produce containers
     needs:
       - prepare
     defaults:
@@ -303,6 +305,9 @@ jobs:
     environment:
       name: ${{ inputs.environment }}
       deployment: false
+    permissions:
+      contents: read
+      checks: read
     needs:
       - test
     runs-on: ubuntu-24.04

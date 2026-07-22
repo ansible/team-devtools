@@ -19,10 +19,16 @@ on:
         description: Bot secret
         required: true
 
+# Callers that cap GITHUB_TOKEN must grant contents: write on the calling job.
+permissions:
+  contents: read
+
 jobs:
   update_release_draft:
     runs-on: ubuntu-24.04
     environment: push
+    permissions:
+      contents: write # release-drafter updates draft releases
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
