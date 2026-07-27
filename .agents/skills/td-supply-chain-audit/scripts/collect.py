@@ -937,7 +937,7 @@ def enrich_dep_release_info(dep: dict) -> None:
     try:
         if ecosystem == "pypi":
             url = f"https://pypi.org/pypi/{pkg}/{version}/json"
-            req = urllib.request.Request(  # noqa: S310
+            req = urllib.request.Request(
                 url,
                 headers={"User-Agent": "supply-chain-audit/1.0"},
             )
@@ -1566,7 +1566,7 @@ def _fetch_openssf_scorecard(repo: str) -> dict:
     api_url = f"https://api.securityscorecards.dev/projects/github.com/{repo}"
     result = _empty_scorecard_score(api_url)
     try:
-        req = urllib.request.Request(  # noqa: S310
+        req = urllib.request.Request(
             api_url,
             headers={"User-Agent": "supply-chain-audit/1.0", "Accept": "application/json"},
         )
@@ -1725,7 +1725,7 @@ def _download_scorecard_cli(dest: Path) -> str | None:
     print(f"  Bootstrapping Scorecard CLI {SCORECARD_CLI_VERSION} ({goos}/{goarch})...")
 
     try:
-        req = urllib.request.Request(  # noqa: S310
+        req = urllib.request.Request(
             url,
             headers={"User-Agent": "supply-chain-audit/1.0"},
         )
