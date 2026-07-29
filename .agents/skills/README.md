@@ -32,7 +32,7 @@ when synced to downstream repositories that may have their own local skills.
 | `td-supply-chain-audit` | Comprehensive supply-chain vulnerability analysis | `[last N days] [help] [dive SCA-NNN]` |
 
 Guardian dashboard / `td-guardian` now lives in
-[sds/guardian-dashboard](https://gitlab.cee.redhat.com/sds/guardian-dashboard)
+[devtools1/guardian-dashboard](https://gitlab.cee.redhat.com/devtools1/guardian-dashboard)
 (GitLab CEE), including scheduled CI and Pages.
 
 ### Utilities
