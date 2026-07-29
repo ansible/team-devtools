@@ -16,7 +16,7 @@ triggers:
   - "sync PR with main"
 metadata:
   author: Ansible DevTools Team
-  version: 1.0.0
+  version: 1.1.0
 ---
 
 > **[Team DevTools]** Running `td-rebase-pr` — from [ansible/team-devtools](https://github.com/ansible/team-devtools/tree/main/.agents/skills/td-rebase-pr)
@@ -131,12 +131,12 @@ git diff --name-only --diff-filter=U
 
 If 3 or fewer files conflict, attempt resolution:
 - For lock files (`pnpm-lock.yaml`, `uv.lock`, `yarn.lock`): accept
-  theirs and regenerate after rebase completes.
+  theirs and complete the rebase, then regenerate in Step 3a.
 - For other files: abort and report that manual conflict resolution is
   needed.
 
 ```bash
-git checkout --theirs pnpm-lock.yaml  # or uv.lock
+git checkout --theirs pnpm-lock.yaml  # or uv.lock, yarn.lock
 git add pnpm-lock.yaml
 git rebase --continue
 ```
@@ -148,6 +148,91 @@ git rebase --abort
 ```
 
 Report that the rebase has conflicts requiring manual resolution and stop.
+
+---
+
+## Step 3a — Regenerate lockfiles (after conflict resolution)
+
+**This step runs only when Step 3 resolved lockfile conflicts with
+`--theirs`.** If the rebase completed cleanly (no conflicts), skip
+straight to the push in Step 3.
+
+### Detect toolchain
+
+```text
+if Taskfile.yml exists AND package.json exists -> TypeScript (pnpm)
+elif tox.ini exists                            -> Python (uv)
+elif pyproject.toml exists (no tox.ini)        -> Python (uv)
+else                                           -> Unknown
+```
+
+If unknown, abort and report:
+
+```
+**Action taken:** lockfile conflict resolved but toolchain unknown — cannot regenerate. Closing PR so Renovate can recreate from current main.
+```
+
+Close the PR with a comment explaining why:
+
+```bash
+gh pr close PR_NUMBER --repo OWNER/REPO \
+  --comment "Lockfile conflict could not be safely regenerated (unknown toolchain). Renovate will recreate this PR from current main."
+```
+
+Stop.
+
+### Run regeneration
+
+```bash
+# TypeScript
+pnpm install
+
+# Python (tox or uv)
+uv lock
+```
+
+If the regeneration command exits non-zero, abort and report:
+
+```
+**Action taken:** lockfile regeneration failed (COMMAND exited CODE). Closing PR so Renovate can recreate from current main.
+```
+
+Close the PR with a comment and stop.
+
+### Verify gate
+
+The regenerated lockfile must differ from what `--theirs` produced.
+If it does not, the resolution was a no-op and the lockfile may carry
+stale pins.
+
+```bash
+git diff --exit-code uv.lock  # or pnpm-lock.yaml
+```
+
+- If `git diff --exit-code` returns **1** (file changed): the
+  regeneration produced a fresh lockfile. Stage and commit it:
+
+  ```bash
+  git add uv.lock  # or pnpm-lock.yaml
+  git commit -m "chore: regenerate lockfile after rebase conflict resolution"
+  ```
+
+- If `git diff --exit-code` returns **0** (no change): the lockfile
+  is identical to the `--theirs` version. This is acceptable only if
+  the PR's lockfile changes were already consistent with main. Log a
+  warning but proceed:
+
+  ```
+  **Warning:** lockfile unchanged after regeneration — --theirs resolution matched current state
+  ```
+
+### Push
+
+```bash
+source ~/.ansibuddy_env 2>/dev/null || true && git push --force-with-lease
+```
+
+If push is rejected, stop and report as described in Step 3.
 
 ---
 
@@ -218,7 +303,7 @@ gh pr checks PR_NUMBER --repo OWNER/REPO \
 
 **Repo:** OWNER/REPO
 **PR:** #NUMBER — TITLE
-**Action taken:** rebased onto BASE_BRANCH / already up to date / conflicts (aborted)
+**Action taken:** rebased onto BASE_BRANCH / rebased onto BASE_BRANCH (lockfile regenerated) / already up to date / conflicts (aborted) / lockfile regen failed (PR closed)
 **CI run:** new (triggered by push) / existing (no push, reporting old results)
 **CI result:** all passing / N code failures
 
