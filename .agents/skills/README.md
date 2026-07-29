@@ -30,7 +30,10 @@ when synced to downstream repositories that may have their own local skills.
 | Skill | Purpose | Arguments |
 |-------|---------|-----------|
 | `td-supply-chain-audit` | Comprehensive supply-chain vulnerability analysis | `[last N days] [help] [dive SCA-NNN]` |
-| `td-guardian` | Guardian shift: CI health, PR triage, deps, Sonar, handoff reports | `[check \| changed \| audit \| handoff \| …]` |
+
+Guardian dashboard / `td-guardian` now lives in
+[sds/guardian-dashboard](https://gitlab.cee.redhat.com/sds/guardian-dashboard)
+(GitLab CEE), including scheduled CI and Pages.
 
 ### Utilities
 
@@ -65,11 +68,6 @@ skills/
 │   └── SKILL.md
 ├── td-fix-bot-prs/
 │   └── SKILL.md
-├── td-guardian/
-│   ├── SKILL.md
-│   ├── config/
-│   ├── references/
-│   └── scripts/
 ├── td-pr-contributor-review/
 │   └── SKILL.md
 ├── td-pr-new/

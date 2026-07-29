@@ -141,4 +141,3 @@ src/team_devtools/_version.py
 .ansible
 coverage.lcov
 .architecture-diagrams/
-guardian-site/
