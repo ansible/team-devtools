@@ -4,15 +4,18 @@ line-length = 120
 select = ["ALL"]
 ignore = [
   "C901",  # complex-structure — utility scripts have inherently complex crawlers
-  "D203",  # incorrect-blank-line-before-class (incompatible with D211)
-  "D213",  # multi-line-summary-second-line (incompatible with D212)
+  "CPY001",  # missing-copyright-notice (project does not enforce copyright headers)
   "D100",  # undocumented-public-module
   "D101",  # undocumented-public-class
   "D103",  # undocumented-public-function
+  "D203",  # incorrect-blank-line-before-class (incompatible with D211)
+  "D213",  # multi-line-summary-second-line (incompatible with D212)
   "DOC201",  # return not documented in docstring
   "INP001",  # implicit-namespace-package — standalone scripts, not packages
+  "ISC004",  # single-line-implicit-string-concatenation (ruff 0.16.0 promoted from preview)
   "PLR0913",  # too-many-arguments
   "PLR0915",  # too-many-statements — utility scripts have large entry points
+  "PLR0917",  # too-many-positional-arguments (ruff 0.16.0 promoted from preview)
   "S404",  # subprocess module import
   "S603",  # subprocess-without-shell-equals-true
   "S607",  # start-process-with-partial-path

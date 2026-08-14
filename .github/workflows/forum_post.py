@@ -86,7 +86,7 @@ class Post:
         release_url = (
             f"https://api.github.com/repos/{self.project}/releases/tags/{self.release}"
         )
-        with urllib.request.urlopen(release_url) as url:  # noqa: S310
+        with urllib.request.urlopen(release_url) as url:
             data = json.load(url)
 
         release_notes = data["body"]
@@ -98,7 +98,7 @@ class Post:
         categories_url = (
             "https://forum.ansible.com/categories.json?include_subcategories=true"
         )
-        categories_request = Request(categories_url)  # noqa: S310
+        categories_request = Request(categories_url)
         categories_request.add_header("Api-Key", self.forum_api_key)
         categories_request.add_header("Api-Username", self.forum_user)
         with urllib.request.urlopen(url=categories_request) as url:  # noqa: S310
@@ -138,7 +138,7 @@ class Post:
         data = json.dumps(payload).encode("utf-8")
 
         url = "https://forum.ansible.com/posts.json"
-        request = Request(url)  # noqa: S310
+        request = Request(url)
         request.method = "POST"
         request.add_header("Api-Key", self.forum_api_key)
         request.add_header("Api-Username", self.forum_user)
