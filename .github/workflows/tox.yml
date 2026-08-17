@@ -79,13 +79,11 @@ on:
         description: Paths to log files to upload as artifacts.
         required: false
         type: string
-# keep permissions at top level because this is a composite workflow
+# Top-level read-only for OpenSSF Scorecard Token-Permissions; writes are job-scoped.
+# If the caller caps GITHUB_TOKEN (e.g. workflow contents: read), the calling job must
+# grant any write scopes this workflow needs — called workflows cannot expand the token.
 permissions:
-  checks: read
   contents: read
-  id-token: write
-  packages: write # some tox environments might produce containers
-  pull-requests: write # allow codenotify to comment on pull-request
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # might be needed by tox commands
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -99,10 +97,13 @@ jobs:
     environment:
       name: ${{ inputs.environment }}
       deployment: false
+    permissions:
+      contents: read
+      pull-requests: write # comment when commits lack verified signatures
     outputs:
       matrix: ${{ steps.generate_matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0 # needed by setuptools-scm
           submodules: true
@@ -125,7 +126,7 @@ jobs:
 
       - name: Determine matrix
         id: generate_matrix
-        uses: ansible/actions/matrix@main
+        uses: ansible/actions/matrix@a4a333cdfd95bfe9dae231fc5c7fca6d3008f2c2 # main
         with:
           min_python: ${{ inputs.min_python }}
           max_python: ${{ inputs.max_python }}
@@ -142,6 +143,10 @@ jobs:
     environment:
       name: ${{ inputs.environment }}
       deployment: false
+    permissions:
+      contents: read
+      id-token: write # codecov OIDC
+      packages: write # some tox environments might produce containers
     needs:
       - prepare
     defaults:
@@ -152,7 +157,7 @@ jobs:
       matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0 # needed by setuptools-scm
           submodules: true
@@ -165,7 +170,7 @@ jobs:
           key: prek-${{ matrix.name }}-${{ hashFiles('.pre-commit-config.yaml') }}
 
       - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@v8.2.0
+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
         with:
           python-version: ${{ matrix.uv_python_version || '3.12' }}
 
@@ -185,13 +190,13 @@ jobs:
 
       - name: Set up Node.js (custom)
         if: ${{ inputs.node-version-file != '' }}
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version-file: ${{ inputs.node-version-file }}
 
       - name: Set up Node.js
         if: ${{ inputs.node-version-file == '' }}
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: "24"
 
@@ -243,7 +248,7 @@ jobs:
 
       - name: Archive logs and coverage data
         if: always()
-        uses: ansible/actions/upload-artifact@main
+        uses: ansible/actions/upload-artifact@a4a333cdfd95bfe9dae231fc5c7fca6d3008f2c2 # main
         with:
           name: logs-${{ matrix.name }}.zip
           include-hidden-files: true
@@ -300,15 +305,18 @@ jobs:
     environment:
       name: ${{ inputs.environment }}
       deployment: false
+    permissions:
+      contents: read
+      checks: read
     needs:
       - test
     runs-on: ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@v8.2.0
+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
 
       - name: Save PR number
         if: github.event_name == 'pull_request'
@@ -337,7 +345,7 @@ jobs:
 
       - name: Decide whether the needed jobs succeeded or failed
         id: alls-green
-        uses: re-actors/alls-green@release/v1
+        uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe # v1.2.2
         with:
           jobs: ${{ toJSON(needs) }}
 

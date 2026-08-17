@@ -13,6 +13,10 @@ on:
     secrets:
       BOT_PAT:
         required: false
+
+permissions:
+  contents: read
+
 jobs:
   ack:
     runs-on: ubuntu-24.04
@@ -27,7 +31,7 @@ jobs:
       pull-requests: write # pr approval and merge
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Dump GitHub context
         run: |
@@ -35,11 +39,11 @@ jobs:
           ${{ toJson(github) }}
           EOF_GITHUB_CONTEXT
 
-      - uses: release-drafter/release-drafter/autolabeler@v7
+      - uses: release-drafter/release-drafter/autolabeler@eada3c96a64734dd381cfbda23511034e328ddb0 # v7
 
       - name: Verify PR label action
         if: github.event_name != 'merge_group'
-        uses: mheap/github-action-required-labels@0ac283b4e65c1fb28ce6079dea5546ceca98ccbe # v5
+        uses: mheap/github-action-required-labels@23e10fde7e062233401931a0eece796cd9bf3177 # v5
         with:
           # minimum (not exactly): Renovate/Dependabot add labels like `dependencies` alongside chore
           mode: minimum
@@ -59,7 +63,7 @@ jobs:
 
       - name: Update release notes if this is already merged
         if: github.event.pull_request.merged == true
-        uses: release-drafter/release-drafter@4d75298e00d9e34c483e5ff8c68d0ea1c1940c1e # v7
+        uses: release-drafter/release-drafter@eada3c96a64734dd381cfbda23511034e328ddb0 # v7
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -72,7 +76,7 @@ jobs:
         # from external orgs (e.g. from ansible-automation-platform org).
         # See https://github.com/actions/add-to-project/issues/389
         continue-on-error: true
-        uses: actions/add-to-project@main
+        uses: actions/add-to-project@5afcf98fcd03f1c2f92c3c83f58ae24323cc57fd # v2.0.0
         with:
           project-url: https://github.com/orgs/ansible/projects/86
           # Do not use secrets.GITHUB_TOKEN here because it does not have

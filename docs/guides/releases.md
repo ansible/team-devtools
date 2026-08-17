@@ -16,19 +16,23 @@ One person within the devtools team will act as **release manager** each month. 
 
 ### Python projects
 
-Stage 1, release below if needed:
+Stage 1, release below if needed (no devtools runtime deps):
 
+- [abbenay](https://github.com/redhat-developer/abbenay/releases)
 - [ansible-compat](https://github.com/ansible/ansible-compat/releases)
-
-Stage 2, release the following projects, in no particular order:
-
 - [ansible-creator](https://github.com/ansible/ansible-creator/releases)
 - [ansible-dev-environment](https://github.com/ansible/ansible-dev-environment/releases)
-- [ansible-lint](https://github.com/ansible/ansible-lint/releases)
-- [ansible-navigator](https://github.com/ansible/ansible-navigator/releases)
-- [molecule](https://github.com/ansible/molecule/releases)
-- [pytest-ansible](https://github.com/ansible/pytest-ansible/releases)
-- [tox-ansible](https://github.com/ansible/tox-ansible/releases)
+
+Stage 2, release below if needed (depend on Stage 1):
+
+- [ansible-lint](https://github.com/ansible/ansible-lint/releases) (depends on ansible-compat)
+- [molecule](https://github.com/ansible/molecule/releases) (depends on ansible-compat)
+- [pytest-ansible](https://github.com/ansible/pytest-ansible/releases) (depends on ansible-compat)
+
+Stage 3, release below if needed (depend on Stage 2):
+
+- [ansible-navigator](https://github.com/ansible/ansible-navigator/releases) (depends on ansible-lint)
+- [tox-ansible](https://github.com/ansible/tox-ansible/releases) (depends on pytest-ansible)
 
 ### Update galaxy-importer before downstream release
 
@@ -59,140 +63,7 @@ Whenever the upstream `ansible-devspaces` container is released, the image SHA i
 
 ## Schedule
 
-Releases should be made on the first Wednesday of the month, but can be made the following Wednesday if necessary. This document should be updated with a pull request after the releases are complete.
-
-### 2025-12
-
-Release manager: @cidrblock
-
-Releases:
-
-- ansible-compat - [v25.12.0](https://github.com/ansible/ansible-compat/releases/tag/v25.12.0)
-- ansible-creator - [v25.12.0](https://github.com/ansible/ansible-creator/releases/tag/v25.12.0)
-- ansible-dev-environment - [v25.12.2](https://github.com/ansible/ansible-dev-environment/releases/tag/v25.12.2)
-- ansible-dev-tools - [v25.12.0](https://github.com/ansible/ansible-dev-tools/releases/tag/v25.12.0)
-- ansible-lint - [v25.12.0](https://github.com/ansible/ansible-lint/releases/tag/v25.12.0)
-- ansible-navigator - [v25.12.0](https://github.com/ansible/ansible-navigator/releases/tag/v25.12.0)
-- molecule - [v25.12.0](https://github.com/ansible/molecule/releases/tag/v25.12.0)
-- pytest-ansible - [v25.12.0](https://github.com/ansible/pytest-ansible/releases/tag/v25.12.0)
-- tox-ansible - [v25.12.0](https://github.com/ansible/tox-ansible/releases/tag/v25.12.0)
-
-### 2025-05
-
-Release manager: @shatakshiiii
-
-Releases:
-
-- ansible-compat - [v25.5.0](https://github.com/ansible/ansible-compat/releases/tag/v25.5.0)
-- ansible-dev-environment - [v25.5.0](https://github.com/ansible/ansible-dev-environment/releases/tag/v25.5.0)
-- ansible-lint - [v25.5.0](https://github.com/ansible/ansible-lint/releases/tag/v25.5.0)
-- ansible-creator - [v25.5.0](https://github.com/ansible/ansible-creator/releases/tag/v25.5.0)
-- molecule - [v25.5.0](https://github.com/ansible/molecule/releases/tag/v25.5.0)
-- pytest-ansible - [v25.5.0](https://github.com/ansible/pytest-ansible/releases/tag/v25.5.0)
-- ansible-navigator - [v25.5.0](https://github.com/ansible/ansible-navigator/releases/tag/v25.5.0)
-- tox-ansible - [v25.5.0](https://github.com/ansible/tox-ansible/releases/tag/v25.5.0)
-- ansible-dev-tools - [v25.5.2](https://github.com/ansible/ansible-dev-tools/releases/tag/v25.5.2)
-
-### 2025-04
-
-Release manager: @abhikdps
-
-Releases:
-
-- ansible-creator - [v25.4.1](https://github.com/ansible/ansible-creator/releases/tag/v25.4.1)
-- ansible-dev-environment - [v25.4.0](https://github.com/ansible/ansible-dev-environment/releases/tag/v25.4.0)
-- ansible-dev-tools - [v25.4.1](https://github.com/ansible/ansible-dev-tools/releases/tag/v25.4.1)
-- ansible-lint - [v25.4.0](https://github.com/ansible/ansible-lint/releases/tag/v25.4.0)
-- ansible-navigator - [v25.4.1](https://github.com/ansible/ansible-navigator/releases/tag/v25.4.1)
-- molecule [v25.4.0](https://github.com/ansible/molecule/releases/tag/v25.4.0)
-- pytest-ansible - [v25.4.1](https://github.com/ansible/pytest-ansible/releases/tag/v25.4.1)
-- tox-ansible [v25.4.0](https://github.com/ansible/tox-ansible/releases/tag/v25.4.0)
-
-### 2025-03
-
-Release manager: @alisonlhart
-
-Completed date:
-
-Releases:
-
-- ansible-creator [v25.3.1](https://github.com/ansible/ansible-creator/releases/tag/v25.3.1)
-
-### 2025-01
-
-Release manager: @audgirka
-
-Completed date:
-
-Releases:
-
-- ansible-creator [v25.0.0](https://github.com/ansible/ansible-creator/releases/tag/v25.0.0)
-- ansible-dev-environment [25.1.0](https://github.com/ansible/ansible-dev-environment/releases/tag/v25.1.0)
-- ansible-dev-tools [v25.1.0](https://github.com/ansible/ansible-dev-tools/releases/tag/v25.1.0)
-- ansible-lint [v25.1.0](https://github.com/ansible/ansible-lint/releases/tag/v25.1.0)
-- ansible-navigator [v25.1.0](https://github.com/ansible/ansible-navigator/releases/tag/v25.1.0)
-- molecule [25.1.0](https://github.com/ansible/molecule/releases/tag/v25.1.0)
-- pytest-ansible [v25.1.0](https://github.com/ansible/pytest-ansible/releases/tag/v25.1.0)
-- tox-ansible [v25.1.0](https://github.com/ansible/tox-ansible/releases/tag/v25.1.0)
-
-### 2024-12
-
-Release manager: @shatakshiiii
-
-Completed date: 2024-12-17
-
-Notes: All projects are released
-
-### 2024-11
-
-Release manager:
-
-Completed date:
-
-Notes:
-
-### 2024-10
-
-Release manager: @audgirka
-
-Completed date:
-
-Notes:
-
-- ansible-compat [v24.10.0](https://github.com/ansible/ansible-compat/releases/tag/v24.10.0)
-- ansible-lint [v24.10.0](https://github.com/ansible/ansible-lint/releases/tag/v24.10.0)
-- tox-ansible [v24.10.0](https://github.com/ansible/tox-ansible/releases/tag/v24.10.0)
-- ansible-navigator [v24.10.0](https://github.com/ansible/ansible-navigator/releases/tag/v24.10.0)
-- ansible-creator [v24.11.0](https://github.com/ansible/ansible-creator/releases/tag/v24.11.0)
-- ansible-dev-tools [v24.11.0](https://github.com/ansible/ansible-dev-tools/releases/tag/v24.11.0)
-
-### 2024-09
-
-Release manager: @shatakshiiii
-
-Completed date: 2024-09-18
-
-Notes:
-
-### 2024-08
-
-Release manager: @Qalthos
-
-Completed date:
-
-Notes:
-
-- ansible-navigator [24.8.0](https://github.com/ansible/ansible-navigator/releases/tag/v24.8.0) released 2024-08-13
-- pytest-ansible [24.8.0](https://github.com/ansible/pytest-ansible/releases/tag/v24.8.0) released 2024-08-16
-- tox-ansible [24.8.0](https://github.com/ansible/tox-ansible/releases/tag/v24.8.0) released 2024-08-16
-- molecule [24.8.0](https://github.com/ansible/molecule/releases/tag/v24.8.0) released 2024-08-16
-- ansible-compat [24.8.0](https://github.com/ansible/ansible-compat/releases/tag/v24.8.0) released 2024-08-19
-
-### 2024-07
-
-Release manager: @alisonlhart
-
-Completed date: 2024-07-18
+Preferred release days are Monday, Tuesday, or Wednesday. No releases on Friday.
 
 [#ansible-partners]: https://redhat.enterprise.slack.com/archives/CE3UL7F8V
 [#ansible-galaxy-internal]: https://redhat.enterprise.slack.com/archives/CBPKRHHG9

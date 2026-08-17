@@ -98,8 +98,11 @@ graph TB;
 
   ansible-backstage-plugins:::tsclass;
   vscode-ansible:::tsclass == external ==> vscode-yaml;
+  vscode-ansible:::tsclass == external ==> abbenay;
   vscode-yaml:::tsclass;
+  abbenay:::tsclass;
 
+ click abbenay href "https://github.com/redhat-developer/abbenay"
  click ansible-backstage-plugins "https://github.com/ansible/ansible-backstage-plugins"
  click ansible-dev-environment "https://github.com/ansible/ansible-dev-environment"
  click community.molecule "https://github.com/ansible-collections/community.molecule"
