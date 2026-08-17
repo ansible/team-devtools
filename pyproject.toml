@@ -84,15 +84,7 @@ relative_files = true  # needed by sonarcloud
 source = ["src"]
 
 [tool.mypy]
-exclude = [
-  "build/",
-  ".tox/",
-  ".cache/",
-  ".pytest_cache/",
-  ".ruff_cache/",
-  ".mypy_cache/",
-  ".venv"
-]
+exclude = ["build/", ".tox/", ".cache/", ".pytest_cache/", ".ruff_cache/", ".mypy_cache/", ".venv"]
 files = ["src", "test"]
 strict = true
 
