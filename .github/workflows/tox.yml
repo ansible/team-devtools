@@ -126,7 +126,7 @@ jobs:
 
       - name: Determine matrix
         id: generate_matrix
-        uses: ansible/actions/matrix@1c115996659fea12d8bae45be5dbed05d32672b1 # main
+        uses: ansible/actions/matrix@c9f5fb837e8187ca06eb84f36f076286d51d2bd8 # main
         with:
           min_python: ${{ inputs.min_python }}
           max_python: ${{ inputs.max_python }}
@@ -170,7 +170,7 @@ jobs:
           key: prek-${{ matrix.name }}-${{ hashFiles('.pre-commit-config.yaml') }}
 
       - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           python-version: ${{ matrix.uv_python_version || '3.12' }}
 
@@ -248,7 +248,7 @@ jobs:
 
       - name: Archive logs and coverage data
         if: always()
-        uses: ansible/actions/upload-artifact@1c115996659fea12d8bae45be5dbed05d32672b1 # main
+        uses: ansible/actions/upload-artifact@c9f5fb837e8187ca06eb84f36f076286d51d2bd8 # main
         with:
           name: logs-${{ matrix.name }}.zip
           include-hidden-files: true
@@ -316,7 +316,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
 
       - name: Save PR number
         if: github.event_name == 'pull_request'
@@ -345,7 +345,7 @@ jobs:
 
       - name: Decide whether the needed jobs succeeded or failed
         id: alls-green
-        uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe # v1.2.2
+        uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # v1.3.0
         with:
           jobs: ${{ toJSON(needs) }}
 
