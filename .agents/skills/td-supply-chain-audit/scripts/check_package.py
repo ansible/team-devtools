@@ -42,7 +42,7 @@ def get_pypi_release_dates(package_name: str) -> dict[str, str]:
     """
     try:
         url = f"https://pypi.org/pypi/{package_name}/json"
-        req = urllib.request.Request(  # noqa: S310
+        req = urllib.request.Request(
             url,
             headers={"User-Agent": "supply-chain-audit/1.0"},
         )
@@ -74,7 +74,7 @@ def get_npm_release_dates(package_name: str) -> dict[str, str]:
     """
     try:
         url = f"https://registry.npmjs.org/{package_name}"
-        req = urllib.request.Request(  # noqa: S310
+        req = urllib.request.Request(
             url,
             headers={"User-Agent": "supply-chain-audit/1.0"},
         )

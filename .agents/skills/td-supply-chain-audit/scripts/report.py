@@ -117,11 +117,11 @@ def build_risk_donut_svg(findings: list[dict]) -> str:
 
     parts.append(
         f'<text x="100" y="96" text-anchor="middle" font-size="28" font-weight="700" '
-        f'fill="var(--text, #151a21)" font-family="sans-serif">{total}</text>'
+        f'fill="var(--text, #151a21)" font-family="sans-serif">{total}</text>',
     )
     parts.append(
         '<text x="100" y="116" text-anchor="middle" font-size="11" '
-        'fill="var(--text-muted, #5a6573)" font-family="sans-serif">findings</text>'
+        'fill="var(--text-muted, #5a6573)" font-family="sans-serif">findings</text>',
     )
     parts.append("</svg>")
     return "\n".join(parts)
@@ -171,18 +171,18 @@ def build_category_bar_chart_svg(findings: list[dict]) -> str:
         parts.append(
             f'<text x="{label_w - 8}" y="{y + row_h * 0.65}" text-anchor="end" '
             f'font-size="11" fill="var(--text-muted, #5a6573)" font-family="sans-serif">'
-            f"{esc(label)}</text>"
+            f"{esc(label)}</text>",
         )
         parts.append(
             f'<rect x="{label_w}" y="{y + 4}" width="{bar_w:.1f}" height="{row_h - 10}" '
             f'rx="3" fill="{color}" opacity="0.8">'
             f"<title>{esc(CATEGORY_LABELS.get(cat, cat))}: {count}</title>"
-            f"</rect>"
+            f"</rect>",
         )
         parts.append(
             f'<text x="{label_w + bar_w + 6}" y="{y + row_h * 0.65}" '
             f'font-size="11" font-weight="600" fill="var(--text, #151a21)" font-family="sans-serif">'
-            f"{count}</text>"
+            f"{count}</text>",
         )
 
     parts.append("</svg>")
@@ -1628,8 +1628,8 @@ def _build_history_section(history_dir: Path | None) -> str:
             f"<tr>"
             f'<td><a href="{esc(html_file)}">{esc(date_str)}</a></td>'
             f"<td>{total}</td>"
-            f"<td>{badges or '<span class=\"badge badge-low\">Clean</span>'}</td>"
-            f"</tr>"
+            f"<td>{badges or '<span class="badge badge-low">Clean</span>'}</td>"
+            f"</tr>",
         )
 
     return (
