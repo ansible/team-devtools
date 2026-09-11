@@ -1338,7 +1338,16 @@ def collect_branch_protection(repo: str) -> dict:
     endpoint = f"repos/{repo}/branches/main/protection"
     data = gh_api(endpoint)
     if data and isinstance(data, dict) and "message" not in data:
-        return _legacy_branch_protection_result(data)
+        result = _legacy_branch_protection_result(data)
+        # Legacy API often returns empty required_status_checks.checks when the
+        # repo moved checks to rulesets (e.g. ansible/actions). Merge rulesets
+        # so audits do not false-positive "no required status checks".
+        if not result["required_checks"]:
+            ruleset_checks = _collect_ruleset_required_checks(repo)
+            if ruleset_checks:
+                result["required_checks"] = ruleset_checks
+                result["source"] = "branch_protection+rulesets"
+        return result
 
     required_checks = _collect_ruleset_required_checks(repo)
     if not required_checks:
