@@ -164,7 +164,10 @@ scenarios for public functions: what happens with an empty-but-not-falsy
 value, a field combination after partial deletion, a response that
 satisfies the HTTP status check but lacks expected fields? If the traced
 path fails silently, sends a vacuous request, or produces a return value
-that violates the declared type, the reviewer flags it.
+that violates the declared type, the reviewer flags it. The same lens
+applies to **test helpers**: probes that silently return sentinel values
+(e.g. port `0`) instead of failing hide setup errors and produce
+confusing flakes — fail-fast with an error handler is required.
 
 **Inherited contract completeness.** When the diff extends a class or
 implements a Protocol, the reviewer checks that the subclass honors the
