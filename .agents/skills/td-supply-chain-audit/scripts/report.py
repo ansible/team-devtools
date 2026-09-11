@@ -188,6 +188,7 @@ def build_category_bar_chart_svg(findings: list[dict]) -> str:
     parts.append("</svg>")
     return "\n".join(parts)
 
+
 CATEGORY_LABELS = {
     "unsigned_commit": "Unsigned Commits",
     "github_web_signed": "GitHub-Web-Signed Commits (non-merge)",
@@ -1276,9 +1277,7 @@ def render_recommendations_html(recommendations: list[dict[str, str]]) -> str:
     return (
         '<details class="section" id="recommendations" open>'
         "<summary><h2>Security Recommendations</h2></summary>"
-        "<p>Prioritized actions based on this audit's findings, ordered by impact.</p>"
-        + "".join(items)
-        + "</details>"
+        "<p>Prioritized actions based on this audit's findings, ordered by impact.</p>" + "".join(items) + "</details>"
     )
 
 
@@ -1522,9 +1521,7 @@ def _build_replacements(
         ("anomalies", "Anomalies"),
         ("methodology", "Methodology"),
     ]
-    nav_links = " ".join(
-        f'<a href="#{sid}">{label}</a>' for sid, label in nav_sections
-    )
+    nav_links = " ".join(f'<a href="#{sid}">{label}</a>' for sid, label in nav_sections)
 
     back_link = '<a href="index.html" class="back-link">&larr; Dashboard</a>'
     theme_toggle = '<button class="theme-toggle" onclick="toggleTheme()"></button>'
@@ -1636,7 +1633,7 @@ def _build_history_section(history_dir: Path | None) -> str:
     return (
         '<details class="section" id="history">'
         "<summary><h2>Previous Audits</h2></summary>"
-        '<table><thead><tr>'
+        "<table><thead><tr>"
         "<th>Audit Date</th><th>Findings</th><th>Severity</th>"
         "</tr></thead>"
         f"<tbody>{''.join(rows)}</tbody>"
