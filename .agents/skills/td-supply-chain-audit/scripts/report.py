@@ -157,8 +157,8 @@ def build_category_bar_chart_svg(findings: list[dict]) -> str:
         count = len(cat_findings)
         bar_w = (count / max_count) * bar_area if max_count > 0 else 0
         label = CATEGORY_LABELS.get(cat, cat)
-        if len(label) > 28:
-            label = label[:26] + "…"
+        if len(label) > row_h:
+            label = label[: row_h - 2] + "…"
 
         max_risk = "info"
         for f in cat_findings:
@@ -1624,11 +1624,12 @@ def _build_history_section(history_dir: Path | None) -> str:
             badges += f' <span class="badge badge-high">{high}H</span>'
         if med:
             badges += f' <span class="badge badge-medium">{med}M</span>'
+        clean_badge = '<span class="badge badge-low">Clean</span>'
         rows.append(
             f"<tr>"
             f'<td><a href="{esc(html_file)}">{esc(date_str)}</a></td>'
             f"<td>{total}</td>"
-            f"<td>{badges or '<span class="badge badge-low">Clean</span>'}</td>"
+            f"<td>{badges or clean_badge}</td>"
             f"</tr>",
         )
 
