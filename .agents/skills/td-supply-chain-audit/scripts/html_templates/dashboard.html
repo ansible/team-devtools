@@ -3,443 +3,602 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Supply Chain Audit Report</title>
+<title>Supply Chain Audit — Guardian</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<script>
+  (function(){var t=localStorage.getItem('guardian-theme');if(t)document.documentElement.setAttribute('data-theme',t);})();
+</script>
 <style>
 :root {
-  --bg: #0d1117;
-  --surface: #161b22;
-  --surface-2: #21262d;
-  --border: #30363d;
-  --text: #c9d1d9;
-  --text-muted: #8b949e;
-  --accent: #58a6ff;
-  --critical: #f85149;
-  --high: #db6d28;
+  --bg: #eef2f6;
+  --bg-wash: #e4ebf2;
+  --surface: #f8fafc;
+  --surface-raised: #ffffff;
+  --surface-hover: #f1f5f9;
+  --border: #d5dde8;
+  --border-subtle: #e8eef5;
+  --text: #151a21;
+  --text-muted: #5a6573;
+  --text-dim: #8b97a8;
+  --accent: #C9190B;
+  --accent-hover: #a31509;
+  --accent-bg: rgba(201, 25, 11, 0.08);
+  --ok: #0d9488;
+  --ok-bg: rgba(13, 148, 136, 0.1);
+  --ok-text: #0f766e;
+  --warn: #d97706;
+  --warn-bg: rgba(217, 119, 6, 0.1);
+  --warn-text: #b45309;
+  --error: #C9190B;
+  --error-bg: rgba(201, 25, 11, 0.1);
+  --error-text: #a31509;
+  --neutral: #c5ced9;
+  --neutral-text: #5a6573;
+  --link: #0f766e;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow-sm: 0 1px 2px rgba(21, 26, 33, 0.04);
+  --shadow-md: 0 8px 24px rgba(21, 26, 33, 0.08);
+  --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --critical: var(--error);
+  --critical-bg: var(--error-bg);
+  --high: var(--warn);
+  --high-bg: var(--warn-bg);
   --medium: #d29922;
-  --low: #3fb950;
-  --info: #8b949e;
-  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-  --mono: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace;
+  --medium-bg: rgba(210, 153, 34, 0.1);
+  --low: var(--ok);
+  --low-bg: var(--ok-bg);
+  --info: var(--text-muted);
 }
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
+
 body {
-  font-family: var(--font);
-  background: var(--bg);
-  color: var(--text);
-  line-height: 1.6;
-  padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
+  font-family: var(--font-body);
+  background:
+    radial-gradient(1200px 480px at 8% -10%, rgba(13, 148, 136, 0.07), transparent 55%),
+    radial-gradient(900px 420px at 100% 0%, rgba(201, 25, 11, 0.05), transparent 50%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg-wash) 100%);
+  color: var(--text); line-height: 1.55;
+  padding: 28px 32px 48px; max-width: 1400px; margin: 0 auto;
+  min-height: 100vh; -webkit-font-smoothing: antialiased;
 }
-h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
-h2 { font-size: 1.3rem; margin: 2rem 0 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
-h3 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; }
-p { margin: 0.5rem 0; }
-.header {
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--border);
+
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* Header */
+.page-header {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  margin-bottom: 12px; flex-wrap: wrap;
 }
-.header-meta { color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem; }
+.page-header h1 {
+  font-family: var(--font-display); font-size: 1.6rem; font-weight: 700;
+  letter-spacing: -0.03em; color: var(--text);
+}
+.header-meta {
+  color: var(--text-muted); font-size: 0.82rem; font-family: var(--font-mono);
+  margin-top: 4px;
+}
+.header-actions {
+  display: flex; gap: 8px; align-items: center; flex-shrink: 0;
+}
+.back-link {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.82rem; font-weight: 500; color: var(--link);
+  padding: 6px 12px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--surface-raised);
+  text-decoration: none;
+}
+.back-link:hover { background: var(--surface-hover); text-decoration: none; }
+
+/* Theme toggle */
+.theme-toggle {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px;
+  border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-raised);
+  color: var(--text-muted); font-size: 0.78rem; font-weight: 500;
+  cursor: pointer; transition: all var(--transition);
+}
+.theme-toggle:hover { background: var(--surface-hover); color: var(--text); }
+.theme-toggle svg { width: 14px; height: 14px; }
+
+/* Sticky nav */
+.nav-bar {
+  display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+  position: sticky; top: 0; z-index: 100;
+  padding: 8px 12px; margin-bottom: 18px;
+  border-radius: var(--radius); border: 1px solid var(--border-subtle);
+  background: rgba(248, 250, 252, 0.92); backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-sm);
+}
+.nav-bar a {
+  font-size: 0.75rem; font-weight: 500; font-family: var(--font-mono);
+  padding: 5px 10px; border-radius: var(--radius-sm);
+  color: var(--text-muted); text-decoration: none;
+  transition: all var(--transition);
+}
+.nav-bar a:hover { background: var(--accent-bg); color: var(--accent); text-decoration: none; }
+
+/* Verdict */
 .verdict {
-  margin: 1.5rem 0;
-  padding: 1.2rem 1.5rem;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 500;
+  margin: 16px 0; padding: 14px 18px; border-radius: var(--radius);
+  font-size: 0.95rem; font-weight: 500;
 }
 .verdict-clean {
-  background: rgba(63, 185, 80, 0.1);
-  border: 1px solid var(--low);
-  color: var(--low);
+  background: var(--ok-bg); border: 1px solid var(--ok);
+  color: var(--ok-text);
 }
 .verdict-issues {
-  background: rgba(248, 81, 73, 0.1);
-  border: 1px solid var(--critical);
-  color: var(--critical);
+  background: var(--error-bg); border: 1px solid var(--error);
+  color: var(--error-text);
 }
-.summary-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 1rem;
-  margin: 1rem 0;
+
+/* Cards grid */
+.cards {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px; margin: 16px 0;
 }
-.summary-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 1.2rem;
+.card {
+  background: var(--surface-raised); border-radius: var(--radius);
+  border: 1px solid var(--border); border-left: 3px solid var(--neutral);
+  padding: 14px 16px; box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition);
   text-align: center;
 }
-.summary-card .number {
-  font-size: 2rem;
-  font-weight: 700;
-  display: block;
+.card:hover { box-shadow: var(--shadow-md); }
+.card.ok { border-left-color: var(--ok); }
+.card.error { border-left-color: var(--error); }
+.card.warn { border-left-color: var(--warn); }
+.card-number {
+  font-size: 1.8rem; font-weight: 700; font-family: var(--font-display);
+  display: block; letter-spacing: -0.02em;
 }
-.summary-card .label { color: var(--text-muted); font-size: 0.8rem; }
-.risk-critical .number { color: var(--critical); }
-.risk-high .number { color: var(--high); }
-.risk-medium .number { color: var(--medium); }
-.risk-low .number { color: var(--low); }
-.risk-info .number { color: var(--info); }
-
-.methodology {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin: 1rem 0;
-}
-.methodology ul {
-  list-style: none;
-  padding: 0;
-}
-.methodology li {
-  padding: 0.3rem 0;
-  padding-left: 1.5rem;
-  position: relative;
-}
-.methodology li::before {
-  content: "✓";
-  position: absolute;
-  left: 0;
-  color: var(--low);
-  font-weight: bold;
+.card-number.critical { color: var(--error-text); }
+.card-number.high { color: var(--warn-text); }
+.card-number.medium { color: var(--medium); }
+.card-number.ok { color: var(--ok-text); }
+.card-label {
+  color: var(--text-muted); font-size: 0.75rem; font-family: var(--font-mono);
+  text-transform: uppercase; letter-spacing: 0.04em;
 }
 
-.repo-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 0.75rem;
-  margin: 1rem 0;
+/* Charts */
+.charts-row {
+  display: grid; grid-template-columns: 240px 1fr; gap: 20px;
+  margin: 20px 0; align-items: start;
 }
-.repo-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.8rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+.chart-container {
+  background: var(--surface-raised); border-radius: var(--radius);
+  border: 1px solid var(--border); padding: 18px;
+  box-shadow: var(--shadow-sm);
 }
-.repo-card .light {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
+.chart-container h3 {
+  font-family: var(--font-display); font-size: 0.9rem; font-weight: 600;
+  margin-bottom: 12px; color: var(--text);
+}
+
+/* Section (collapsible) */
+.section {
+  background: var(--surface-raised); border-radius: var(--radius);
+  border: 1px solid var(--border); margin-bottom: 12px;
+  box-shadow: var(--shadow-sm); scroll-margin-top: 60px;
+}
+.section summary {
+  display: flex; align-items: center; gap: 8px;
+  padding: 14px 18px; cursor: pointer;
+  list-style: none; user-select: none;
+  border-radius: var(--radius);
+}
+.section summary::-webkit-details-marker { display: none; }
+.section summary::before {
+  content: ''; width: 6px; height: 6px;
+  border-right: 2px solid var(--text-muted); border-bottom: 2px solid var(--text-muted);
+  transform: rotate(-45deg); transition: transform var(--transition);
   flex-shrink: 0;
 }
-.light-green { background: var(--low); }
-.light-yellow { background: var(--medium); }
-.light-red { background: var(--critical); }
-.repo-card .repo-name { font-size: 0.85rem; font-weight: 500; }
-.repo-card .repo-count { color: var(--text-muted); font-size: 0.75rem; margin-left: auto; }
+.section[open] summary::before { transform: rotate(45deg); }
+.section summary:hover { background: var(--surface-hover); }
+.section summary h2 {
+  display: inline; font-family: var(--font-display); font-size: 1.05rem; font-weight: 600;
+  letter-spacing: -0.02em; vertical-align: middle;
+}
+.section > :not(summary) { padding: 0 18px 18px; }
 
+/* Badge */
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 999px;
+  font-size: 0.7rem; font-weight: 600; font-family: var(--font-mono);
+  margin-left: 6px; vertical-align: middle;
+}
+.badge-critical { background: var(--critical-bg); color: var(--critical); }
+.badge-high { background: var(--high-bg); color: var(--high); }
+.badge-medium { background: var(--medium-bg); color: var(--medium); }
+.badge-low { background: var(--low-bg); color: var(--low); }
+.badge-info { background: rgba(139, 148, 158, 0.12); color: var(--info); }
+.badge-accent { background: var(--accent-bg); color: var(--accent); }
+
+/* Status pill */
+.status {
+  display: inline-block; padding: 2px 8px; border-radius: 4px;
+  font-size: 0.68rem; font-weight: 600; font-family: var(--font-mono);
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.status.ok { background: var(--ok-bg); color: var(--ok-text); }
+.status.error { background: var(--error-bg); color: var(--error-text); }
+.status.warn { background: var(--warn-bg); color: var(--warn-text); }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-bottom: 12px; }
+thead th {
+  text-align: left; padding: 10px 12px; background: var(--surface);
+  border-bottom: 1px solid var(--border); font-family: var(--font-mono);
+  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-muted); font-weight: 500; cursor: pointer; user-select: none;
+  position: sticky; top: 0;
+}
+thead th:hover { color: var(--accent); }
+th .sort-arrow { margin-left: 0.3rem; opacity: 0.5; }
+td { padding: 8px 12px; border-bottom: 1px solid var(--border-subtle); }
+tbody tr:hover { background: var(--surface-hover); }
+td code {
+  font-family: var(--font-mono); font-size: 0.78rem;
+  background: var(--surface); padding: 1px 5px; border-radius: 3px;
+}
+
+/* Repo cards */
+.repo-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px; margin: 12px 0;
+}
+.repo-card {
+  background: var(--surface-raised); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 10px 14px;
+  display: flex; align-items: center; gap: 8px;
+  border-left: 3px solid var(--neutral);
+}
+.repo-card.repo-red { border-left-color: var(--error); }
+.repo-card.repo-yellow { border-left-color: var(--warn); }
+.repo-card.repo-green { border-left-color: var(--ok); }
+.repo-card .repo-name { font-size: 0.82rem; font-weight: 500; }
+.repo-card .repo-count { color: var(--text-muted); font-size: 0.72rem; margin-left: auto; font-family: var(--font-mono); }
+
+/* Timeline */
 .timeline-container {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin: 1rem 0;
+  background: var(--surface-raised); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px; margin: 12px 0;
   overflow-x: auto;
 }
-.timeline-description {
-  color: var(--text-muted);
-  font-size: 0.85rem;
-  margin-bottom: 1rem;
-}
+.timeline-description { color: var(--text-muted); font-size: 0.82rem; margin-bottom: 12px; }
 .timeline-legend {
-  display: flex;
-  gap: 1.5rem;
-  margin-top: 0.75rem;
-  font-size: 0.8rem;
-  color: var(--text-muted);
+  display: flex; gap: 16px; margin-top: 10px;
+  font-size: 0.78rem; color: var(--text-muted);
 }
-.timeline-legend span {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-.legend-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  display: inline-block;
-}
+.timeline-legend span { display: flex; align-items: center; gap: 5px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 .timeline-svg { width: 100%; min-width: 800px; }
 
+/* Methodology */
+.methodology {
+  background: var(--surface-raised); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px; margin: 12px 0;
+}
+.methodology ul { list-style: none; padding: 0; }
+.methodology li { padding: 5px 0 5px 24px; position: relative; font-size: 0.85rem; }
+.methodology li::before {
+  content: "✓"; position: absolute; left: 0;
+  color: var(--ok-text); font-weight: bold;
+}
+
+/* Controls */
 .controls {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  margin: 1rem 0;
-  flex-wrap: wrap;
+  display: flex; gap: 10px; align-items: center; margin: 12px 0; flex-wrap: wrap;
 }
 .controls input[type="text"] {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 0.5rem 0.75rem;
-  color: var(--text);
-  font-size: 0.85rem;
-  width: 250px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 7px 12px;
+  color: var(--text); font-size: 0.82rem; width: 260px;
+  font-family: var(--font-body);
 }
-.controls input[type="text"]::placeholder { color: var(--text-muted); }
+.controls input[type="text"]::placeholder { color: var(--text-dim); }
 .filter-btn {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 0.4rem 0.8rem;
-  color: var(--text);
-  cursor: pointer;
-  font-size: 0.8rem;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 5px 10px;
+  color: var(--text-muted); cursor: pointer; font-size: 0.78rem;
+  font-family: var(--font-mono);
 }
 .filter-btn:hover { border-color: var(--accent); }
-.filter-btn.active { border-color: var(--accent); background: rgba(88, 166, 255, 0.1); }
+.filter-btn.active { border-color: var(--accent); background: var(--accent-bg); }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
-  margin: 1rem 0;
-}
-th, td {
-  padding: 0.6rem 0.8rem;
-  text-align: left;
-  border-bottom: 1px solid var(--border);
-}
-th {
-  background: var(--surface);
-  color: var(--text-muted);
-  font-weight: 600;
-  cursor: pointer;
-  user-select: none;
-  position: sticky;
-  top: 0;
-}
-th:hover { color: var(--accent); }
-th .sort-arrow { margin-left: 0.3rem; opacity: 0.5; }
-tr:hover { background: var(--surface); }
-td code {
-  font-family: var(--mono);
-  font-size: 0.8rem;
-  background: var(--surface-2);
-  padding: 0.1rem 0.3rem;
-  border-radius: 3px;
-}
-.badge {
-  display: inline-block;
-  padding: 0.15rem 0.5rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-.badge-critical { background: rgba(248, 81, 73, 0.2); color: var(--critical); }
-.badge-high { background: rgba(219, 109, 40, 0.2); color: var(--high); }
-.text-muted { color: var(--text-muted); font-size: 0.85em; }
-.badge-medium { background: rgba(210, 153, 34, 0.2); color: var(--medium); }
-.badge-low { background: rgba(63, 185, 80, 0.2); color: var(--low); }
-.badge-info { background: rgba(139, 148, 158, 0.2); color: var(--info); }
-
+/* Collapsible (findings accordion) */
 .collapsible {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  margin: 0.75rem 0;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); margin: 8px 0;
 }
 .collapsible-header {
-  padding: 0.8rem 1rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 500;
+  padding: 10px 14px; cursor: pointer;
+  display: flex; align-items: center; gap: 8px; font-weight: 500;
+  border-radius: var(--radius-sm);
 }
-.collapsible-header:hover { background: var(--surface-2); }
-.collapsible-header .arrow { transition: transform 0.2s; }
+.collapsible-header:hover { background: var(--surface-hover); }
+.collapsible-header .arrow { transition: transform var(--transition); font-size: 0.7rem; }
 .collapsible-header.open .arrow { transform: rotate(90deg); }
-.collapsible-body { padding: 0 1rem 1rem; display: none; }
+.collapsible-body { padding: 0 14px 14px; display: none; }
 .collapsible-body.open { display: block; }
 
-.package-focus {
-  background: var(--surface);
-  border: 2px solid var(--accent);
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin: 1rem 0;
-}
-.package-focus h3 { color: var(--accent); margin-top: 0; }
-
-.no-data { color: var(--text-muted); font-style: italic; padding: 2rem; text-align: center; }
-.finding-item {
-  padding: 0.5rem 0;
-  border-bottom: 1px solid var(--border);
-}
+/* Findings */
+.finding-item { padding: 8px 0; border-bottom: 1px solid var(--border-subtle); }
 .finding-item-hidden { display: none; }
 .show-more-btn {
-  display: block;
-  width: 100%;
-  margin-top: 0.75rem;
-  padding: 0.55rem 1rem;
-  background: var(--surface-2);
-  color: var(--accent);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.9rem;
-  font-weight: 500;
+  display: block; width: 100%; margin-top: 8px;
+  padding: 8px 14px; background: var(--surface);
+  color: var(--accent); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); cursor: pointer;
+  font: inherit; font-size: 0.85rem; font-weight: 500;
 }
-.show-more-btn:hover { background: var(--border); }
+.show-more-btn:hover { background: var(--surface-hover); }
+
+/* Package focus */
+.package-focus {
+  background: var(--surface-raised); border: 2px solid var(--accent);
+  border-radius: var(--radius); padding: 18px; margin: 12px 0;
+}
+.package-focus h3 { color: var(--accent); margin-top: 0; font-family: var(--font-display); }
+
+/* Footer */
 .footer {
-  margin-top: 3rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border);
-  color: var(--text-muted);
-  font-size: 0.8rem;
-  text-align: center;
+  text-align: center; padding: 24px 0 16px; margin-top: 28px;
+  border-top: 1px solid var(--border); color: var(--text-dim); font-size: 0.78rem;
+  font-family: var(--font-mono);
 }
-a { color: var(--accent); text-decoration: none; }
-a:hover { text-decoration: underline; }
+
+.no-data { color: var(--text-muted); font-style: italic; padding: 24px; text-align: center; }
+.text-muted { color: var(--text-muted); font-size: 0.82em; }
+
+/* Summary grid (legacy compat for findings summary) */
+.summary-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px; margin: 12px 0;
+}
+.summary-card {
+  background: var(--surface-raised); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 14px; text-align: center;
+}
+.summary-card .number { font-size: 1.8rem; font-weight: 700; font-family: var(--font-display); display: block; }
+.summary-card .label { color: var(--text-muted); font-size: 0.75rem; font-family: var(--font-mono); text-transform: uppercase; }
+.risk-critical .number { color: var(--error-text); }
+.risk-high .number { color: var(--warn-text); }
+.risk-medium .number { color: var(--medium); }
+.risk-low .number { color: var(--ok-text); }
+.risk-info .number { color: var(--info); }
+
+/* Dark theme */
+[data-theme="dark"] {
+  --bg: #12161c;
+  --bg-wash: #0e1217;
+  --surface: #1a212b;
+  --surface-raised: #1e2733;
+  --surface-hover: #263041;
+  --border: #2c3644;
+  --border-subtle: #243040;
+  --text: #e8edf4;
+  --text-muted: #9aa8b8;
+  --text-dim: #6f7f92;
+  --accent-bg: rgba(201, 25, 11, 0.18);
+  --ok-bg: rgba(13, 148, 136, 0.16);
+  --ok-text: #5eead4;
+  --warn-bg: rgba(217, 119, 6, 0.16);
+  --warn-text: #fbbf24;
+  --error-bg: rgba(201, 25, 11, 0.18);
+  --error-text: #f87171;
+  --neutral: #2c3644;
+  --neutral-text: #9aa8b8;
+  --link: #5eead4;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md: 0 8px 24px rgba(0,0,0,0.4);
+  --medium: #fbbf24;
+  --medium-bg: rgba(251, 191, 36, 0.16);
+  --critical-bg: rgba(248, 113, 113, 0.18);
+  --high-bg: rgba(251, 191, 36, 0.16);
+  --low-bg: rgba(94, 234, 212, 0.16);
+}
+[data-theme="dark"] thead th { background: #1a212b; }
+[data-theme="dark"] tbody tr:hover { background: rgba(255,255,255,0.03); }
+[data-theme="dark"] .nav-bar { background: rgba(18, 22, 28, 0.92); }
+[data-theme="dark"] .timeline-svg text { fill: var(--text-muted); }
+[data-theme="dark"] .timeline-svg line { stroke: var(--border); }
+
+@media (max-width: 768px) {
+  body { padding: 16px; }
+  .cards { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .charts-row { grid-template-columns: 1fr; }
+  table { font-size: 0.72rem; }
+  td, th { padding: 6px 8px; }
+  .nav-bar a { font-size: 0.68rem; padding: 4px 6px; }
+  .page-header h1 { font-size: 1.3rem; }
+  .repo-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+}
+@media (max-width: 480px) {
+  .cards { grid-template-columns: 1fr; }
+  .charts-row { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
 </style>
 </head>
 <body>
 
-<div class="header">
-  <h1>Supply Chain Audit Report</h1>
-  <div class="header-meta">
-    <strong>Audit window:</strong> {{start_date}} to {{end_date}} |
-    <strong>Generated:</strong> {{generated_at}} |
-    <strong>Repos analyzed:</strong> {{repo_count}} |
-    <strong>GitHub CLI:</strong> {{gh_version}}
+<!-- Header -->
+<div class="page-header">
+  <div>
+    <h1>Supply Chain Audit</h1>
+    <div class="header-meta">
+      {{start_date}} to {{end_date}} · Generated {{generated_at}} · {{repo_count}} repos · gh {{gh_version}}
+    </div>
+  </div>
+  <div class="header-actions">
+    {{back_link}}
+    {{theme_toggle_html}}
   </div>
 </div>
+
+<!-- Nav -->
+<nav class="nav-bar">
+  {{nav_links}}
+</nav>
 
 <!-- Verdict -->
 {{verdict_section}}
 
-<!-- Data Summary -->
-<h2>Data Analyzed</h2>
-<p>The following data was collected from the GitHub API and package registries for analysis.</p>
-<div class="summary-grid">
-  <div class="summary-card">
-    <span class="number">{{repo_count}}</span>
-    <span class="label">Repositories</span>
+<!-- Key Metrics -->
+<div class="cards" id="metrics">
+  <div class="card ok">
+    <span class="card-number ok">{{repo_count}}</span>
+    <span class="card-label">Repos</span>
   </div>
-  <div class="summary-card">
-    <span class="number">{{total_commits}}</span>
-    <span class="label">Commits on main</span>
+  <div class="card">
+    <span class="card-number">{{total_commits}}</span>
+    <span class="card-label">Commits</span>
   </div>
-  <div class="summary-card">
-    <span class="number">{{total_prs}}</span>
-    <span class="label">Pull Requests</span>
+  <div class="card">
+    <span class="card-number">{{total_prs}}</span>
+    <span class="card-label">Pull Requests</span>
   </div>
-  <div class="summary-card">
-    <span class="number">{{total_pr_branch_commits}}</span>
-    <span class="label">PR Branch Commits</span>
+  <div class="card">
+    <span class="card-number">{{total_dep_changes}}</span>
+    <span class="card-label">Dep Changes</span>
   </div>
-  <div class="summary-card">
-    <span class="number">{{total_check_suites}}</span>
-    <span class="label">CI Check Suites</span>
-  </div>
-  <div class="summary-card">
-    <span class="number">{{total_dep_changes}}</span>
-    <span class="label">Dependency Changes</span>
-  </div>
-  <div class="summary-card">
-    <span class="number">{{total_findings}}</span>
-    <span class="label">Anomalies Detected</span>
+  <div class="card {{findings_card_class}}">
+    <span class="card-number {{findings_number_class}}">{{total_findings}}</span>
+    <span class="card-label">Findings</span>
   </div>
 </div>
 
-<!-- Methodology -->
-<h2>What Was Checked</h2>
-<div class="methodology">
-  <p>Each commit within the audit window was verified against the following criteria:</p>
-  <ul>
-    <li><strong>Commit signing:</strong> Every commit must have a valid GPG or SSH signature</li>
-    <li><strong>PR traceability:</strong> Every commit must be the merge result of an approved pull request (no direct pushes)</li>
-    <li><strong>CI integrity:</strong> Required status checks must have passed before merge (per branch protection / rulesets)</li>
-    <li><strong>No post-merge tampering:</strong> No commits pushed to branches after their PR was merged or closed</li>
-    <li><strong>Commit message originality:</strong> No commit messages replicated from earlier legitimate commits (social engineering indicator)</li>
-    <li><strong>Dependency provenance:</strong> New/updated dependencies checked against registry for release date and yank status</li>
-    <li><strong>Renovate cooldown enforcement:</strong> Each dep's adoption timing verified against the repo's configured <code>minimumReleaseAge</code> policy (violations are critical)</li>
-    <li><strong>Known vulnerability scan:</strong> All current packages (from lock files) checked against OSV.dev for disclosed CVEs and advisories</li>
-    <li><strong>Branch protection stability:</strong> No modifications to branch protection rules or rulesets during the window</li>
-    <li><strong>Post-approval PR integrity:</strong> All commits within each PR branch inspected for pushes after the last review approval — especially from unexpected authors</li>
-    <li><strong>Human review requirement:</strong> Every merged PR must have at least one approval from a human reviewer (bot-only approvals flagged)</li>
-    <li><strong>Squash/merge via GitHub UI:</strong> Accepted as legitimate when they are the merge commit of a reviewed PR</li>
-    <li><strong>OpenSSF Scorecard:</strong> Each repo should run <code>ossf/scorecard-action</code> (push + weekly schedule) and publish results. The audit prefers published OpenSSF API scores and falls back to a local <code>scorecard</code> CLI run when the API has no data; weak critical checks are flagged either way</li>
-  </ul>
+<!-- Risk + Category Charts -->
+<div class="charts-row" id="charts">
+  <div class="chart-container">
+    <h3>Risk Distribution</h3>
+    {{risk_donut_svg}}
+  </div>
+  <div class="chart-container">
+    <h3>Findings by Category</h3>
+    {{category_bar_svg}}
+  </div>
 </div>
 
-<!-- Per-repo Summary -->
-<h2>Repository Summary</h2>
-<p>Breakdown of activity and verification status per repository.</p>
-<div style="overflow-x: auto; margin-right: 0; padding-right: 0;">
-<table id="repoSummaryTable" style="min-width: 900px;">
-  <thead>
-    <tr>
-      <th onclick="sortTable('repoSummaryTable', 0)">Repository <span class="sort-arrow">▾</span></th>
-      <th onclick="sortTable('repoSummaryTable', 1)">Commits <span class="sort-arrow">▾</span></th>
-      <th onclick="sortTable('repoSummaryTable', 2)">PRs <span class="sort-arrow">▾</span></th>
-      <th onclick="sortTable('repoSummaryTable', 3)" title="Signed via PR merge (GitHub web-flow)">Signed (PR) <span class="sort-arrow">▾</span></th>
-      <th onclick="sortTable('repoSummaryTable', 4)" title="Signed with personal GPG/SSH key">Signed (key) <span class="sort-arrow">▾</span></th>
-      <th onclick="sortTable('repoSummaryTable', 5)">Unsigned <span class="sort-arrow">▾</span></th>
-      <th onclick="sortTable('repoSummaryTable', 6)">Deps <span class="sort-arrow">▾</span></th>
-      <th onclick="sortTable('repoSummaryTable', 7)" title="Required CI status checks">Checks <span class="sort-arrow">▾</span></th>
-      <th onclick="sortTable('repoSummaryTable', 8)" style="min-width: 80px;">Findings <span class="sort-arrow">▾</span></th>
-    </tr>
-  </thead>
-  <tbody>
-{{repo_summary_rows}}
-  </tbody>
-</table>
-</div>
-
-<!-- Findings Summary -->
-<h2>Findings Summary</h2>
+<!-- Findings Summary (risk breakdown cards) -->
 {{findings_summary_section}}
 
 <!-- Repository Status -->
-<h3>Repository Status</h3>
-<div class="repo-grid">
-{{repo_cards}}
-</div>
-
-<!-- Timeline -->
-<h2>Commit Timeline</h2>
-<div class="timeline-container">
-  <div class="timeline-description">
-    Each dot represents a commit within the audit window. Commits are plotted by date (x-axis)
-    and grouped by repository (y-axis). Dot color indicates risk level based on anomaly detection.
-    A healthy timeline shows all grey/green dots, meaning no anomalies were detected.
+<details class="section" id="repo-status" open>
+  <summary><h2>Repository Status <span class="badge badge-accent">{{repo_count}}</span></h2></summary>
+  <div class="repo-grid">
+  {{repo_cards}}
   </div>
-{{timeline_svg}}
-  <div class="timeline-legend">
-    <span><span class="legend-dot" style="background: var(--low)"></span> Clean (no anomalies)</span>
-    <span><span class="legend-dot" style="background: var(--medium)"></span> Medium risk</span>
-    <span><span class="legend-dot" style="background: var(--high)"></span> High risk</span>
-    <span><span class="legend-dot" style="background: var(--critical)"></span> Critical</span>
-  </div>
-</div>
+</details>
 
-<!-- Commit Integrity (only shown if there are flagged commits) -->
+<!-- Repository Summary Table -->
+<details class="section" id="repo-summary" open>
+  <summary><h2>Repository Summary</h2></summary>
+  <p style="margin-bottom: 12px;">Breakdown of activity and verification status per repository.</p>
+  <div style="overflow-x: auto;">
+  <table id="repoSummaryTable" style="min-width: 900px;">
+    <thead>
+      <tr>
+        <th onclick="sortTable('repoSummaryTable', 0)">Repository <span class="sort-arrow">▾</span></th>
+        <th onclick="sortTable('repoSummaryTable', 1)">Commits <span class="sort-arrow">▾</span></th>
+        <th onclick="sortTable('repoSummaryTable', 2)">PRs <span class="sort-arrow">▾</span></th>
+        <th onclick="sortTable('repoSummaryTable', 3)" title="Signed via PR merge (GitHub web-flow)">Signed (PR) <span class="sort-arrow">▾</span></th>
+        <th onclick="sortTable('repoSummaryTable', 4)" title="Signed with personal GPG/SSH key">Signed (key) <span class="sort-arrow">▾</span></th>
+        <th onclick="sortTable('repoSummaryTable', 5)">Unsigned <span class="sort-arrow">▾</span></th>
+        <th onclick="sortTable('repoSummaryTable', 6)">Deps <span class="sort-arrow">▾</span></th>
+        <th onclick="sortTable('repoSummaryTable', 7)" title="Required CI status checks">Checks <span class="sort-arrow">▾</span></th>
+        <th onclick="sortTable('repoSummaryTable', 8)" style="min-width: 80px;">Findings <span class="sort-arrow">▾</span></th>
+      </tr>
+    </thead>
+    <tbody>
+  {{repo_summary_rows}}
+    </tbody>
+  </table>
+  </div>
+</details>
+
+<!-- Commit Timeline -->
+<details class="section" id="timeline" open>
+  <summary><h2>Commit Timeline</h2></summary>
+  <div class="timeline-container" style="border: none; box-shadow: none; padding: 0;">
+    <div class="timeline-description">
+      Each dot represents a commit within the audit window. Dot color indicates risk level.
+    </div>
+    {{timeline_svg}}
+    <div class="timeline-legend">
+      <span><span class="legend-dot" style="background: var(--ok)"></span> Clean</span>
+      <span><span class="legend-dot" style="background: var(--medium)"></span> Medium</span>
+      <span><span class="legend-dot" style="background: var(--high)"></span> High</span>
+      <span><span class="legend-dot" style="background: var(--critical)"></span> Critical</span>
+    </div>
+  </div>
+</details>
+
+<!-- Flagged Commits -->
 {{commit_integrity_section}}
 
 <!-- Dependency Changes -->
-<h2>Dependency Changes</h2>
-<p>All dependency file modifications detected in the audit window. "Days Since" shows how long after release the version was adopted.</p>
-{{dep_section}}
+<details class="section" id="deps">
+  <summary><h2>Dependency Changes</h2></summary>
+  <p style="margin-bottom: 8px;">"Days Since" shows how long after release the version was adopted.</p>
+  {{dep_section}}
+</details>
 
-<!-- Renovate Cooldown Policy -->
-{{renovate_section}}
+<!-- Renovate Cooldown -->
+<details class="section" id="renovate">
+  <summary><h2>Renovate Cooldown Policy</h2></summary>
+  {{renovate_section}}
+</details>
 
 <!-- OpenSSF Scorecard -->
-{{scorecard_section}}
+<details class="section" id="scorecard">
+  <summary><h2>OpenSSF Scorecard</h2></summary>
+  {{scorecard_section}}
+</details>
 
-<!-- Suspicious Patterns -->
-{{findings_details_section}}
+<!-- Anomaly Details -->
+<details class="section" id="anomalies" open>
+  <summary><h2>Anomaly Details</h2></summary>
+  <p style="margin-bottom: 8px;">Expand each category to see individual findings.</p>
+  {{findings_details_section}}
+</details>
+
+<!-- Methodology -->
+<details class="section" id="methodology">
+  <summary><h2>What Was Checked</h2></summary>
+  <div class="methodology" style="border: none; box-shadow: none; padding: 0;">
+    <p style="margin-bottom: 8px;">Each commit within the audit window was verified against the following criteria:</p>
+    <ul>
+      <li><strong>Commit signing:</strong> Every commit must have a valid GPG or SSH signature</li>
+      <li><strong>PR traceability:</strong> Every commit must be the merge result of an approved pull request</li>
+      <li><strong>CI integrity:</strong> Required status checks must have passed before merge</li>
+      <li><strong>No post-merge tampering:</strong> No commits pushed after PR was merged or closed</li>
+      <li><strong>Commit message originality:</strong> No replicated commit messages (social engineering indicator)</li>
+      <li><strong>Dependency provenance:</strong> New/updated dependencies checked for release date and yank status</li>
+      <li><strong>Renovate cooldown enforcement:</strong> Adoption timing verified against configured <code>minimumReleaseAge</code></li>
+      <li><strong>Known vulnerability scan:</strong> All packages checked against OSV.dev</li>
+      <li><strong>Branch protection stability:</strong> No modifications to branch protection during the window</li>
+      <li><strong>Post-approval PR integrity:</strong> No pushes after the last review approval</li>
+      <li><strong>Human review requirement:</strong> Every merged PR must have at least one human approval</li>
+      <li><strong>Squash/merge via GitHub UI:</strong> Accepted when they are the merge commit of a reviewed PR</li>
+      <li><strong>OpenSSF Scorecard:</strong> Workflow presence and published scores verified</li>
+    </ul>
+  </div>
+</details>
 
 <!-- Security Recommendations -->
 {{recommendations_section}}
@@ -447,78 +606,86 @@ a:hover { text-decoration: underline; }
 <!-- Package Focus (Phase 2) -->
 {{package_focus_section}}
 
+<!-- Historical Audits -->
+{{history_section}}
+
 <div class="footer">
-  Supply Chain Audit Tool v1.0 | All data sourced from GitHub API and package registries |
-  Standalone report — no external dependencies
+  Supply Chain Audit Tool v1.0 · All data sourced from GitHub API and package registries · Standalone report
 </div>
 
 <script>
 function sortTable(tableId, colIdx) {
   const table = document.getElementById(tableId);
+  if (!table) return;
   const tbody = table.querySelector('tbody');
   const rows = Array.from(tbody.querySelectorAll('tr'));
   const th = table.querySelectorAll('th')[colIdx];
   const asc = th.dataset.sort !== 'asc';
   th.dataset.sort = asc ? 'asc' : 'desc';
-
   rows.sort((a, b) => {
     const aVal = a.cells[colIdx]?.textContent.trim() || '';
     const bVal = b.cells[colIdx]?.textContent.trim() || '';
     const aNum = parseFloat(aVal);
     const bNum = parseFloat(bVal);
-    if (!isNaN(aNum) && !isNaN(bNum)) {
-      return asc ? aNum - bNum : bNum - aNum;
-    }
+    if (!isNaN(aNum) && !isNaN(bNum)) return asc ? aNum - bNum : bNum - aNum;
     return asc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
   });
-
   rows.forEach(r => tbody.appendChild(r));
 }
 
 function filterTable(tableId, query) {
   const table = document.getElementById(tableId);
+  if (!table) return;
   const rows = table.querySelectorAll('tbody tr');
   const q = query.toLowerCase();
   rows.forEach(row => {
-    const text = row.textContent.toLowerCase();
-    row.style.display = text.includes(q) ? '' : 'none';
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
   });
 }
 
 function toggleRisk(btn, tableId) {
   const table = document.getElementById(tableId);
   const risk = btn.dataset.risk;
-  const buttons = btn.parentElement.querySelectorAll('.filter-btn');
-  buttons.forEach(b => b.classList.remove('active'));
+  btn.parentElement.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-
-  const rows = table.querySelectorAll('tbody tr');
-  rows.forEach(row => {
-    if (risk === 'all') {
-      row.style.display = '';
-    } else {
-      const rowRisk = row.dataset.risk || '';
-      row.style.display = rowRisk === risk ? '' : 'none';
-    }
+  table.querySelectorAll('tbody tr').forEach(row => {
+    row.style.display = (risk === 'all' || row.dataset.risk === risk) ? '' : 'none';
   });
 }
 
 document.querySelectorAll('.collapsible-header').forEach(header => {
   header.addEventListener('click', () => {
     header.classList.toggle('open');
-    const body = header.nextElementSibling;
-    body.classList.toggle('open');
+    header.nextElementSibling.classList.toggle('open');
   });
 });
 
 function showMoreFindings(btn) {
   const body = btn.closest('.collapsible-body');
   if (!body) return;
-  body.querySelectorAll('.finding-item-hidden').forEach(el => {
-    el.classList.remove('finding-item-hidden');
-  });
+  body.querySelectorAll('.finding-item-hidden').forEach(el => el.classList.remove('finding-item-hidden'));
   btn.remove();
 }
+
+// Theme toggle
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  if (next === 'light') html.removeAttribute('data-theme');
+  else html.setAttribute('data-theme', next);
+  localStorage.setItem('guardian-theme', next === 'light' ? '' : next);
+  updateThemeIcon();
+}
+function updateThemeIcon() {
+  const btn = document.querySelector('.theme-toggle');
+  if (!btn) return;
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  btn.innerHTML = isDark
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg> Light'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg> Dark';
+}
+updateThemeIcon();
 </script>
 </body>
 </html>

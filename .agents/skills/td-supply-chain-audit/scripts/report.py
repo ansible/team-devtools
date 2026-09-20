@@ -65,6 +65,130 @@ RISK_COLORS = {
     "info": "#8b949e",
 }
 
+RISK_CSS_COLORS = {
+    "critical": "var(--error-text, #f85149)",
+    "high": "var(--warn-text, #db6d28)",
+    "medium": "var(--medium, #d29922)",
+    "low": "var(--ok-text, #3fb950)",
+    "info": "var(--text-muted, #8b949e)",
+}
+
+
+def build_risk_donut_svg(findings: list[dict]) -> str:
+    """Build an SVG donut chart showing risk distribution."""
+    counts = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
+    for f in findings:
+        risk = f.get("risk_level", "info")
+        counts[risk] = counts.get(risk, 0) + 1
+
+    total = sum(counts.values())
+    if total == 0:
+        return (
+            '<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style="max-width:200px;">'
+            '<circle cx="100" cy="100" r="70" fill="none" stroke="var(--border, #d5dde8)" stroke-width="20"/>'
+            '<text x="100" y="105" text-anchor="middle" font-size="24" font-weight="700" '
+            'fill="var(--text, #151a21)" font-family="sans-serif">0</text>'
+            "</svg>"
+        )
+
+    r = 70
+    circumference = 2 * 3.14159265 * r
+    offset = 0
+    parts = [
+        '<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style="max-width:200px;">',
+    ]
+
+    for risk in ["critical", "high", "medium", "low", "info"]:
+        count = counts[risk]
+        if count == 0:
+            continue
+        arc = (count / total) * circumference
+        color = RISK_CSS_COLORS[risk]
+        parts.append(
+            f'<circle cx="100" cy="100" r="{r}" fill="none" '
+            f'stroke="{color}" stroke-width="20" '
+            f'stroke-dasharray="{arc:.2f} {circumference - arc:.2f}" '
+            f'stroke-dashoffset="{-offset:.2f}" '
+            f'transform="rotate(-90 100 100)">'
+            f"<title>{risk}: {count}</title>"
+            f"</circle>",
+        )
+        offset += arc
+
+    parts.append(
+        f'<text x="100" y="96" text-anchor="middle" font-size="28" font-weight="700" '
+        f'fill="var(--text, #151a21)" font-family="sans-serif">{total}</text>',
+    )
+    parts.append(
+        '<text x="100" y="116" text-anchor="middle" font-size="11" '
+        'fill="var(--text-muted, #5a6573)" font-family="sans-serif">findings</text>',
+    )
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
+def build_category_bar_chart_svg(findings: list[dict]) -> str:
+    """Build an SVG horizontal bar chart of findings by category."""
+    by_cat: dict[str, list[dict]] = {}
+    for f in findings:
+        cat = f.get("category", "unknown")
+        by_cat.setdefault(cat, []).append(f)
+
+    if not by_cat:
+        return '<p class="no-data">No findings to chart</p>'
+
+    sorted_cats = sorted(by_cat.items(), key=lambda x: -len(x[1]))
+    max_count = max(len(v) for v in by_cat.values())
+
+    row_h = 28
+    label_w = 200
+    bar_area = 400
+    padding = 8
+    total_h = len(sorted_cats) * row_h + padding * 2
+    total_w = label_w + bar_area + 50
+
+    parts = [
+        f'<svg viewBox="0 0 {total_w} {total_h}" xmlns="http://www.w3.org/2000/svg" '
+        f'style="width:100%;max-width:{total_w}px;">',
+    ]
+
+    for i, (cat, cat_findings) in enumerate(sorted_cats):
+        y = padding + i * row_h
+        count = len(cat_findings)
+        bar_w = (count / max_count) * bar_area if max_count > 0 else 0
+        label = CATEGORY_LABELS.get(cat, cat)
+        if len(label) > row_h:
+            label = label[: row_h - 2] + "…"
+
+        max_risk = "info"
+        for f in cat_findings:
+            r = f.get("risk_level", "info")
+            if RISK_PRIORITY.index(r) < RISK_PRIORITY.index(max_risk):
+                max_risk = r
+
+        color = RISK_CSS_COLORS[max_risk]
+
+        parts.append(
+            f'<text x="{label_w - 8}" y="{y + row_h * 0.65}" text-anchor="end" '
+            f'font-size="11" fill="var(--text-muted, #5a6573)" font-family="sans-serif">'
+            f"{esc(label)}</text>",
+        )
+        parts.append(
+            f'<rect x="{label_w}" y="{y + 4}" width="{bar_w:.1f}" height="{row_h - 10}" '
+            f'rx="3" fill="{color}" opacity="0.8">'
+            f"<title>{esc(CATEGORY_LABELS.get(cat, cat))}: {count}</title>"
+            f"</rect>",
+        )
+        parts.append(
+            f'<text x="{label_w + bar_w + 6}" y="{y + row_h * 0.65}" '
+            f'font-size="11" font-weight="600" fill="var(--text, #151a21)" font-family="sans-serif">'
+            f"{count}</text>",
+        )
+
+    parts.append("</svg>")
+    return "\n".join(parts)
+
+
 CATEGORY_LABELS = {
     "unsigned_commit": "Unsigned Commits",
     "github_web_signed": "GitHub-Web-Signed Commits (non-merge)",
@@ -413,17 +537,16 @@ def generate_repo_cards(findings: list[dict], repos: list[str]) -> str:
         has_medium = any(f["risk_level"] == "medium" for f in rf)
 
         if has_critical:
-            light_class = "light-red"
+            card_class = "repo-red"
         elif has_medium:
-            light_class = "light-yellow"
+            card_class = "repo-yellow"
         else:
-            light_class = "light-green"
+            card_class = "repo-green"
 
         count = len(rf)
         count_str = f"{count} issues" if count else "clean"
         cards.append(
-            f'<div class="repo-card">'
-            f'<div class="light {light_class}"></div>'
+            f'<div class="repo-card {card_class}">'
             f'<span class="repo-name">{esc(repo)}</span>'
             f'<span class="repo-count">{count_str}</span>'
             f"</div>",
@@ -725,7 +848,8 @@ def generate_commit_integrity_section(commits: list[dict], findings: list[dict])
         return ""
 
     return (
-        "<h2>Flagged Commits</h2>"
+        '<details class="section" id="flagged-commits" open>'
+        "<summary><h2>Flagged Commits</h2></summary>"
         "<p>Commits with one or more anomaly detections. Click column headers to sort.</p>"
         '<div class="controls">'
         '<input type="text" id="commitFilter" placeholder="Filter by repo, author, SHA..." '
@@ -745,6 +869,7 @@ def generate_commit_integrity_section(commits: list[dict], findings: list[dict])
         "</tr></thead>"
         f"<tbody>{''.join(rows)}</tbody>"
         "</table></div>"
+        "</details>"
     )
 
 
@@ -873,7 +998,6 @@ def generate_renovate_config_table(
         )
 
     return (
-        "<h2>Renovate Cooldown Policy</h2>"
         "<p>Configured <code>minimumReleaseAge</code> per repository. "
         "Dependencies adopted before the cooldown expires are flagged as critical violations.</p>"
         '<div style="overflow-x: auto;">'
@@ -1006,7 +1130,6 @@ def generate_scorecard_section(
         )
 
     return (
-        "<h2>OpenSSF Scorecard</h2>"
         "<p>Per-repository Scorecard workflow presence and scores. Scores come from "
         "the public OpenSSF API when published, otherwise from a local "
         "<code>scorecard</code> CLI run during collection (CLI omits the "
@@ -1120,7 +1243,7 @@ def generate_findings_details(findings: list[dict]) -> str:
         )
         sections.append(section)
 
-    return "<h2>Anomaly Details</h2><p>Expand each category to see individual findings.</p>" + "\n".join(sections)
+    return "\n".join(sections)
 
 
 def render_recommendations_html(recommendations: list[dict[str, str]]) -> str:
@@ -1152,8 +1275,9 @@ def render_recommendations_html(recommendations: list[dict[str, str]]) -> str:
         )
 
     return (
-        "<h2>Security Recommendations</h2>"
-        "<p>Prioritized actions based on this audit's findings, ordered by impact.</p>" + "".join(items)
+        '<details class="section" id="recommendations" open>'
+        "<summary><h2>Security Recommendations</h2></summary>"
+        "<p>Prioritized actions based on this audit's findings, ordered by impact.</p>" + "".join(items) + "</details>"
     )
 
 
@@ -1205,7 +1329,8 @@ def generate_package_focus_section(package_data: dict | None) -> str:
         table_html = '<div class="no-data">No affected entries found in the audit window</div>'
 
     return (
-        f"<h2>Package Focus: {esc(pkg)}</h2>"
+        f'<details class="section" id="package-focus" open>'
+        f"<summary><h2>Package Focus: {esc(pkg)}</h2></summary>"
         f'<div class="package-focus">'
         f"<h3>Impact Analysis: {esc(pkg)} (compromise date: {esc(date)})</h3>"
         f'<div class="summary-grid">'
@@ -1218,6 +1343,7 @@ def generate_package_focus_section(package_data: dict | None) -> str:
         f"</div>"
         f"{table_html}"
         f"</div>"
+        f"</details>"
     )
 
 
@@ -1285,9 +1411,11 @@ def _load_recommendations_section(cache_dir: Path) -> str:
             recs = json.load(fh)
         return render_recommendations_html(recs)
     return (
-        "<h2>Security Recommendations</h2>"
+        '<details class="section" id="recommendations">'
+        "<summary><h2>Security Recommendations</h2></summary>"
         "<p><em>Recommendations will be generated by the agent after analysis. "
         "Re-run report.py after writing recommendations.json.</em></p>"
+        "</details>"
     )
 
 
@@ -1338,6 +1466,8 @@ def _generate_report_sections(data: dict) -> dict[str, str]:
         "scorecard_section": generate_scorecard_section(scorecards, repos),
         "findings_details_section": generate_findings_details(findings),
         "package_focus_section": generate_package_focus_section(package_data),
+        "risk_donut_svg": build_risk_donut_svg(findings),
+        "category_bar_svg": build_category_bar_chart_svg(findings),
     }
 
 
@@ -1364,6 +1494,38 @@ def _build_replacements(
     repos = manifest.get("repos", [])
     gh_version = manifest.get("gh_version", "unknown")
 
+    total_findings = len(findings)
+    has_critical = any(f.get("risk_level") == "critical" for f in findings)
+    has_high = any(f.get("risk_level") == "high" for f in findings)
+
+    if has_critical:
+        findings_card_class = "error"
+        findings_number_class = "critical"
+    elif has_high:
+        findings_card_class = "warn"
+        findings_number_class = "high"
+    elif total_findings > 0:
+        findings_card_class = ""
+        findings_number_class = "medium"
+    else:
+        findings_card_class = "ok"
+        findings_number_class = "ok"
+
+    nav_sections = [
+        ("metrics", "Metrics"),
+        ("charts", "Charts"),
+        ("repo-status", "Repos"),
+        ("repo-summary", "Summary"),
+        ("timeline", "Timeline"),
+        ("deps", "Dependencies"),
+        ("anomalies", "Anomalies"),
+        ("methodology", "Methodology"),
+    ]
+    nav_links = " ".join(f'<a href="#{sid}">{label}</a>' for sid, label in nav_sections)
+
+    back_link = '<a href="index.html" class="back-link">&larr; Dashboard</a>'
+    theme_toggle = '<button class="theme-toggle" onclick="toggleTheme()"></button>'
+
     replacements = {
         "{{start_date}}": manifest["start_date"],
         "{{end_date}}": manifest["end_date"],
@@ -1375,7 +1537,13 @@ def _build_replacements(
         "{{total_pr_branch_commits}}": str(data["total_pr_branch_commits"]),
         "{{total_check_suites}}": str(data["total_check_suites"]),
         "{{total_dep_changes}}": str(len(deps)),
-        "{{total_findings}}": str(len(findings)),
+        "{{total_findings}}": str(total_findings),
+        "{{findings_card_class}}": findings_card_class,
+        "{{findings_number_class}}": findings_number_class,
+        "{{nav_links}}": nav_links,
+        "{{back_link}}": back_link,
+        "{{theme_toggle_html}}": theme_toggle,
+        "{{history_section}}": "",
         "{{recommendations_section}}": recommendations_section,
     }
     for key, value in sections.items():
@@ -1411,12 +1579,80 @@ def _print_report_summary(  # pylint: disable=too-many-positional-arguments
     print(f"  Dep changes: {len(deps)}")
 
 
-def generate_report(cache_dir: Path, output_path: Path) -> None:
+def _build_history_section(history_dir: Path | None) -> str:
+    """Build a Previous Audits section from historical JSON files.
+
+    Args:
+        history_dir: Directory containing audit-YYYY-MM-DD.json files.
+
+    Returns:
+        HTML section, or empty string if no history.
+
+    """
+    if not history_dir or not history_dir.is_dir():
+        return ""
+
+    entries = []
+    for f in sorted(history_dir.glob("audit-*.json"), reverse=True):
+        stem = f.stem
+        date_str = stem.replace("audit-", "")
+        try:
+            with f.open(encoding="utf-8") as fh:
+                data = json.load(fh)
+            total = data.get("total_findings", 0)
+            risk = data.get("risk_totals", {})
+            crit = risk.get("critical", 0)
+            high = risk.get("high", 0)
+            med = risk.get("medium", 0)
+            html_file = f"audit-{date_str}.html"
+            entries.append((date_str, total, crit, high, med, html_file))
+        except (json.JSONDecodeError, OSError):
+            continue
+
+    if not entries:
+        return ""
+
+    rows = []
+    for date_str, total, crit, high, med, html_file in entries:
+        badges = ""
+        if crit:
+            badges += f' <span class="badge badge-critical">{crit}C</span>'
+        if high:
+            badges += f' <span class="badge badge-high">{high}H</span>'
+        if med:
+            badges += f' <span class="badge badge-medium">{med}M</span>'
+        clean_badge = '<span class="badge badge-low">Clean</span>'
+        rows.append(
+            f"<tr>"
+            f'<td><a href="{esc(html_file)}">{esc(date_str)}</a></td>'
+            f"<td>{total}</td>"
+            f"<td>{badges or clean_badge}</td>"
+            f"</tr>",
+        )
+
+    return (
+        '<details class="section" id="history">'
+        "<summary><h2>Previous Audits</h2></summary>"
+        "<table><thead><tr>"
+        "<th>Audit Date</th><th>Findings</th><th>Severity</th>"
+        "</tr></thead>"
+        f"<tbody>{''.join(rows)}</tbody>"
+        "</table>"
+        "</details>"
+    )
+
+
+def generate_report(
+    cache_dir: Path,
+    output_path: Path,
+    history_dir: Path | None = None,
+) -> None:
     """Generate the complete HTML report.
 
     Args:
         cache_dir: Cache directory with audit data.
         output_path: Destination path for the HTML report.
+        history_dir: Optional directory with historical audit-*.json files.
 
     """
     print("Loading data...")
@@ -1429,6 +1665,7 @@ def generate_report(cache_dir: Path, output_path: Path) -> None:
     print("Rendering HTML...")
     template = load_template()
     replacements = _build_replacements(data, sections, recommendations_section)
+    replacements["{{history_section}}"] = _build_history_section(history_dir)
     output = template
     for placeholder, value in replacements.items():
         output = output.replace(placeholder, value)
@@ -1462,6 +1699,11 @@ def main() -> None:
         default=".supply-chain-audit/report.html",
         help="Output HTML file path",
     )
+    parser.add_argument(
+        "--history-dir",
+        default=None,
+        help="Directory with historical audit-YYYY-MM-DD.json files",
+    )
     args = parser.parse_args()
 
     cache_path = Path(args.cache_dir)
@@ -1479,7 +1721,8 @@ def main() -> None:
             )
             sys.exit(1)
 
-    generate_report(cache_dir, Path(args.output))
+    history_dir = Path(args.history_dir) if args.history_dir else None
+    generate_report(cache_dir, Path(args.output), history_dir=history_dir)
 
 
 if __name__ == "__main__":
