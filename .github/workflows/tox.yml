@@ -126,7 +126,7 @@ jobs:
 
       - name: Determine matrix
         id: generate_matrix
-        uses: ansible/actions/matrix@cad24ebb8a8a1e25603d76fc4ea7e24924c18395 # main
+        uses: ansible/actions/matrix@6e2c7ca11505eec95096473d0fd1b9bba8282598 # main
         with:
           min_python: ${{ inputs.min_python }}
           max_python: ${{ inputs.max_python }}
@@ -248,7 +248,7 @@ jobs:
 
       - name: Archive logs and coverage data
         if: always()
-        uses: ansible/actions/upload-artifact@cad24ebb8a8a1e25603d76fc4ea7e24924c18395 # main
+        uses: ansible/actions/upload-artifact@6e2c7ca11505eec95096473d0fd1b9bba8282598 # main
         with:
           name: logs-${{ matrix.name }}.zip
           include-hidden-files: true
@@ -258,7 +258,7 @@ jobs:
       - name: Upload coverage data to codecov.io
         id: upload-coverage
         if: ${{ !cancelled() && hashFiles('**/coverage.xml') != '' }}
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           name: ${{ matrix.name }}
           fail_ci_if_error: true
@@ -273,7 +273,7 @@ jobs:
       - name: Upload test results to codecov.io
         id: upload-test-results
         if: ${{ !cancelled() && hashFiles('junit.xml') != '' }}
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           fail_ci_if_error: true
           name: ${{ matrix.name }}
