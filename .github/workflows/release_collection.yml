@@ -27,7 +27,7 @@ permissions:
 jobs:
   release_automation_hub:
     # Pin by SHA for OpenSSF Scorecard Pinned-Dependencies (cross-repo callers need owner/repo@ref).
-    uses: ansible/team-devtools/.github/workflows/release_ah.yml@f13b90b8baf842eef92fa0561017404230a7c1df # main
+    uses: ansible/team-devtools/.github/workflows/release_ah.yml@a8b84b38191f191f6ec2ae1e2096b4b55ca24e92 # main
     with:
       environment: release
     secrets:
@@ -35,7 +35,7 @@ jobs:
 
   release_galaxy:
     # Keep in sync with release_automation_hub pin when release_galaxy.yml changes.
-    uses: ansible/team-devtools/.github/workflows/release_galaxy.yml@f13b90b8baf842eef92fa0561017404230a7c1df # main
+    uses: ansible/team-devtools/.github/workflows/release_galaxy.yml@a8b84b38191f191f6ec2ae1e2096b4b55ca24e92 # main
     needs: [release_automation_hub]
     with:
       environment: release
